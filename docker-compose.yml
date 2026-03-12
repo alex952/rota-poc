@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rota
+      POSTGRES_USER: rota_user
+      POSTGRES_PASSWORD: rota_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rota_user -d rota"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://rota_user:rota_pass@db:5432/rota
+      HOLIDAY_API_URL: https://date.nager.at/api/v3
+      CITY: Alicante
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    environment:
+      API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

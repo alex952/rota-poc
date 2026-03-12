@@ -1,0 +1,23 @@
+[
+  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General" },
+  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria" },
+  { "id": "doc-003", "name": "Dr. Martinez", "department": "Cardiologia" },
+  { "id": "doc-004", "name": "Dr. Fernandez", "department": "Traumatologia" },
+  { "id": "doc-005", "name": "Dr. Sanchez", "department": "Neurologia" },
+  { "id": "doc-006", "name": "Dr. Ruiz", "department": "Medicina Interna" },
+  { "id": "doc-007", "name": "Dr. Diaz", "department": "Cirugia General" },
+  { "id": "doc-008", "name": "Dr. Moreno", "department": "Ginecologia" },
+  { "id": "doc-009", "name": "Dr. Alvarez", "department": "Dermatologia" },
+  { "id": "doc-010", "name": "Dr. Romero", "department": "Oftalmologia" },
+  { "id": "doc-011", "name": "Dr. Navarro", "department": "Urologia" },
+  { "id": "doc-012", "name": "Dr. Torres", "department": "Neumologia" },
+  { "id": "doc-013", "name": "Dr. Dominguez", "department": "Endocrinologia" },
+  { "id": "doc-014", "name": "Dr. Vazquez", "department": "Reumatologia" },
+  { "id": "doc-015", "name": "Dr. Ramos", "department": "Medicina General" },
+  { "id": "doc-016", "name": "Dr. Gil", "department": "Pediatria" },
+  { "id": "doc-017", "name": "Dr. Serrano", "department": "Anestesiologia" },
+  { "id": "doc-018", "name": "Dr. Blanco", "department": "Oncologia" },
+  { "id": "doc-019", "name": "Dr. Molina", "department": "Nefrologia" },
+  { "id": "doc-020", "name": "Dr. Castro", "department": "Hematologia" },
+  { "id": "doc-021", "name": "Dr. Ortega", "department": "Psiquiatria" }
+]

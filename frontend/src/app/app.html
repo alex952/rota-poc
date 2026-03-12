@@ -1,0 +1,60 @@
+<header class="app-header">
+  <span class="city-label">{{ city() }}</span>
+  <span class="header-divider"></span>
+  <span class="app-title">Doctor Rota</span>
+  <span class="header-spacer"></span>
+  <button class="btn-stats" (click)="toggleStats()">
+    {{ showStats() ? 'Hide Stats' : 'Show Stats' }}
+  </button>
+</header>
+
+<div class="app-layout" cdkDropListGroup>
+  <app-doctor-pool
+    [doctors]="doctors()"
+    [hasExistingRota]="hasExistingRota()"
+    [isLoading]="loading()"
+    (generateRota)="onGenerateRota()"
+    (doctorAdded)="onAddDoctor($event)"
+  />
+  <div class="calendar-wrapper">
+    @if (loading()) {
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        @if (isGenerating()) {
+          <span class="loading-text">Generating rota...</span>
+        } @else {
+          <span class="loading-text">Loading...</span>
+        }
+      </div>
+    }
+    <app-calendar
+      [year]="selectedYear()"
+      [schedule]="schedule()"
+      [hasData]="hasExistingRota()"
+      (yearChange)="onYearChange($event)"
+      (doctorDropped)="onDoctorDropped($event)"
+    />
+  </div>
+  <app-stats-panel [visible]="showStats()" [stats]="stats()" (closed)="toggleStats()" />
+</div>
+
+<app-notifications />
+
+@if (showConfirmDialog()) {
+  <app-confirm-dialog
+    [message]="confirmMessage()"
+    (confirmed)="onConfirmRegenerate()"
+    (cancelled)="onCancelRegenerate()"
+  />
+}
+
+@if (pendingReplacement()) {
+  <app-service-type-dialog
+    [date]="pendingReplacement()!.date"
+    [doctorName]="pendingReplacement()!.newDoctor.name"
+    [acDoctorName]="pendingReplacement()!.acDoctor.doctor_name"
+    [apDoctorName]="pendingReplacement()!.apDoctor.doctor_name"
+    (selected)="onServiceTypeSelected($event)"
+    (cancelled)="onCancelReplacement()"
+  />
+}
