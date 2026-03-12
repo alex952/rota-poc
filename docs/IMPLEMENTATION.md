@@ -1,6 +1,6 @@
 # Implementation Guide
 
-**Companion documents:** [PRD.md](./PRD.md) | [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md)
+**Companion documents:** [PRD.md](./PRD.md) | [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md) | [ALGORITHM.md](./ALGORITHM.md)
 
 ---
 

@@ -93,6 +93,7 @@ These rules are enforced by the algorithm and verified by tests:
 - `docs/PRD.md` — Product requirements with all acceptance criteria
 - `docs/TECHNICAL_DESIGN.md` — API contracts, DB schema, algorithm design
 - `docs/IMPLEMENTATION.md` — Developer guide, component hierarchy, testing strategy
+- `docs/ALGORITHM.md` — Assignment algorithm design, constraints, and trade-offs
 
 ## PoC Scope Exclusions
 

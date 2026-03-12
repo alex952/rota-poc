@@ -86,6 +86,7 @@ rota-poc/
 | [docs/PRD.md](docs/PRD.md) | Product requirements with acceptance criteria for all features |
 | [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Architecture, API contracts, database schema, algorithm design |
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Implementation details, developer guide, testing strategy |
+| [docs/ALGORITHM.md](docs/ALGORITHM.md) | Assignment algorithm design, constraints, and trade-offs |
 
 ## Tech Stack
 
