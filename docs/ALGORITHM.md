@@ -13,7 +13,7 @@ generate_rota(year, rota_type, pool, day_classifications):
   1. Compute doctors_per_day from pool size and minimum hours
   2. For each day D in the year:
      a. Build eligible doctor pool (rest-day filtering)
-     b. Pick `doctors_per_day` doctors (sort by behind-target → equity → hours → sparsity)
+     b. Pick `doctors_per_day` doctors (sort by equity → hours → round-robin position)
      c. Update tracking (hours, shift counts, last-assigned date)
   3. Validate minimum hours (HARD constraint)
   4. Return schedule + stats
@@ -56,17 +56,18 @@ Eligible doctors are sorted by a composite key (ascending):
 
 | Priority | Criterion | Purpose |
 |----------|-----------|---------|
-| 1st | "Behind target" — doctors below their hour target | Ensure minimum hours met |
-| 2nd | Fewest shifts of this day-type (weekday/saturday/holiday) | Day-type equity |
-| 3rd | Fewest total hours | Hour balance |
-| 4th | Largest gap since last assignment | Sparsity |
+| 1st | Fewest shifts of this day-type (weekday/saturday/holiday) | Day-type equity |
+| 2nd | Fewest total hours | Hour balance |
+| 3rd | Round-robin position `(doctor_index - rr_pointer) % N` | Break cohort lock-in |
+
+A **sliding round-robin pointer** (`rr_pointer`) advances by 1 each day. This ensures that when multiple doctors are tied on equity and hours, different subsets win the tiebreak on different days — preventing the same group from always being assigned together.
 
 The top `doctors_per_day` candidates are assigned.
 
 ### 4. Update tracking
 
 For each assigned doctor:
-- `last_assigned[doctor]` = D (used for rest-day and sparsity checks)
+- `last_assigned[doctor]` = D (used for rest-day checks)
 - Increment their hour counter by the day's duration
 - Increment their day-type shift counter
 
@@ -116,9 +117,9 @@ This is a significant simplification from the previous single-pass design where 
 1. **Minimum hours** — every doctor must reach the hard minimum (1,620h AC or 425h AP)
 2. **Day-type equity** — each doctor gets roughly the same count (±1) of weekday, Saturday, and holiday shifts
 3. **Hour equity** — minimize the max-min total hour difference across doctors
-4. **Sparsity** — maximize gaps between consecutive on-call assignments for each doctor
+4. **Group variation** — prevent the same subset of doctors from always being assigned together (sliding round-robin pointer)
 
-These are encoded in the sort key: the first sort field dominates, with ties broken by subsequent fields.
+Goals 2–4 are encoded in the sort key. Goal 1 is enforced as a hard post-generation validation.
 
 ---
 
@@ -147,7 +148,9 @@ These are encoded in the sort key: the first sort field dominates, with ties bro
 
 | Structure | Type | Purpose |
 |-----------|------|---------|
-| `last_assigned` | `dict[str, date \| None]` | Last assignment date per doctor — rest-day + sparsity |
+| `last_assigned` | `dict[str, date \| None]` | Last assignment date per doctor — rest-day filtering |
+| `rr_pointer` | `int` | Sliding round-robin pointer — advances by 1 each day for group variation |
+| `doctor_index` | `dict[str, int]` | Pre-computed index lookup for O(1) round-robin position |
 | `total_hours` | `dict[str, int]` | Cumulative hours per doctor — hour equity + minimum validation |
 | `{weekday,saturday,holiday}_count` | `dict[str, int]` | Shift counts per doctor per day-type — day-type equity |
 

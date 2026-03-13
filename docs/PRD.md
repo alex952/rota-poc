@@ -49,7 +49,7 @@ This is a **Proof of Concept (PoC)** — authentication, authorization, and prod
 - BR-6: Sundays that are also public holidays count as a single Sunday/Holiday shift (no double-counting).
 - BR-7: The number of doctors assigned per day per rota type (`doctors_per_day`) is **auto-computed** by the algorithm based on pool size and minimum hour constraints. Formula: `ceil(pool_size × min_hours / total_yearly_hours)`.
 - BR-8: **Post-on-call rest day** — a doctor who is on call on day D is **unavailable** for assignment on day D+1. Rest days apply **per rota type only** (AC rest days don't affect AP and vice versa, since pools are separate). Soft constraint for pools < 4.
-- BR-9: On-call assignments should be **as sparse as possible** — maximize the gap between a doctor's consecutive on-call days.
+- BR-9: On-call assignments should have **maximum group variation** — the algorithm uses a sliding round-robin pointer to prevent the same subset of doctors from always being assigned together.
 - BR-10: If a public holiday falls on a Saturday, it is classified as a **holiday** (23h shift), not a Saturday (18h shift). Holiday classification always takes precedence.
 
 #### Acceptance Criteria
@@ -66,7 +66,7 @@ This is a **Proof of Concept (PoC)** — authentication, authorization, and prod
 | AC-3.1.8 | **Given** a year, **when** generating the rota, **then** the system fetches and correctly classifies public holidays for the configured city. |
 | AC-3.1.9 | **Given** separate AC and AP pools, **then** doctors belong to one pool only and rotas are generated independently per type. |
 | AC-3.1.10 | **Given** a doctor is assigned on-call on day D, **then** that doctor has no assignment on day D+1 within the same rota type (rest day per type only). |
-| AC-3.1.11 | **Given** a generated rota, **when** comparing the gaps between a doctor's consecutive on-call days, **then** the algorithm maximizes spacing (assignments are as sparse as possible). |
+| AC-3.1.11 | **Given** a generated rota, **when** examining which doctors are assigned together on different days, **then** the algorithm varies the groupings (no fixed cohort of doctors always assigned together). |
 | AC-3.1.12 | **Given** a public holiday that falls on a Saturday, **then** that day is classified as holiday (23h shift), not Saturday (18h). |
 | AC-3.1.13 | **Given** a pool of doctors, **when** the algorithm runs, **then** `doctors_per_day` is auto-computed as `ceil(pool_size × min_hours / total_yearly_hours)`. |
 

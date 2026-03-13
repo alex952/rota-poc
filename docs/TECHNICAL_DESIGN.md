@@ -323,9 +323,9 @@ The rota assignment is a **constraint-satisfaction + optimization** problem. For
 
 | Priority | Goal |
 |----------|------|
-| 1 | **Sparsity** — maximize the gap between a doctor's consecutive on-call days. |
-| 2 | **Equity by day-type** — each doctor should have the same (±1) count of weekday, Saturday, and holiday shifts. |
-| 3 | **Equity by total hours** — minimize the max-min difference in total hours across doctors. |
+| 1 | **Equity by day-type** — each doctor should have the same (±1) count of weekday, Saturday, and holiday shifts. |
+| 2 | **Equity by total hours** — minimize the max-min difference in total hours across doctors. |
+| 3 | **Group variation** — prevent the same subset of doctors from always being assigned together (sliding round-robin pointer). |
 
 #### Algorithm: Independent Per-Type Generation
 
@@ -348,11 +348,11 @@ Input: rota_type, pool[], days[], holidays[]
      · Any doctor assigned on day D-1 (rest day rule, if enough alternatives)
      · Any doctor already assigned today (if doctors_per_day > 1)
    - Sort eligible doctors by:
-     1. "Behind target" — doctors below their hour target sorted first
-     2. Fewest shifts of this day_type (equity)
-     3. Fewest total hours
-     4. Largest gap since last assignment (sparsity)
+     1. Fewest shifts of this day_type (equity)
+     2. Fewest total hours
+     3. Round-robin position: (doctor_index - rr_pointer) % N
    - Assign top `doctors_per_day` candidates
+   - Advance rr_pointer by 1 (breaks cohort lock-in)
    - Update counters and last_assigned_date
 
 4. Validate (hard):

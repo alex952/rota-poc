@@ -154,7 +154,7 @@ This is the core of the system. It generates a full-year on-call schedule for a 
 
 1. **Day-type equity:** Each doctor gets roughly the same count (±1) of weekday, Saturday, and holiday shifts
 2. **Hour equity:** Minimize the max-min total hour difference across doctors
-3. **Sparsity:** Maximize gaps between consecutive on-call assignments
+3. **Group variation:** Sliding round-robin pointer prevents the same doctors from always being assigned together
 
 #### Algorithm: Independent Per-Type Balanced Round-Robin
 
@@ -172,8 +172,8 @@ Input: rota_type, pool[], day_classifications[]
    a. Build eligible set:
       - Exclude doctors assigned on D-1 (rest day, if enough alternatives)
       - Exclude doctors already assigned today (if doctors_per_day > 1)
-   b. Sort eligible by: ("behind target" priority, fewest shifts of this day_type,
-      fewest total hours, largest gap)
+   b. Sort eligible by: (fewest shifts of this day_type,
+      fewest total hours, round-robin position)
    c. Assign top `doctors_per_day` candidates
    d. Update tracking: hours, day-type counts, last_assigned_date
 

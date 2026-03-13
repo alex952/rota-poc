@@ -45,7 +45,7 @@ docker compose up db            # just PostgreSQL (for local backend dev)
 - **Backend API** at `/api/v1`: config, rota CRUD, holidays, health
 - **Database**: PostgreSQL with 4 tables — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Angular standalone components with signal-based state
-- **Algorithm**: Independent per-type balanced round-robin with auto-computed doctors_per_day, rest-day, sparsity, and equity constraints in `backend/app/services/assignment.py`
+- **Algorithm**: Independent per-type balanced round-robin with auto-computed doctors_per_day, rest-day, sliding round-robin pointer, and equity constraints in `backend/app/services/assignment.py`
 
 ## Key Configuration
 
@@ -87,7 +87,7 @@ These rules are enforced by the algorithm and verified by tests:
 3. Minimum hours: **1,620h/year AC** (135h/month × 12), **425h/year AP** per doctor — **hard constraint** (raises error if not met)
 4. `doctors_per_day` is **auto-computed**: `ceil(pool_size × min_hours / total_yearly_hours)`
 5. Holiday > Saturday > Weekday for day-type classification
-6. Assignments should be as sparse and equitable as possible
+6. Assignments should have maximum group variation and be equitable (sliding round-robin pointer prevents cohort lock-in)
 
 ## Documentation
 
