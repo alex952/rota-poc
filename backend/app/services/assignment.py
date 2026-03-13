@@ -31,12 +31,6 @@ class InfeasiblePoolError(Exception):
     pass
 
 
-def _gap_since_last(last_assigned: date | None, current: date) -> int:
-    """Return the number of days since last assignment, or a large number if never assigned."""
-    if last_assigned is None:
-        return 9999
-    return (current - last_assigned).days
-
 
 def _compute_doctors_per_day(
     rota_type: RotaType,
@@ -109,6 +103,14 @@ def generate_rota(
         else:
             return holiday_count[did]
 
+    # Pre-compute doctor index lookup for O(1) access in sort key
+    doctor_index = {did: i for i, did in enumerate(doctor_ids)}
+
+    # Sliding round-robin pointer — advances by 1 each day to ensure
+    # different subsets of equally-qualified doctors are selected,
+    # breaking the cohort lock-in caused by rest-day synchronization.
+    rr_pointer = 0
+
     # -----------------------------------------------------------------------
     # Single pass: Assign doctors_per_day doctors for each day
     # -----------------------------------------------------------------------
@@ -139,18 +141,25 @@ def generate_rota(
                 f"Not enough eligible doctors on {d}. Pool is too small."
             )
 
-        # Sort by: 1) fewest day-type shifts (equity), 2) fewest hours (behind target first),
-        #          3) largest gap since last assignment (sparsity)
+        # Sort by: 1) fewest day-type shifts (equity),
+        #          2) fewest total hours (behind-target first),
+        #          3) round-robin position (varies each day to break cohorts)
+        # The round-robin pointer advances by 1 daily, so different doctors
+        # win ties on different days — preventing the same group from always
+        # being selected together.
         available_sorted = sorted(
             available_today,
             key=lambda did: (
                 _day_type_count(did, day_info.day_type),
                 hours[did],
-                -_gap_since_last(last_assigned[did], d),
+                (doctor_index[did] - rr_pointer) % n_doctors,
             )
         )
 
         chosen = available_sorted[:doctors_per_day]
+
+        # Advance pointer by 1 each day for maximum group variation
+        rr_pointer = (rr_pointer + 1) % n_doctors
 
         # --- Update tracking ---
         for did in chosen:
