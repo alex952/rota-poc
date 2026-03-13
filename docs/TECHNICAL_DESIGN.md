@@ -69,12 +69,13 @@ Returns the app-level configuration (city, etc.) for the frontend to display.
 
 #### `POST /api/v1/rota/generate`
 
-Generates a new rota for the given year and doctor pool. Uses the app-configured city for holiday resolution. Replaces any existing rota for that year.
+Generates a new rota for the given year, rota type, and doctor pool. Uses the app-configured city for holiday resolution. Replaces any existing rota for that year and type.
 
 **Request:**
 ```json
 {
   "year": 2026,
+  "rota_type": "AC",
   "pool": [
     {
       "id": "doc-001",
@@ -94,6 +95,8 @@ Generates a new rota for the given year and doctor pool. Uses the app-configured
 ```json
 {
   "year": 2026,
+  "rota_type": "AC",
+  "doctors_per_day": 1,
   "city": "Madrid",
   "generated_at": "2026-01-15T10:30:00Z",
   "schedule": [
@@ -103,14 +106,12 @@ Generates a new rota for the given year and doctor pool. Uses the app-configured
       "shift_start": "09:00",
       "shift_end": "08:00+1",
       "duration_hours": 23,
-      "atencion_continuada": {
-        "doctor_id": "doc-001",
-        "doctor_name": "Dr. Garcia"
-      },
-      "atencion_primaria": {
-        "doctor_id": "doc-002",
-        "doctor_name": "Dr. Lopez"
-      }
+      "doctors": [
+        {
+          "doctor_id": "doc-001",
+          "doctor_name": "Dr. Garcia"
+        }
+      ]
     }
   ],
   "stats": {
@@ -118,12 +119,11 @@ Generates a new rota for the given year and doctor pool. Uses the app-configured
       {
         "doctor_id": "doc-001",
         "doctor_name": "Dr. Garcia",
-        "total_hours": 572,
-        "ac_hours": 140,
-        "ap_hours": 432,
-        "shifts_weekday": 20,
-        "shifts_saturday": 5,
-        "shifts_sunday_holiday": 4
+        "total_hours": 1650,
+        "monthly_hours": { "1": 140, "2": 130, "3": 138 },
+        "shifts_weekday": 60,
+        "shifts_saturday": 15,
+        "shifts_sunday_holiday": 12
       }
     ]
   }
@@ -131,14 +131,21 @@ Generates a new rota for the given year and doctor pool. Uses the app-configured
 ```
 
 **Error cases:**
-- `400` — Pool has fewer than 2 doctors, invalid year, missing fields.
+- `400` — Pool too small, infeasible pool (cannot meet minimum hours), invalid year, missing fields.
 - `502` — Holiday API unreachable.
+
+**Key changes from previous version:**
+- `rota_type` in request body (AC or AP)
+- `doctors_per_day` auto-computed and returned in response
+- `DayAssignment.doctors` is a list (supports multi-doctor days)
+- `DoctorStats` has `monthly_hours` instead of `ac_hours`/`ap_hours`
+- Minimum hours are hard constraints — returns 400 if not achievable
 
 ---
 
-#### `GET /api/v1/rota/{year}`
+#### `GET /api/v1/rota/{year}/{rota_type}`
 
-Retrieves the stored rota for a given year.
+Retrieves the stored rota for a given year and rota type (AC or AP).
 
 **Query parameters:**
 - `doctor_id` (optional) — filter assignments to a single doctor.
@@ -146,19 +153,35 @@ Retrieves the stored rota for a given year.
 **Response (200):** Same shape as the generate response.
 
 **Error cases:**
-- `404` — No rota exists for that year.
+- `404` — No rota exists for that year/type.
 
 ---
 
-#### `PATCH /api/v1/rota/{year}/replace`
+#### `GET /api/v1/rota/{year}`
 
-Replaces a doctor assignment on a specific date and service type.
+Retrieves all stored rotas for a given year (returns a list containing AC and/or AP rotas).
+
+**Response (200):**
+```json
+[
+  { "year": 2026, "rota_type": "AC", "doctors_per_day": 1, ... },
+  { "year": 2026, "rota_type": "AP", "doctors_per_day": 1, ... }
+]
+```
+
+**Error cases:**
+- `404` — No rotas exist for that year.
+
+---
+
+#### `PATCH /api/v1/rota/{year}/{rota_type}/replace`
+
+Replaces a doctor assignment on a specific date within a rota type.
 
 **Request:**
 ```json
 {
   "date": "2026-03-15",
-  "service_type": "atencion_continuada",
   "old_doctor_id": "doc-001",
   "new_doctor_id": "doc-003"
 }
@@ -167,7 +190,7 @@ Replaces a doctor assignment on a specific date and service type.
 **Response (200):** Updated day entry + recalculated stats.
 
 **Error cases:**
-- `404` — No rota for that year, or no assignment matching date/service/old_doctor.
+- `404` — No rota for that year/type, or no assignment matching date/old_doctor.
 - `400` — new_doctor_id not in original pool.
 
 ---
@@ -195,11 +218,14 @@ Utility endpoint to inspect resolved holidays for the configured city (useful fo
 ```sql
 -- Stores metadata about a generated rota
 CREATE TABLE rotas (
-    id          SERIAL PRIMARY KEY,
-    year        INTEGER NOT NULL UNIQUE,
-    city        VARCHAR(100) NOT NULL,
-    generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    pool        JSONB NOT NULL  -- original pool snapshot
+    id              SERIAL PRIMARY KEY,
+    year            INTEGER NOT NULL,
+    rota_type       VARCHAR(2) NOT NULL,   -- 'AC' or 'AP'
+    doctors_per_day INTEGER NOT NULL,       -- algorithm-computed
+    city            VARCHAR(100) NOT NULL,
+    generated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    pool            JSONB NOT NULL,         -- original pool snapshot
+    UNIQUE(year, rota_type)
 );
 
 -- Stores the doctor pool members for a rota
@@ -212,7 +238,7 @@ CREATE TABLE rota_doctors (
     UNIQUE(rota_id, doctor_id)
 );
 
--- Stores each day's assignments
+-- Stores each day's assignments (one row per doctor per day)
 CREATE TABLE rota_assignments (
     id              SERIAL PRIMARY KEY,
     rota_id         INTEGER NOT NULL REFERENCES rotas(id) ON DELETE CASCADE,
@@ -221,9 +247,8 @@ CREATE TABLE rota_assignments (
     shift_start     TIME NOT NULL,
     shift_end       TIME NOT NULL,
     duration_hours  INTEGER NOT NULL,
-    ac_doctor_id    VARCHAR(50) NOT NULL,  -- Atencion Continuada
-    ap_doctor_id    VARCHAR(50) NOT NULL,  -- Atencion Primaria
-    UNIQUE(rota_id, date)
+    doctor_id       VARCHAR(50) NOT NULL,  -- one row per doctor per day
+    UNIQUE(rota_id, date, doctor_id)
 );
 
 -- Stores resolved holidays for a year/city (cached)
@@ -238,9 +263,12 @@ CREATE TABLE holidays (
 ```
 
 **Indexes:**
-- `rota_assignments(rota_id, ac_doctor_id)` — for filtering by doctor.
-- `rota_assignments(rota_id, ap_doctor_id)` — for filtering by doctor.
+- `rota_assignments(rota_id, doctor_id)` — for filtering by doctor.
 - `holidays(year, city)` — for holiday lookup.
+
+**Key schema changes from previous version:**
+- `rotas` table gains `rota_type` (AC/AP) and `doctors_per_day` columns. Unique constraint changes from `(year)` to `(year, rota_type)`.
+- `rota_assignments` replaces `ac_doctor_id`/`ap_doctor_id` with a single `doctor_id` column. One row per doctor per day (supports multi-doctor days). Unique constraint changes from `(rota_id, date)` to `(rota_id, date, doctor_id)`.
 
 ### 2.4 Project Structure
 
@@ -286,10 +314,10 @@ The rota assignment is a **constraint-satisfaction + optimization** problem. For
 
 | ID | Constraint | Detail |
 |----|-----------|--------|
-| HC-1 | **No dual assignment** | A doctor cannot be assigned both AC and AP on the same day. Minimum pool size: 2. |
-| HC-2 | **Post-on-call rest day** | A doctor assigned on-call on day D is **unavailable** for any assignment (AC or AP) on day D+1. |
-| HC-3 | **Minimum hours** | Every doctor must reach >= 135h AC and >= 425h AP per year. |
-| HC-4 | **One doctor per slot** | Each day has exactly one AC doctor and one AP doctor. |
+| HC-1 | **Separate pools** | AC and AP have separate doctor pools. A doctor belongs to one pool only. |
+| HC-2 | **Post-on-call rest day** | A doctor assigned on-call on day D is **unavailable** on day D+1, within the same rota type. Rest days are per-type only (soft constraint for pools < 4). |
+| HC-3 | **Minimum hours** | AC doctors must reach >= 1,620h/year (135h/month × 12). AP doctors must reach >= 425h/year. **Hard constraint** — raises error if not met. |
+| HC-4 | **Auto-computed doctors_per_day** | The algorithm computes `doctors_per_day = ceil(pool_size × min_hours / total_yearly_hours)`. |
 
 #### Optimization Goals (soft constraints, in priority order)
 
@@ -299,10 +327,10 @@ The rota assignment is a **constraint-satisfaction + optimization** problem. For
 | 2 | **Equity by day-type** — each doctor should have the same (±1) count of weekday, Saturday, and holiday shifts. |
 | 3 | **Equity by total hours** — minimize the max-min difference in total hours across doctors. |
 
-#### Algorithm: Balanced Round-Robin with Rest-Day & Sparsity
+#### Algorithm: Independent Per-Type Generation
 
 ```
-Input: doctors[], days[], holidays[]
+Input: rota_type, pool[], days[], holidays[]
 
 1. Classify each day → day_type:
    - If day is a public holiday (including Saturday holidays) → "holiday" (23h)
@@ -310,50 +338,44 @@ Input: doctors[], days[], holidays[]
    - Else if Sunday → "holiday" (23h)
    - Else → "weekday" (17h)
 
-2. Assign AC first, then AP (two passes):
+2. Compute doctors_per_day:
+   total_yearly_hours = sum of all day durations
+   min_hours = 1620 if AC, 425 if AP
+   doctors_per_day = ceil(len(pool) * min_hours / total_yearly_hours)
 
-   For each service_type in [AC, AP]:
-     a. Initialize per-doctor state:
-        - total_hours = 0
-        - weekday_count, saturday_count, holiday_count = 0
-        - last_assigned_date = None  (for sparsity tracking)
+3. For each day D in the year (chronological):
+   - Build eligible set: all doctors MINUS:
+     · Any doctor assigned on day D-1 (rest day rule, if enough alternatives)
+     · Any doctor already assigned today (if doctors_per_day > 1)
+   - Sort eligible doctors by:
+     1. "Behind target" — doctors below their hour target sorted first
+     2. Fewest shifts of this day_type (equity)
+     3. Fewest total hours
+     4. Largest gap since last assignment (sparsity)
+   - Assign top `doctors_per_day` candidates
+   - Update counters and last_assigned_date
 
-     b. For each day D in the year (chronological):
-        - Build eligible set: all doctors MINUS:
-          · Any doctor assigned on-call (AC or AP) on day D-1 (rest day rule HC-2)
-          · For AP pass: the doctor already assigned AC on day D (dual rule HC-1)
-        - Sort eligible doctors by:
-          1. Largest gap since last assignment (sparsity — primary)
-          2. Fewest shifts of this day_type (equity — secondary)
-          3. Fewest total hours (tertiary)
-        - Assign the top candidate
-        - Update counters and last_assigned_date
+4. Validate (hard):
+   - AC: every doctor has >= 1620h/year
+   - AP: every doctor has >= 425h/year
+   - Raise InfeasiblePoolError if any doctor falls short
 
-3. Validate:
-   - Every doctor has >= 135h AC and >= 425h AP
-   - If not met, run a targeted swap pass to rebalance while
-     respecting HC-1 and HC-2
-
-4. Return schedule + stats
+5. Return schedule + stats
 ```
 
 #### Feasibility Check (run before generation)
 
-The rest-day constraint significantly impacts capacity. A doctor assigned on day D is blocked on D+1, meaning each assignment "costs" 2 days of availability.
+- Pool must have >= `doctors_per_day + doctors_per_day` doctors (need enough for rest-day rotation)
+- `doctors_per_day × total_yearly_hours / pool_size` must >= `min_hours` (safety check)
+- If infeasible, return a `400` error with explanation
 
-- Total days in year: 365 (or 366)
-- Each doctor can be assigned at most ~182 days (every other day)
-- Each doctor needs AC + AP assignments, and each assignment blocks the next day for both types
-- Approximate minimum pool size: `ceil(365 * 2 / 182)` = **4 doctors** (to cover AC + AP with rest days)
-- For a pool of N doctors, verify: `total_hours_per_service / N >= min_hours` for each service type
-- If infeasible, return a `400` error with an explanation of why the pool is too small or too large
+#### Impact of Separate Pools on Scheduling
 
-#### Impact of Rest-Day Rule on Scheduling
-
-Because a doctor on call on day D cannot be assigned on D+1 for **either** service type:
-- The AC and AP assignments are **coupled** — assigning a doctor AC on Monday blocks them from AP on Tuesday
-- The algorithm must process AC first, then AP with awareness of AC assignments from both D and D-1
-- With small pools (e.g., 4-5 doctors), the algorithm may need backtracking if a greedy assignment leads to a dead end
+Because AC and AP now have separate pools:
+- AC and AP rotas are **independent** — no cross-type coupling
+- Rest days apply per type only (AC rest days don't affect AP)
+- Each rota type is generated with a single call; the UI generates them independently
+- The calendar displays both types merged by date
 
 ### 2.6 Holiday Resolution
 
@@ -441,9 +463,10 @@ app/
 │       ├── stats-panel.component.ts    # Slide-out stats panel
 │       └── doctor-stats-row.component.ts
 ├── shared/
-│   └── confirm-dialog.component.ts     # Re-generate confirmation
+│   ├── confirm-dialog.component.ts     # Re-generate confirmation
+│   └── replace-doctor-dialog.component.ts  # Multi-doctor replacement picker
 └── assets/
-    └── doctors.json                    # Static doctor pool config
+    └── doctors.json                    # Static doctor pool config (each doctor has rota_type)
 ```
 
 ### 3.4 Static Doctor Configuration
@@ -451,11 +474,13 @@ app/
 `frontend/src/assets/doctors.json`:
 ```json
 [
-  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General" },
-  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria" },
-  { "id": "doc-003", "name": "Dr. Martinez", "department": "Cardiologia" }
+  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General", "rota_type": "AC" },
+  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria", "rota_type": "AC" },
+  { "id": "doc-011", "name": "Dr. Navarro", "department": "Urgencias", "rota_type": "AP" }
 ]
 ```
+
+Each doctor specifies their `rota_type` (AC or AP). The pool panel shows AC/AP tabs to switch between pools.
 
 ### 3.5 Key User Flows
 
@@ -474,11 +499,12 @@ app/
 5. On success → update calendar and stats with response data.
 
 **Flow 3 — Drag-and-Drop Replacement:**
-1. User drags a doctor card from the pool panel.
-2. Drops it on a calendar day cell (which shows current assignment).
-3. UI determines the service type slot targeted (AC or AP).
-4. Calls `PATCH /api/v1/rota/{year}/replace` with date, service_type, old and new doctor.
-5. On success → update that day cell and refresh stats.
+1. User drags a doctor card from the pool panel (which has an active AC or AP tab).
+2. Drops it on a calendar day cell (which shows current assignments for both types).
+3. The rota type is determined by the active pool tab (AC or AP).
+4. If the day has multiple doctors for that type, a `ReplaceDoctorDialogComponent` appears — user picks which doctor to replace.
+5. Calls `PATCH /api/v1/rota/{year}/{rota_type}/replace` with date, old and new doctor.
+6. On success → update that day cell and refresh stats.
 
 ---
 
@@ -632,7 +658,8 @@ The FastAPI service will enable CORS for the frontend origin (`http://localhost:
 | Decision | Rationale |
 |----------|-----------|
 | Greedy round-robin over LP/CSP solver | Simpler to implement for PoC; sufficient for equitable distribution with small pools. May need backtracking with very small pools due to rest-day constraint. Can be upgraded to CSP later. |
-| AC-first then AP assignment order | AC has fewer required hours (135 vs 425), so it's less constraining. Assigning AC first leaves more flexibility for the heavier AP pass. |
+| Independent per-type generation | With separate pools, AC and AP are fully independent. Each call to `generate_rota` handles one type. No cross-type coupling simplifies the algorithm significantly. |
+| Auto-computed doctors_per_day | Derived from `ceil(pool_size × min_hours / total_yearly_hours)`. Ensures minimum hours are always achievable. Not a user-configurable parameter. |
 | Separate `rota_assignments` table per day | Enables efficient per-doctor queries and individual day replacement without rewriting the full schedule. |
 | Holiday API + static local file | No single free API covers Spanish national + regional + local holidays. Hybrid approach is pragmatic. |
 | Holiday precedence over Saturday | Confirmed by stakeholder: a Saturday that is also a holiday uses the 23h holiday shift. Simplifies day-type classification. |

@@ -23,11 +23,13 @@ describe('AddDoctorDialogComponent', () => {
     expect(deptInput).toBeTruthy();
   });
 
-  it('should emit doctor data on submit', () => {
+  it('should emit doctor data with rota_type on submit', () => {
+    fixture.componentRef.setInput('defaultRotaType', 'AC');
+    fixture.detectChanges();
+
     const spy = vi.fn();
     component.doctorAdded.subscribe(spy);
 
-    // Fill in the form
     component.form.controls['name'].setValue('Dr. Fernandez');
     component.form.controls['department'].setValue('Neurologia');
     fixture.detectChanges();
@@ -40,9 +42,9 @@ describe('AddDoctorDialogComponent', () => {
       expect.objectContaining({
         name: 'Dr. Fernandez',
         department: 'Neurologia',
+        rota_type: 'AC',
       })
     );
-    // Verify an id was generated
     expect(spy.mock.calls[0][0].id).toBeTruthy();
   });
 
@@ -53,7 +55,6 @@ describe('AddDoctorDialogComponent', () => {
 
     expect(component.form.valid).toBe(false);
 
-    // Submit button should not emit when form is invalid
     const spy = vi.fn();
     component.doctorAdded.subscribe(spy);
 

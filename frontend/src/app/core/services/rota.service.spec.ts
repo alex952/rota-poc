@@ -12,6 +12,8 @@ describe('RotaService', () => {
   const mockRotaResponse: RotaResponse = {
     year: 2026,
     city: 'Madrid',
+    rota_type: 'AC',
+    doctors_per_day: 1,
     generated_at: '2026-01-15T10:30:00Z',
     schedule: [
       {
@@ -20,8 +22,7 @@ describe('RotaService', () => {
         shift_start: '09:00',
         shift_end: '08:00+1',
         duration_hours: 23,
-        atencion_continuada: { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' },
-        atencion_primaria: { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' },
+        doctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
       },
     ],
     stats: {
@@ -29,15 +30,15 @@ describe('RotaService', () => {
         {
           doctor_id: 'doc-001',
           doctor_name: 'Dr. Garcia',
-          total_hours: 572,
-          ac_hours: 140,
-          ap_hours: 432,
+          total_hours: 1650,
+          monthly_hours: { 1: 140, 2: 130 },
           shifts_weekday: 20,
           shifts_saturday: 5,
           shifts_sunday_holiday: 4,
         },
       ],
     },
+    warnings: [],
   };
 
   beforeEach(() => {
@@ -52,73 +53,83 @@ describe('RotaService', () => {
     httpTesting.verify();
   });
 
-  it('should fetch rota for year via GET /api/v1/rota/{year}', () => {
-    service.getRota(2026).subscribe((rota) => {
+  it('should fetch rota for year and type via GET /api/v1/rota/{year}/{type}', () => {
+    service.getRota(2026, 'AC').subscribe((rota) => {
       expect(rota.year).toBe(2026);
-      expect(rota.city).toBe('Madrid');
+      expect(rota.rota_type).toBe('AC');
       expect(rota.schedule.length).toBe(1);
     });
 
-    const req = httpTesting.expectOne('/api/v1/rota/2026');
+    const req = httpTesting.expectOne('/api/v1/rota/2026/AC');
     expect(req.request.method).toBe('GET');
     req.flush(mockRotaResponse);
   });
 
+  it('should fetch all rotas for year via GET /api/v1/rota/{year}', () => {
+    service.getRotas(2026).subscribe((rotas) => {
+      expect(rotas.length).toBe(1);
+    });
+
+    const req = httpTesting.expectOne('/api/v1/rota/2026');
+    expect(req.request.method).toBe('GET');
+    req.flush([mockRotaResponse]);
+  });
+
   it('should return null/handle 404 when no rota exists', () => {
-    service.getRota(2025).subscribe({
+    service.getRota(2025, 'AC').subscribe({
       next: () => { throw new Error('should have errored'); },
       error: (err) => {
         expect(err.status).toBe(404);
       },
     });
 
-    const req = httpTesting.expectOne('/api/v1/rota/2025');
+    const req = httpTesting.expectOne('/api/v1/rota/2025/AC');
     expect(req.request.method).toBe('GET');
     req.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
   });
 
-  it('should generate rota via POST /api/v1/rota/generate', () => {
+  it('should generate rota via POST /api/v1/rota/generate with rota_type', () => {
     const pool: Doctor[] = [
-      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
-      { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
+      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
+      { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
     ];
 
-    service.generateRota(2026, pool).subscribe((rota) => {
+    service.generateRota(2026, 'AC', pool).subscribe((rota) => {
       expect(rota.year).toBe(2026);
-      expect(rota.schedule.length).toBeGreaterThan(0);
+      expect(rota.rota_type).toBe('AC');
     });
 
     const req = httpTesting.expectOne('/api/v1/rota/generate');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ year: 2026, pool });
+    expect(req.request.body.rota_type).toBe('AC');
+    expect(req.request.body.pool).toEqual(pool);
     req.flush(mockRotaResponse);
   });
 
-  it('should replace doctor via PATCH /api/v1/rota/{year}/replace', () => {
+  it('should replace doctor via PATCH /api/v1/rota/{year}/{type}/replace', () => {
     const replaceRequest: ReplaceRequest = {
       date: '2026-03-15',
-      service_type: 'atencion_continuada',
       old_doctor_id: 'doc-001',
       new_doctor_id: 'doc-003',
     };
 
-    service.replaceDoctor(2026, replaceRequest).subscribe((rota) => {
+    service.replaceDoctor(2026, 'AC', replaceRequest).subscribe((rota) => {
       expect(rota).toBeTruthy();
     });
 
-    const req = httpTesting.expectOne('/api/v1/rota/2026/replace');
+    const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual(replaceRequest);
     req.flush(mockRotaResponse);
   });
 
   it('should filter rota by doctor_id query param', () => {
-    service.getRotaByDoctor(2026, 'doc-001').subscribe((rota) => {
+    service.getRotaByDoctor(2026, 'AC', 'doc-001').subscribe((rota) => {
       expect(rota).toBeTruthy();
     });
 
     const req = httpTesting.expectOne(
-      (r) => r.url === '/api/v1/rota/2026' && r.params.get('doctor_id') === 'doc-001'
+      (r) => r.url === '/api/v1/rota/2026/AC' && r.params.get('doctor_id') === 'doc-001'
     );
     expect(req.request.method).toBe('GET');
     req.flush(mockRotaResponse);

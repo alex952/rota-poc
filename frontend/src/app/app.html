@@ -10,9 +10,11 @@
 
 <div class="app-layout" cdkDropListGroup>
   <app-doctor-pool
-    [doctors]="doctors()"
+    [doctors]="activePoolDoctors()"
+    [activeTab]="activePoolTab()"
     [hasExistingRota]="hasExistingRota()"
     [isLoading]="loading()"
+    (poolTabChange)="onPoolTabChange($event)"
     (generateRota)="onGenerateRota()"
     (doctorAdded)="onAddDoctor($event)"
   />
@@ -29,13 +31,14 @@
     }
     <app-calendar
       [year]="selectedYear()"
-      [schedule]="schedule()"
-      [hasData]="hasExistingRota()"
+      [schedule]="mergedSchedule()"
+      [hasData]="hasData()"
       (yearChange)="onYearChange($event)"
+      (monthChange)="onMonthChange($event)"
       (doctorDropped)="onDoctorDropped($event)"
     />
   </div>
-  <app-stats-panel [visible]="showStats()" [stats]="stats()" (closed)="toggleStats()" />
+  <app-stats-panel [visible]="showStats()" [stats]="activeStats()" [activeTab]="activePoolTab()" [currentMonth]="currentMonth()" (closed)="toggleStats()" />
 </div>
 
 <app-notifications />
@@ -49,12 +52,11 @@
 }
 
 @if (pendingReplacement()) {
-  <app-service-type-dialog
+  <app-replace-doctor-dialog
     [date]="pendingReplacement()!.date"
     [doctorName]="pendingReplacement()!.newDoctor.name"
-    [acDoctorName]="pendingReplacement()!.acDoctor.doctor_name"
-    [apDoctorName]="pendingReplacement()!.apDoctor.doctor_name"
-    (selected)="onServiceTypeSelected($event)"
+    [doctors]="activePoolTab() === 'AC' ? pendingReplacement()!.acDoctors : pendingReplacement()!.apDoctors"
+    (selected)="onReplaceDoctorSelected($event)"
     (cancelled)="onCancelReplacement()"
   />
 }

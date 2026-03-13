@@ -1,7 +1,7 @@
 import { Component, computed, input, output, signal } from '@angular/core';
 import { MonthViewComponent } from './month-view.component';
 import { ReplacementEvent } from './day-cell.component';
-import { DayAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment } from '../../core/models/rota.model';
 
 @Component({
   selector: 'app-calendar',
@@ -236,11 +236,12 @@ import { DayAssignment } from '../../core/models/rota.model';
 })
 export class CalendarComponent {
   readonly year = input.required<number>();
-  readonly schedule = input<DayAssignment[]>([]);
+  readonly schedule = input<MergedDayAssignment[]>([]);
   readonly hasData = input<boolean>(true);
   readonly yearChange = output<number>();
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorFilterChanged = output<string | null>();
+  readonly monthChange = output<number>();
 
   readonly filteredDoctor = signal<{ doctor_id: string; doctor_name: string } | null>(null);
 
@@ -256,7 +257,7 @@ export class CalendarComponent {
   );
 
   private readonly scheduleByMonth = computed(() => {
-    const map = new Map<number, DayAssignment[]>();
+    const map = new Map<number, MergedDayAssignment[]>();
     for (let m = 1; m <= 12; m++) {
       map.set(m, []);
     }
@@ -276,17 +277,19 @@ export class CalendarComponent {
     const filter = this.filteredDoctor();
     if (!filter) return assignments;
     return assignments.filter(
-      a => a.atencion_continuada.doctor_id === filter.doctor_id
-        || a.atencion_primaria.doctor_id === filter.doctor_id
+      a => a.acDoctors.some(d => d.doctor_id === filter.doctor_id)
+        || a.apDoctors.some(d => d.doctor_id === filter.doctor_id)
     );
   });
 
   prevMonth(): void {
     this.currentMonth.update(m => Math.max(1, m - 1));
+    this.monthChange.emit(this.currentMonth());
   }
 
   nextMonth(): void {
     this.currentMonth.update(m => Math.min(12, m + 1));
+    this.monthChange.emit(this.currentMonth());
   }
 
   onDoctorClicked(doctor: { doctor_id: string; doctor_name: string }): void {
@@ -302,6 +305,7 @@ export class CalendarComponent {
 
   goToCurrentMonth(): void {
     this.currentMonth.set(new Date().getMonth() + 1);
+    this.monthChange.emit(this.currentMonth());
   }
 
   clearFilter(): void {

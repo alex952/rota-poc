@@ -18,7 +18,7 @@ Doctor Rota Assignment App — a PoC for automated on-call scheduling for doctor
 ```bash
 cd backend
 source .venv/bin/activate       # activate virtualenv
-pytest tests/ -v                # run all 31 backend tests
+pytest tests/ -v                # run all 51 backend tests
 uvicorn app.main:app --reload --port 8000  # run dev server
 alembic upgrade head            # run database migrations
 alembic revision --autogenerate -m "description"  # create new migration
@@ -28,7 +28,7 @@ alembic revision --autogenerate -m "description"  # create new migration
 
 ```bash
 cd frontend
-npx ng test --watch=false       # run all 71 frontend tests
+npx ng test --watch=false       # run all 83 frontend tests
 npx ng build                    # production build
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # dev server
 ```
@@ -45,7 +45,7 @@ docker compose up db            # just PostgreSQL (for local backend dev)
 - **Backend API** at `/api/v1`: config, rota CRUD, holidays, health
 - **Database**: PostgreSQL with 4 tables — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Angular standalone components with signal-based state
-- **Algorithm**: Balanced round-robin with rest-day, sparsity, and equity constraints in `backend/app/services/assignment.py`
+- **Algorithm**: Independent per-type balanced round-robin with auto-computed doctors_per_day, rest-day, sparsity, and equity constraints in `backend/app/services/assignment.py`
 
 ## Key Configuration
 
@@ -74,19 +74,20 @@ Environment variables (backend):
 
 ## Testing
 
-- Backend: `pytest` — 31 tests (13 algorithm, 7 holidays, 11 API)
-- Frontend: `vitest` — 71 tests (10 service, 49 component, 12 integration)
+- Backend: `pytest` — 51 tests (23 algorithm, 7 holidays, 16 API, 5 other)
+- Frontend: `vitest` — 83 tests (14 service, 53 component, 15 integration)
 - All PRD acceptance criteria have corresponding test cases (see docs/IMPLEMENTATION.md section 4.4)
 - Tests should be written BEFORE implementation (ATDD approach)
 
 ## Business Rules (Critical)
 
 These rules are enforced by the algorithm and verified by tests:
-1. A doctor **cannot** be assigned both AC and AP on the same day (min pool: 2)
-2. A doctor on call on day D is **off on D+1** (rest day — soft constraint for pools < 4)
-3. Minimum hours: 135h/year AC, 425h/year AP per doctor — **soft constraint** (returns warnings, not errors, when pool is too large to meet minimums)
-4. Holiday > Saturday > Weekday for day-type classification
-5. Assignments should be as sparse and equitable as possible
+1. AC and AP have **separate doctor pools** — a doctor belongs to one pool only, rotas generated independently
+2. A doctor on call on day D is **off on D+1** within the same rota type (rest day — soft constraint for small pools)
+3. Minimum hours: **1,620h/year AC** (135h/month × 12), **425h/year AP** per doctor — **hard constraint** (raises error if not met)
+4. `doctors_per_day` is **auto-computed**: `ceil(pool_size × min_hours / total_yearly_hours)`
+5. Holiday > Saturday > Weekday for day-type classification
+6. Assignments should be as sparse and equitable as possible
 
 ## Documentation
 

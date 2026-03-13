@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MonthViewComponent } from './month-view.component';
-import { DayAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment } from '../../core/models/rota.model';
 
 describe('MonthViewComponent', () => {
   let component: MonthViewComponent;
@@ -70,15 +70,15 @@ describe('MonthViewComponent', () => {
   });
 
   it('should pass assignments to day cells', () => {
-    const assignments: DayAssignment[] = [
+    const assignments: MergedDayAssignment[] = [
       {
         date: '2026-01-15',
         day_type: 'weekday',
         shift_start: '15:00',
         shift_end: '08:00+1',
         duration_hours: 17,
-        atencion_continuada: { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' },
-        atencion_primaria: { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' },
+        acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
+        apDoctors: [{ doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' }],
       },
     ];
 

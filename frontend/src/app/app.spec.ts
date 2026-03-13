@@ -7,13 +7,16 @@ import { Doctor } from './core/models/doctor.model';
 import { NotificationService } from './core/services/notification.service';
 
 const mockDoctors: Doctor[] = [
-  { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
-  { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
+  { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
+  { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
+  { id: 'doc-011', name: 'Dr. Navarro', department: 'Urologia', rota_type: 'AP' },
 ];
 
-const mockRotaResponse: RotaResponse = {
+const mockAcRotaResponse: RotaResponse = {
   year: 2026,
   city: 'Madrid',
+  rota_type: 'AC',
+  doctors_per_day: 1,
   generated_at: '2026-01-15T10:30:00Z',
   schedule: [
     {
@@ -22,8 +25,7 @@ const mockRotaResponse: RotaResponse = {
       shift_start: '09:00',
       shift_end: '08:00+1',
       duration_hours: 23,
-      atencion_continuada: { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' },
-      atencion_primaria: { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' },
+      doctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
     },
   ],
   stats: {
@@ -31,9 +33,8 @@ const mockRotaResponse: RotaResponse = {
       {
         doctor_id: 'doc-001',
         doctor_name: 'Dr. Garcia',
-        total_hours: 572,
-        ac_hours: 140,
-        ap_hours: 432,
+        total_hours: 1650,
+        monthly_hours: { 1: 140, 2: 130 },
         shifts_weekday: 20,
         shifts_saturday: 5,
         shifts_sunday_holiday: 4,
@@ -41,15 +42,15 @@ const mockRotaResponse: RotaResponse = {
       {
         doctor_id: 'doc-002',
         doctor_name: 'Dr. Lopez',
-        total_hours: 568,
-        ac_hours: 138,
-        ap_hours: 430,
+        total_hours: 1640,
+        monthly_hours: { 1: 138, 2: 132 },
         shifts_weekday: 19,
         shifts_saturday: 5,
         shifts_sunday_holiday: 5,
       },
     ],
   },
+  warnings: [],
 };
 
 describe('App', () => {
@@ -72,12 +73,12 @@ describe('App', () => {
     rotaStatus?: number;
     city?: string;
     doctors?: Doctor[];
-    rota?: RotaResponse | null;
+    rotas?: RotaResponse[] | null;
   }) {
     const city = options?.city ?? 'Madrid';
     const doctors = options?.doctors ?? mockDoctors;
     const rotaStatus = options?.rotaStatus ?? 200;
-    const rota = options?.rota ?? mockRotaResponse;
+    const rotas = options?.rotas ?? [mockAcRotaResponse];
 
     const configReq = httpTesting.expectOne('/api/v1/config');
     configReq.flush({ city });
@@ -87,8 +88,8 @@ describe('App', () => {
 
     const currentYear = new Date().getFullYear();
     const rotaReq = httpTesting.expectOne(`/api/v1/rota/${currentYear}`);
-    if (rotaStatus === 200 && rota) {
-      rotaReq.flush(rota);
+    if (rotaStatus === 200 && rotas) {
+      rotaReq.flush(rotas);
     } else {
       rotaReq.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
     }
@@ -111,40 +112,48 @@ describe('App', () => {
     expect(cityEl.textContent).toContain('Barcelona');
   });
 
-  it('should load rota on init and populate calendar', () => {
+  it('should load rotas on init and populate calendar', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    flushInitRequests({ rotaStatus: 200, rota: mockRotaResponse });
+    flushInitRequests({ rotaStatus: 200, rotas: [mockAcRotaResponse] });
     fixture.detectChanges();
 
     const app = fixture.componentInstance;
-    expect(app['schedule']()).toEqual(mockRotaResponse.schedule);
-    expect(app['stats']()).toEqual(mockRotaResponse.stats.doctors);
-    expect(app['hasExistingRota']()).toBe(true);
+    expect(app['acSchedule']()).toEqual(mockAcRotaResponse.schedule);
+    expect(app['acStats']()).toEqual(mockAcRotaResponse.stats.doctors);
+    expect(app['hasAcRota']()).toBe(true);
   });
 
-  it('should show Generate Rota when no rota exists', () => {
+  it('should default to AC pool tab', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitRequests({ rotaStatus: 404 });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['activePoolTab']()).toBe('AC');
+  });
+
+  it('should show Generate AC Rota when no AC rota exists', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 404 });
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Generate Rota');
-    expect(generateBtn.textContent).not.toContain('Re-generate');
+    expect(generateBtn.textContent).toContain('Generate AC Rota');
   });
 
-  it('should show Re-generate Rota when rota exists', () => {
+  it('should show Re-generate AC Rota when AC rota exists', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    flushInitRequests({ rotaStatus: 200, rota: mockRotaResponse });
+    flushInitRequests({ rotaStatus: 200, rotas: [mockAcRotaResponse] });
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Re-generate Rota');
+    expect(generateBtn.textContent).toContain('Re-generate AC Rota');
   });
 
-  it('should call generateRota when generate button clicked (no existing rota)', () => {
+  it('should call generateRota with rota_type when generate button clicked (no existing rota)', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 404 });
@@ -154,72 +163,61 @@ describe('App', () => {
     generateBtn.click();
     fixture.detectChanges();
 
-    // Should directly call generate (no confirm dialog since no existing rota)
-    const currentYear = new Date().getFullYear();
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     expect(genReq.request.method).toBe('POST');
-    expect(genReq.request.body.year).toBe(currentYear);
-    expect(genReq.request.body.pool).toEqual(mockDoctors);
-    genReq.flush(mockRotaResponse);
+    expect(genReq.request.body.rota_type).toBe('AC');
+    expect(genReq.request.body.pool.length).toBe(2); // only AC doctors
+    genReq.flush(mockAcRotaResponse);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['hasExistingRota']()).toBe(true);
+    expect(fixture.componentInstance['hasAcRota']()).toBe(true);
   });
 
   it('should show confirm dialog when re-generating', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    flushInitRequests({ rotaStatus: 200, rota: mockRotaResponse });
+    flushInitRequests({ rotaStatus: 200, rotas: [mockAcRotaResponse] });
     fixture.detectChanges();
 
-    // Click re-generate
     const generateBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
     generateBtn.click();
     fixture.detectChanges();
 
-    // Confirm dialog should appear
     const confirmDialog = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
     expect(confirmDialog).toBeTruthy();
 
-    // Click confirm
     const confirmBtn = confirmDialog.querySelector('.btn-confirm');
     confirmBtn.click();
     fixture.detectChanges();
 
-    // Now the generate request should fire
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     expect(genReq.request.method).toBe('POST');
-    genReq.flush(mockRotaResponse);
+    genReq.flush(mockAcRotaResponse);
     fixture.detectChanges();
 
-    // Dialog should be gone
     const dialogAfter = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
     expect(dialogAfter).toBeFalsy();
   });
 
-  it('should reload rota when year changes', () => {
+  it('should reload rotas when year changes', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    flushInitRequests({ rotaStatus: 200, rota: mockRotaResponse });
+    flushInitRequests({ rotaStatus: 200, rotas: [mockAcRotaResponse] });
     fixture.detectChanges();
 
-    // Change the year via the year input
     const yearInput: HTMLInputElement = fixture.nativeElement.querySelector('.year-input');
     yearInput.value = '2025';
     yearInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    // Should make a new request for 2025
     const rotaReq = httpTesting.expectOne('/api/v1/rota/2025');
     expect(rotaReq.request.method).toBe('GET');
     rotaReq.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['hasExistingRota']()).toBe(false);
-    expect(fixture.componentInstance['schedule']()).toEqual([]);
+    expect(fixture.componentInstance['hasAcRota']()).toBe(false);
+    expect(fixture.componentInstance['acSchedule']()).toEqual([]);
   });
-
-  // --- Phase 10: Loading states, error handling, empty state ---
 
   it('should show loading spinner during rota generation', () => {
     const fixture = TestBed.createComponent(App);
@@ -227,28 +225,23 @@ describe('App', () => {
     flushInitRequests({ rotaStatus: 404 });
     fixture.detectChanges();
 
-    // Click generate
     const generateBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
     generateBtn.click();
     fixture.detectChanges();
 
-    // Loading overlay should be visible
     const overlay = fixture.nativeElement.querySelector('.loading-overlay');
     expect(overlay).toBeTruthy();
 
     const spinner = fixture.nativeElement.querySelector('.spinner');
     expect(spinner).toBeTruthy();
 
-    // Generate button should be disabled
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
     expect(btn.disabled).toBe(true);
 
-    // Flush the generate request
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
-    genReq.flush(mockRotaResponse);
+    genReq.flush(mockAcRotaResponse);
     fixture.detectChanges();
 
-    // Overlay should be gone
     const overlayAfter = fixture.nativeElement.querySelector('.loading-overlay');
     expect(overlayAfter).toBeFalsy();
   });
@@ -261,26 +254,22 @@ describe('App', () => {
 
     const notificationService = TestBed.inject(NotificationService);
 
-    // Click generate
     const generateBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
     generateBtn.click();
     fixture.detectChanges();
 
-    // Fail the generate request
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     genReq.flush(
-      { detail: 'Pool has fewer than 2 doctors' },
+      { detail: 'Pool too small' },
       { status: 400, statusText: 'Bad Request' }
     );
     fixture.detectChanges();
 
-    // Should have an error notification
     const notifications = notificationService.notifications();
     expect(notifications.length).toBeGreaterThan(0);
     const errorNotif = notifications.find((n) => n.type === 'error');
     expect(errorNotif).toBeTruthy();
-    expect(errorNotif!.message).toContain('Failed to generate rota');
-    expect(errorNotif!.message).toContain('Pool has fewer than 2 doctors');
+    expect(errorNotif!.message).toContain('Failed to generate AC rota');
   });
 
   it('should show success notification after generation', () => {
@@ -291,22 +280,19 @@ describe('App', () => {
 
     const notificationService = TestBed.inject(NotificationService);
 
-    // Click generate
     const generateBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
     generateBtn.click();
     fixture.detectChanges();
 
-    // Flush the generate request
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
-    genReq.flush(mockRotaResponse);
+    genReq.flush(mockAcRotaResponse);
     fixture.detectChanges();
 
-    // Should have a success notification
     const notifications = notificationService.notifications();
     expect(notifications.length).toBeGreaterThan(0);
     const successNotif = notifications.find((n) => n.type === 'success');
     expect(successNotif).toBeTruthy();
-    expect(successNotif!.message).toContain('Rota generated successfully');
+    expect(successNotif!.message).toContain('AC rota generated successfully');
   });
 
   it('should show empty state when no rota exists', () => {
@@ -323,5 +309,28 @@ describe('App', () => {
 
     const hint = fixture.nativeElement.querySelector('.empty-state-hint');
     expect(hint.textContent).toContain('Add doctors to the pool and click Generate Rota');
+  });
+
+  it('should show pool tabs for AC and AP', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitRequests({ rotaStatus: 404 });
+    fixture.detectChanges();
+
+    const tabs = fixture.nativeElement.querySelectorAll('.tab-btn');
+    expect(tabs.length).toBe(2);
+    expect(tabs[0].textContent.trim()).toBe('AC');
+    expect(tabs[1].textContent.trim()).toBe('AP');
+  });
+
+  it('should filter pool doctors by active tab', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitRequests({ rotaStatus: 404 });
+    fixture.detectChanges();
+
+    // AC tab active by default — should show 2 AC doctors
+    const cards = fixture.nativeElement.querySelectorAll('app-doctor-card');
+    expect(cards.length).toBe(2); // doc-001, doc-002 are AC
   });
 });

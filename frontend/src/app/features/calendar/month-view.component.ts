@@ -1,6 +1,6 @@
 import { Component, input, output, computed } from '@angular/core';
 import { DayCellComponent, ReplacementEvent } from './day-cell.component';
-import { DayAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment } from '../../core/models/rota.model';
 
 @Component({
   selector: 'app-month-view',
@@ -86,7 +86,7 @@ import { DayAssignment } from '../../core/models/rota.model';
 export class MonthViewComponent {
   readonly month = input.required<number>();
   readonly year = input.required<number>();
-  readonly assignments = input<DayAssignment[]>([]);
+  readonly assignments = input<MergedDayAssignment[]>([]);
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
@@ -103,13 +103,12 @@ export class MonthViewComponent {
   });
 
   readonly firstDayOffset = computed(() => {
-    // getDay() returns 0=Sunday, we want 0=Monday
     const dayOfWeek = new Date(this.year(), this.month() - 1, 1).getDay();
     return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   });
 
   readonly assignmentsByDay = computed(() => {
-    const map = new Map<number, DayAssignment>();
+    const map = new Map<number, MergedDayAssignment>();
     for (const a of this.assignments()) {
       const date = new Date(a.date + 'T00:00:00');
       if (date.getMonth() + 1 === this.month() && date.getFullYear() === this.year()) {
@@ -120,17 +119,15 @@ export class MonthViewComponent {
   });
 
   readonly gridCells = computed(() => {
-    const cells: Array<{ key: string; day: number; assignment: DayAssignment | null; dayType: string; date: string }> = [];
+    const cells: Array<{ key: string; day: number; assignment: MergedDayAssignment | null; dayType: string; date: string }> = [];
     const offset = this.firstDayOffset();
     const total = this.daysInMonth();
     const assignMap = this.assignmentsByDay();
 
-    // Empty cells for offset
     for (let i = 0; i < offset; i++) {
       cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '' });
     }
 
-    // Day cells
     for (let d = 1; d <= total; d++) {
       const assignment = assignMap.get(d) ?? null;
       const dayType = assignment ? assignment.day_type : this.getDefaultDayType(d);

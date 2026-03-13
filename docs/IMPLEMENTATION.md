@@ -79,12 +79,12 @@ The `Settings` class is instantiated as a module-level singleton via `get_settin
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `rotas` | One row per generated rota year | `year` (unique), `city`, `generated_at`, `pool` (JSONB snapshot) |
+| `rotas` | One row per generated rota (year + type) | `year`, `rota_type` (unique together), `doctors_per_day`, `city`, `generated_at`, `pool` (JSONB snapshot) |
 | `rota_doctors` | Doctor pool members for a rota | FK to `rotas`, `doctor_id`, `name`, `department` |
-| `rota_assignments` | One row per day per rota | FK to `rotas`, `date` (unique per rota), `day_type`, `ac_doctor_id`, `ap_doctor_id` |
+| `rota_assignments` | One row per doctor per day per rota | FK to `rotas`, `date`, `doctor_id` (unique together per rota), `day_type` |
 | `holidays` | Cached holiday data per year/city | `year`, `city`, `date`, `name` |
 
-**Indexes:** `rota_assignments(rota_id, ac_doctor_id)`, `rota_assignments(rota_id, ap_doctor_id)`, `holidays(year, city)`.
+**Indexes:** `rota_assignments(rota_id, doctor_id)`, `holidays(year, city)`.
 
 **Migrations:** Managed via Alembic. The initial migration (`001_initial_schema.py`) creates all four tables. On Docker startup, `alembic upgrade head` runs automatically before the app starts.
 
@@ -96,21 +96,24 @@ All endpoints are under `/api/v1`.
 Returns the configured city. The frontend calls this on page load to display the city name.
 
 #### `POST /rota/generate`
-Accepts `{ year, pool[] }`. Orchestrates:
+Accepts `{ year, rota_type, pool[] }`. Orchestrates:
 1. Fetch/cache holidays for the configured city
 2. Classify all days in the year (weekday/saturday/holiday)
-3. Run the assignment algorithm
-4. Delete any existing rota for that year
+3. Run the assignment algorithm (auto-computes `doctors_per_day`)
+4. Delete any existing rota for that year and type
 5. Persist the new rota (rotas, rota_doctors, rota_assignments)
 6. Calculate and return stats
 
-Returns 201 with full `RotaResponse`. The response includes a `warnings` list for soft-constraint violations (e.g. pool too large for minimum hour targets). Returns 400 only if the pool has fewer than 2 doctors (hard constraint). Returns 502 if the holiday API is unreachable.
+Returns 201 with full `RotaResponse`. Minimum hours are hard constraints — returns 400 (`InfeasiblePoolError`) if pool cannot meet minimums. Returns 502 if the holiday API is unreachable.
+
+#### `GET /rota/{year}/{rota_type}`
+Retrieves a stored rota for a specific type (AC or AP). Optional `?doctor_id=X` parameter filters assignments. Returns 404 if no rota exists.
 
 #### `GET /rota/{year}`
-Retrieves a stored rota. Optional `?doctor_id=X` query parameter filters to assignments involving that doctor (in either AC or AP slot). Returns 404 if no rota exists.
+Returns a list of all rotas (AC and/or AP) for the year. Returns 404 if none exist.
 
-#### `PATCH /rota/{year}/replace`
-Accepts `{ date, service_type, old_doctor_id, new_doctor_id }`. Swaps the doctor for a single day/service-type assignment. Recalculates and returns updated stats. Returns 404 if no matching assignment is found.
+#### `PATCH /rota/{year}/{rota_type}/replace`
+Accepts `{ date, old_doctor_id, new_doctor_id }`. Swaps the doctor for a single day assignment within the specified rota type. Recalculates and returns updated stats. Returns 404 if no matching assignment is found.
 
 #### `GET /holidays/{year}`
 Returns the cached (or freshly fetched) holidays for the configured city. Useful for debugging.
@@ -136,64 +139,70 @@ Returns `{ status: "ok" }`.
 
 ### 2.5 Assignment Algorithm (`app/services/assignment.py`)
 
-This is the core of the system. It generates a full-year on-call schedule for both Atencion Continuada (AC) and Atencion Primaria (AP).
+This is the core of the system. It generates a full-year on-call schedule for a single rota type (AC or AP). AC and AP rotas are generated independently with separate doctor pools.
 
 #### Hard Constraints
 
 | ID | Rule |
 |----|------|
-| HC-1 | A doctor cannot be assigned both AC and AP on the same day |
-| HC-2 | Post-on-call rest day: a doctor assigned on day D is unavailable on D+1 (soft when pool < 4) |
-| HC-3 | Minimum hours: each doctor should reach >= 135h AC and >= 425h AP (soft — warns if not met) |
-| HC-4 | Exactly one doctor per service type per day |
+| HC-1 | AC and AP have **separate doctor pools**. A doctor belongs to one pool only. |
+| HC-2 | Post-on-call rest day: a doctor assigned on day D is unavailable on D+1 within the same rota type (soft when pool < 4) |
+| HC-3 | Minimum hours: AC doctors >= 1,620h/year (135h/month × 12), AP doctors >= 425h/year. **Hard constraint** — raises `InfeasiblePoolError` if not met. |
+| HC-4 | `doctors_per_day` auto-computed: `ceil(pool_size × min_hours / total_yearly_hours)` |
 
 #### Optimization Goals (priority order)
 
-1. **Day-type equity:** Each doctor gets roughly the same count (+-1) of weekday, Saturday, and holiday shifts
+1. **Day-type equity:** Each doctor gets roughly the same count (±1) of weekday, Saturday, and holiday shifts
 2. **Hour equity:** Minimize the max-min total hour difference across doctors
 3. **Sparsity:** Maximize gaps between consecutive on-call assignments
 
-#### Algorithm: Single-Pass Balanced Round-Robin
+#### Algorithm: Independent Per-Type Balanced Round-Robin
 
-The algorithm assigns both AC and AP for each day in a single chronological pass:
+The algorithm generates one rota type at a time. Each call handles one type (AC or AP):
 
 ```
-For each day D in the year:
-  1. Build eligible set for AC:
-     - Exclude doctors assigned on D-1 (rest day, if enough alternatives exist)
-  2. Sort eligible by: (fewest shifts of this day_type, fewest AC hours, largest gap)
-  3. Assign top candidate to AC
+Input: rota_type, pool[], day_classifications[]
 
-  4. Build eligible set for AP:
-     - Exclude the AC doctor for today (HC-1)
-     - Exclude doctors assigned on D-1 (rest day, if enough alternatives exist)
-  5. Sort eligible by: (fewest shifts of this day_type, fewest AP hours, largest gap)
-  6. Assign top candidate to AP
+1. Compute doctors_per_day:
+   total_yearly_hours = sum of all day durations
+   min_hours = 1620 if AC, 425 if AP
+   doctors_per_day = ceil(len(pool) * min_hours / total_yearly_hours)
 
-  7. Update tracking: hours, day-type counts, last_assigned_date for both doctors
+2. For each day D in the year:
+   a. Build eligible set:
+      - Exclude doctors assigned on D-1 (rest day, if enough alternatives)
+      - Exclude doctors already assigned today (if doctors_per_day > 1)
+   b. Sort eligible by: ("behind target" priority, fewest shifts of this day_type,
+      fewest total hours, largest gap)
+   c. Assign top `doctors_per_day` candidates
+   d. Update tracking: hours, day-type counts, last_assigned_date
+
+3. Validate (HARD):
+   - AC: every doctor >= 1620h/year
+   - AP: every doctor >= 425h/year
+   - Raise InfeasiblePoolError if any doctor falls short
 ```
 
-#### Feasibility Check & Warnings
+#### Feasibility Check
 
-Before generating, the algorithm validates the pool size:
-- Must have >= 2 doctors (HC-1 requires different doctors for AC and AP) — **hard error** (`InfeasiblePoolError`)
-- If total yearly hours per service / pool size falls below minimum hours (135 for AC, 425 for AP), a **warning** is returned instead of an error. The schedule is still generated.
-
-After generation, actual per-doctor hours are checked against minimums. Any shortfalls are added as additional warnings. Warnings are returned in the `RotaSchedule.warnings` list and propagated through to the API response's `warnings` field.
+Before generating, the algorithm validates the pool:
+- Pool must have >= `doctors_per_day + doctors_per_day` doctors (need enough for rest-day rotation)
+- If `doctors_per_day × total_yearly_hours / pool_size < min_hours`, infeasible (safety check)
+- If infeasible → **hard error** (`InfeasiblePoolError`)
 
 #### Rest-Day Softness
 
-The rest-day constraint (HC-2) is enforced as a **soft constraint** when the pool is too small. With 2-3 doctors, strict rest-day enforcement may create dead ends. The algorithm falls back to allowing unrested doctors when fewer than 2 rested doctors are available for a slot.
+The rest-day constraint (HC-2) is enforced as a **soft constraint** when the pool is too small. With 2-3 doctors, strict rest-day enforcement may create dead ends. The algorithm falls back to allowing unrested doctors when fewer than the required number of rested doctors are available.
 
-#### Key Implementation Detail: AC/AP Coupling
+#### Key Implementation Detail: Independent Per-Type Generation
 
-Because the rest-day rule applies **across both service types**, assigning a doctor AC on Monday blocks them from both AC and AP on Tuesday. The single-pass approach (assigning AC then AP per day) handles this naturally — the global `last_assigned_date` dictionary tracks the most recent assignment regardless of service type.
+Because AC and AP now have separate pools, there is **no cross-type coupling**. Rest days apply per rota type only (AC rest days don't affect AP and vice versa). Each call to `generate_rota()` handles one type independently.
 
 ### 2.6 Stats Calculation (`app/services/stats.py`)
 
 Given a schedule (list of day assignments) and the doctor pool, calculates per-doctor:
 - Total on-call hours
-- Hours split by service type (AC, AP)
+- Monthly hours breakdown (`monthly_hours: dict[int, int]`)
 - Shift counts by day type (weekday, Saturday, Sunday/holiday)
 
 ---
@@ -209,29 +218,30 @@ Angular 19+ standalone components with signal-based state management. No NgModul
 | Service | Responsibility |
 |---------|---------------|
 | `ConfigService` | Fetches `GET /api/v1/config`, caches with `shareReplay(1)` |
-| `RotaService` | All rota CRUD operations (generate, get, replace, filter by doctor) |
-| `DoctorPoolService` | Manages doctor pool state via `BehaviorSubject`, loads from `doctors.json` |
+| `RotaService` | All rota CRUD operations — `generateRota(year, rotaType, pool)`, `getRota(year, rotaType)`, `getRotas(year)`, `replaceDoctor(year, rotaType, request)` |
+| `DoctorPoolService` | Manages doctor pool state via signals, loads from `doctors.json`. Provides `acDoctors` and `apDoctors` computed signals for filtered pools. |
 | `NotificationService` | Toast notification queue with auto-dismiss (5s for normal, 10s for warnings) |
 
 ### 3.3 Component Hierarchy
 
 ```
-AppComponent (root orchestrator)
+AppComponent (root orchestrator — manages dual AC/AP state)
 ├── Header: city name, "Doctor Rota" title, stats toggle button
 ├── DoctorPoolComponent (left panel, ~280px fixed)
-│   ├── DoctorCardComponent[] (cdkDrag, displays name + department)
-│   ├── AddDoctorDialogComponent (reactive form, toggle visibility)
-│   └── Buttons: "+ Add Doctor", "Generate Rota" / "Re-generate Rota"
-├── CalendarComponent (center, fills right panel)
+│   ├── AC/AP tab bar (switches pool view)
+│   ├── DoctorCardComponent[] (cdkDrag, displays name + department + rota_type)
+│   ├── AddDoctorDialogComponent (reactive form, defaultRotaType from active tab)
+│   └── Buttons: "+ Add Doctor", "Generate {AC|AP} Rota" / "Re-generate {AC|AP} Rota"
+├── CalendarComponent (center, fills right panel — shows BOTH AC and AP)
 │   ├── Header bar: month nav (‹/›), month label (click → today), doctor filter pill, year input
-│   ├── MonthViewComponent (single month at a time)
+│   ├── MonthViewComponent (single month at a time, uses MergedDayAssignment)
 │   │   └── DayCellComponent[] (~30 per month)
-│   │       └── Day number, AC doctor (clickable), AP doctor (clickable), cdkDropList
+│   │       └── Day number, AC section (blue, multi-doctor), AP section (green, multi-doctor), cdkDropList
 │   └── Empty state (shown when no rota exists for selected year)
-├── StatsPanelComponent (right, slide-out, hidden by default)
-│   └── DoctorStatsRowComponent[] (one per doctor)
+├── StatsPanelComponent (right, slide-out, hidden by default — has AC/AP toggle)
+│   └── DoctorStatsRowComponent[] (one per doctor for active tab's type)
 ├── ConfirmDialogComponent (modal overlay for re-generation)
-├── ServiceTypeDialogComponent (AC/AP picker after drag-drop)
+├── ReplaceDoctorDialogComponent (multi-doctor replacement picker)
 └── NotificationComponent (toast stack, top-right corner — supports error/success/info/warning)
 ```
 
@@ -239,22 +249,22 @@ AppComponent (root orchestrator)
 
 **Page Load:**
 1. `ConfigService.getConfig()` → display city in header
-2. `DoctorPoolService.loadDoctors()` → populate left panel from `doctors.json`
-3. `RotaService.getRota(currentYear)` → if 200: populate calendar + set button to "Re-generate"; if 404: empty state + "Generate Rota"
+2. `DoctorPoolService.loadDoctors()` → populate left panel from `doctors.json` (doctors have `rota_type`)
+3. `RotaService.getRotas(currentYear)` → fetches list of AC/AP rotas. Populates `acSchedule`/`apSchedule` signals. Calendar shows merged view of both.
 
 **Generate Rota:**
-1. User clicks "Generate Rota" (or "Re-generate Rota" with confirm dialog)
+1. User clicks "Generate {type} Rota" (or "Re-generate" with confirm dialog). Type determined by active pool tab.
 2. Loading overlay shown on calendar
-3. `RotaService.generateRota(year, pool)` → update calendar, stats
-4. If response contains warnings → show amber warning notification with all warnings
-5. Otherwise → show green success notification
+3. `RotaService.generateRota(year, rotaType, pool)` → update corresponding schedule + stats
+4. `mergedSchedule` recomputed to show both AC and AP in calendar
+5. On success → show green success notification
 6. On error → show error notification with API detail
 
 **Drag-and-Drop Replacement:**
-1. User drags `DoctorCardComponent` (which has `cdkDragData` bound to the doctor object)
+1. User drags `DoctorCardComponent` from the active pool tab
 2. Drops onto a `DayCellComponent` (which has `cdkDropList`)
-3. `ServiceTypeDialogComponent` appears — user picks AC or AP
-4. `RotaService.replaceDoctor()` → update day cell + recalculate stats
+3. Rota type inferred from active pool tab. If day has multiple doctors for that type, `ReplaceDoctorDialogComponent` appears — user picks which doctor to replace.
+4. `RotaService.replaceDoctor(year, rotaType, request)` → update day cell + recalculate stats
 
 **Filter by Doctor:**
 1. User clicks a doctor name inside a `DayCellComponent` (AC or AP label)
@@ -286,16 +296,16 @@ AppComponent (root orchestrator)
 
 ### 3.6 Static Configuration
 
-`src/assets/doctors.json` contains the pre-populated doctor pool:
+`src/assets/doctors.json` contains the pre-populated doctor pool with `rota_type`:
 ```json
 [
-  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General" },
-  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria" },
-  { "id": "doc-003", "name": "Dr. Martinez", "department": "Cardiologia" }
+  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General", "rota_type": "AC" },
+  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria", "rota_type": "AC" },
+  { "id": "doc-011", "name": "Dr. Navarro", "department": "Urgencias", "rota_type": "AP" }
 ]
 ```
 
-Users can add more doctors via the UI. The pool is sent to the backend on rota generation.
+Each doctor belongs to either the AC or AP pool. Users can add more doctors via the UI (defaulting to the active pool tab's type). The pool for the active tab is sent to the backend on rota generation.
 
 ---
 
@@ -305,13 +315,13 @@ Users can add more doctors via the UI. The pool is sent to the backend on rota g
 
 | Layer | Framework | Test Type | Count |
 |-------|-----------|-----------|-------|
-| Backend algorithm | pytest | Unit | 13 |
+| Backend algorithm | pytest | Unit | 23 |
 | Backend holiday service | pytest | Unit (with mocked HTTP) | 7 |
-| Backend API | pytest + TestClient | Integration | 11 |
-| Frontend services | vitest + HttpTestingController | Unit | 10 |
-| Frontend components | vitest + TestBed | Component | 49 |
-| Frontend app | vitest + TestBed | Integration | 12 |
-| **Total** | | | **102** |
+| Backend API | pytest + TestClient | Integration | 16 |
+| Frontend services | vitest + HttpTestingController | Unit | 14 |
+| Frontend components | vitest + TestBed | Component | 53 |
+| Frontend app | vitest + TestBed | Integration | 15 |
+| **Total** | | | **128** |
 
 ### 4.2 Backend Test Setup (`tests/conftest.py`)
 
@@ -336,7 +346,7 @@ Every PRD acceptance criterion maps to one or more tests:
 
 | PRD Section | Criteria | Test File(s) |
 |-------------|----------|-------------|
-| 3.1 Rota Generation | AC-3.1.1 to AC-3.1.12 | `test_assignment.py`, `test_api.py` |
+| 3.1 Rota Generation | AC-3.1.1 to AC-3.1.13 | `test_assignment.py`, `test_api.py` |
 | 3.2 Persistence | AC-3.2.1 to AC-3.2.4 | `test_api.py` |
 | 3.3 Replacement | AC-3.3.1 to AC-3.3.2 | `test_api.py` |
 | 3.4 Holidays | AC-3.4.1 to AC-3.4.4 | `test_holidays.py` |

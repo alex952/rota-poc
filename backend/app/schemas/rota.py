@@ -1,7 +1,10 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
+
+RotaType = Literal["AC", "AP"]
 
 # --- Request schemas ---
 
@@ -14,12 +17,12 @@ class DoctorIn(BaseModel):
 
 class GenerateRequest(BaseModel):
     year: int
+    rota_type: RotaType
     pool: list[DoctorIn]
 
 
 class ReplaceRequest(BaseModel):
     date: date
-    service_type: str  # "atencion_continuada" or "atencion_primaria"
     old_doctor_id: str
     new_doctor_id: str
 
@@ -38,16 +41,14 @@ class DayAssignment(BaseModel):
     shift_start: str  # e.g. "15:00"
     shift_end: str  # e.g. "08:00+1"
     duration_hours: int
-    atencion_continuada: DoctorRef
-    atencion_primaria: DoctorRef
+    doctors: list[DoctorRef]
 
 
 class DoctorStats(BaseModel):
     doctor_id: str
     doctor_name: str
     total_hours: int
-    ac_hours: int
-    ap_hours: int
+    monthly_hours: dict[int, int]  # month number -> hours
     shifts_weekday: int
     shifts_saturday: int
     shifts_sunday_holiday: int
@@ -60,6 +61,8 @@ class StatsResponse(BaseModel):
 class RotaResponse(BaseModel):
     year: int
     city: str
+    rota_type: RotaType
+    doctors_per_day: int
     generated_at: datetime
     schedule: list[DayAssignment]
     stats: StatsResponse
@@ -95,6 +98,8 @@ class RotaSchedule(BaseModel):
     """Full schedule output from the assignment algorithm."""
 
     year: int
+    rota_type: RotaType
+    doctors_per_day: int
     schedule: list[DayAssignment]
     stats: StatsResponse
     warnings: list[str] = []

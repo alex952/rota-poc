@@ -9,9 +9,8 @@ describe('DoctorStatsRowComponent', () => {
   const mockStats: DoctorStats = {
     doctor_id: 'doc-001',
     doctor_name: 'Dr. Garcia',
-    total_hours: 572,
-    ac_hours: 140,
-    ap_hours: 432,
+    total_hours: 1650,
+    monthly_hours: { 1: 140, 2: 130 },
     shifts_weekday: 20,
     shifts_saturday: 5,
     shifts_sunday_holiday: 4,
@@ -35,37 +34,45 @@ describe('DoctorStatsRowComponent', () => {
     expect(nameEl.textContent).toContain('Dr. Garcia');
   });
 
-  it('should display all stat values', () => {
+  it('should display total hours', () => {
     fixture.componentRef.setInput('stats', mockStats);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-
-    // Total hours
-    expect(text).toContain('572');
-
-    // AC hours
-    expect(text).toContain('140');
-
-    // AP hours
-    expect(text).toContain('432');
-
-    // Shift counts by day type
-    expect(text).toContain('20'); // weekday
-    expect(text).toContain('5');  // saturday
-    expect(text).toContain('4');  // sunday/holiday
+    expect(text).toContain('1650');
   });
 
-  it('should display total_hours, ac_hours, ap_hours in stats grid', () => {
+  it('should display total_hours in stats grid', () => {
     fixture.componentRef.setInput('stats', mockStats);
     fixture.detectChanges();
 
     const statValues = fixture.nativeElement.querySelectorAll('.stat-value');
     const statTexts = Array.from(statValues).map((el: any) => el.textContent.trim());
 
-    expect(statTexts).toContain('572h');
-    expect(statTexts).toContain('140h');
-    expect(statTexts).toContain('432h');
+    expect(statTexts).toContain('1650h');
+  });
+
+  it('should display current month hours', () => {
+    fixture.componentRef.setInput('stats', mockStats);
+    fixture.componentRef.setInput('currentMonth', 1);
+    fixture.detectChanges();
+
+    const monthHours = fixture.nativeElement.querySelector('.month-hours');
+    expect(monthHours).toBeTruthy();
+    expect(monthHours.textContent).toContain('140h');
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Jan');
+  });
+
+  it('should show 0h for month with no data', () => {
+    fixture.componentRef.setInput('stats', mockStats);
+    fixture.componentRef.setInput('currentMonth', 5);
+    fixture.detectChanges();
+
+    const monthHours = fixture.nativeElement.querySelector('.month-hours');
+    expect(monthHours).toBeTruthy();
+    expect(monthHours.textContent).toContain('0h');
   });
 
   it('should display shifts_weekday, shifts_saturday, shifts_sunday_holiday as badges', () => {

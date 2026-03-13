@@ -10,6 +10,7 @@ describe('DoctorCardComponent', () => {
     id: 'doc-001',
     name: 'Dr. Garcia',
     department: 'Medicina General',
+    rota_type: 'AC',
   };
 
   beforeEach(async () => {

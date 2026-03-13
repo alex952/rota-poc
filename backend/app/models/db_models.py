@@ -22,12 +22,14 @@ class Rota(Base):
     __tablename__ = "rotas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    year: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    rota_type: Mapped[str] = mapped_column(String(2), nullable=False)  # "AC" or "AP"
     city: Mapped[str] = mapped_column(String(100), nullable=False)
     generated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
     pool: Mapped[dict] = mapped_column(JSON, nullable=False)
+    doctors_per_day: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     doctors: Mapped[list["RotaDoctor"]] = relationship(
         back_populates="rota", cascade="all, delete-orphan"
@@ -35,6 +37,8 @@ class Rota(Base):
     assignments: Mapped[list["RotaAssignment"]] = relationship(
         back_populates="rota", cascade="all, delete-orphan"
     )
+
+    __table_args__ = (UniqueConstraint("year", "rota_type"),)
 
 
 class RotaDoctor(Base):
@@ -65,15 +69,13 @@ class RotaAssignment(Base):
     shift_start: Mapped[time] = mapped_column(Time, nullable=False)
     shift_end: Mapped[time] = mapped_column(Time, nullable=False)
     duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
-    ac_doctor_id: Mapped[str] = mapped_column(String(50), nullable=False)
-    ap_doctor_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    doctor_id: Mapped[str] = mapped_column(String(50), nullable=False)
 
     rota: Mapped["Rota"] = relationship(back_populates="assignments")
 
     __table_args__ = (
-        UniqueConstraint("rota_id", "date"),
-        Index("ix_rota_assignments_ac_doctor", "rota_id", "ac_doctor_id"),
-        Index("ix_rota_assignments_ap_doctor", "rota_id", "ap_doctor_id"),
+        UniqueConstraint("rota_id", "date", "doctor_id"),
+        Index("ix_rota_assignments_doctor", "rota_id", "doctor_id"),
     )
 
 

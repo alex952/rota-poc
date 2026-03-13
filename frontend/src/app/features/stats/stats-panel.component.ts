@@ -1,6 +1,7 @@
 import { Component, computed, input, output } from '@angular/core';
 import { DoctorStatsRowComponent } from './doctor-stats-row.component';
 import { DoctorStats } from '../../core/models/rota.model';
+import { RotaType } from '../../core/models/doctor.model';
 
 @Component({
   selector: 'app-stats-panel',
@@ -9,13 +10,13 @@ import { DoctorStats } from '../../core/models/rota.model';
   template: `
     <aside class="stats-panel" [class.open]="visible()">
       <div class="stats-header">
-        <h3 class="stats-title">Rota Statistics</h3>
+        <h3 class="stats-title">{{ activeTab() }} Statistics</h3>
         <button class="btn-close-stats" (click)="closed.emit()" aria-label="Close stats panel">&times;</button>
       </div>
       @if (stats().length > 0) {
         <div class="stats-body">
           @for (doctorStats of stats(); track doctorStats.doctor_id) {
-            <app-doctor-stats-row [stats]="doctorStats" [maxHours]="maxHours()" />
+            <app-doctor-stats-row [stats]="doctorStats" [maxHours]="maxHours()" [currentMonth]="currentMonth()" />
           }
         </div>
         @if (hasImbalance()) {
@@ -159,6 +160,8 @@ import { DoctorStats } from '../../core/models/rota.model';
 export class StatsPanelComponent {
   readonly visible = input<boolean>(false);
   readonly stats = input<DoctorStats[]>([]);
+  readonly activeTab = input<RotaType>('AC');
+  readonly currentMonth = input<number>(new Date().getMonth() + 1);
   readonly closed = output<void>();
 
   readonly maxHours = computed(() => {

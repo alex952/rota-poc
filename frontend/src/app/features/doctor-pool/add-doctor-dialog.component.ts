@@ -1,6 +1,6 @@
-import { Component, inject, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Doctor } from '../../core/models/doctor.model';
+import { Doctor, RotaType } from '../../core/models/doctor.model';
 
 @Component({
   selector: 'app-add-doctor-dialog',
@@ -8,7 +8,7 @@ import { Doctor } from '../../core/models/doctor.model';
   imports: [ReactiveFormsModule],
   template: `
     <div class="add-doctor-dialog">
-      <h4 class="dialog-title">Add New Doctor</h4>
+      <h4 class="dialog-title">Add New Doctor ({{ defaultRotaType() }})</h4>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-field">
           <label for="name">Name</label>
@@ -105,6 +105,7 @@ import { Doctor } from '../../core/models/doctor.model';
   `],
 })
 export class AddDoctorDialogComponent {
+  readonly defaultRotaType = input<RotaType>('AC');
   readonly doctorAdded = output<Doctor>();
   readonly cancelled = output<void>();
 
@@ -121,6 +122,7 @@ export class AddDoctorDialogComponent {
         id: `doc-${Date.now()}`,
         name: this.form.value['name'],
         department: this.form.value['department'],
+        rota_type: this.defaultRotaType(),
       };
       this.doctorAdded.emit(doctor);
       this.form.reset();

@@ -3,14 +3,14 @@ import { DoctorPoolComponent } from './features/doctor-pool/doctor-pool.componen
 import { CalendarComponent } from './features/calendar/calendar.component';
 import { StatsPanelComponent } from './features/stats/stats-panel.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
-import { ServiceTypeDialogComponent, ServiceTypeChoice } from './shared/service-type-dialog.component';
+import { ReplaceDoctorDialogComponent, ReplaceDoctorChoice } from './shared/replace-doctor-dialog.component';
 import { NotificationComponent } from './shared/notification.component';
 import { ConfigService } from './core/services/config.service';
 import { RotaService } from './core/services/rota.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
-import { Doctor } from './core/models/doctor.model';
-import { DayAssignment, DoctorStats, ReplaceRequest } from './core/models/rota.model';
+import { Doctor, RotaType } from './core/models/doctor.model';
+import { DayAssignment, DoctorStats, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
@@ -22,7 +22,7 @@ import { CdkDropListGroup } from '@angular/cdk/drag-drop';
     CalendarComponent,
     StatsPanelComponent,
     ConfirmDialogComponent,
-    ServiceTypeDialogComponent,
+    ReplaceDoctorDialogComponent,
     NotificationComponent,
     CdkDropListGroup,
   ],
@@ -37,21 +37,82 @@ export class App implements OnInit {
 
   protected readonly city = signal('');
   protected readonly selectedYear = signal(new Date().getFullYear());
-  protected readonly schedule = signal<DayAssignment[]>([]);
-  protected readonly stats = signal<DoctorStats[]>([]);
-  protected readonly hasExistingRota = signal(false);
+  protected readonly activePoolTab = signal<RotaType>('AC');
   protected readonly showStats = signal(false);
   protected readonly showConfirmDialog = signal(false);
   protected readonly loading = signal(false);
   protected readonly isGenerating = signal(false);
+  protected readonly currentMonth = signal(new Date().getMonth() + 1);
+
+  // Dual rota state
+  protected readonly acSchedule = signal<DayAssignment[]>([]);
+  protected readonly apSchedule = signal<DayAssignment[]>([]);
+  protected readonly acStats = signal<DoctorStats[]>([]);
+  protected readonly apStats = signal<DoctorStats[]>([]);
+  protected readonly hasAcRota = signal(false);
+  protected readonly hasApRota = signal(false);
 
   // Drag-and-drop replacement state
   protected readonly pendingReplacement = signal<ReplacementEvent | null>(null);
 
   protected readonly doctors = computed(() => this.doctorPoolService.doctors());
 
+  protected readonly activePoolDoctors = computed(() => {
+    const tab = this.activePoolTab();
+    return tab === 'AC'
+      ? this.doctorPoolService.acDoctors()
+      : this.doctorPoolService.apDoctors();
+  });
+
+  protected readonly hasExistingRota = computed(() => {
+    const tab = this.activePoolTab();
+    return tab === 'AC' ? this.hasAcRota() : this.hasApRota();
+  });
+
+  protected readonly activeStats = computed(() => {
+    const tab = this.activePoolTab();
+    return tab === 'AC' ? this.acStats() : this.apStats();
+  });
+
+  // Merged schedule for the calendar: combine AC + AP by date
+  protected readonly mergedSchedule = computed(() => {
+    const acMap = new Map<string, DayAssignment>();
+    for (const day of this.acSchedule()) {
+      acMap.set(day.date, day);
+    }
+    const apMap = new Map<string, DayAssignment>();
+    for (const day of this.apSchedule()) {
+      apMap.set(day.date, day);
+    }
+
+    // Union of all dates
+    const allDates = new Set([...acMap.keys(), ...apMap.keys()]);
+    const merged: MergedDayAssignment[] = [];
+
+    for (const dateStr of [...allDates].sort()) {
+      const ac = acMap.get(dateStr);
+      const ap = apMap.get(dateStr);
+      const ref = ac ?? ap!;
+      merged.push({
+        date: dateStr,
+        day_type: ref.day_type,
+        shift_start: ref.shift_start,
+        shift_end: ref.shift_end,
+        duration_hours: ref.duration_hours,
+        acDoctors: ac?.doctors ?? [],
+        apDoctors: ap?.doctors ?? [],
+      });
+    }
+
+    return merged;
+  });
+
+  protected readonly hasData = computed(() =>
+    this.hasAcRota() || this.hasApRota()
+  );
+
   protected readonly confirmMessage = computed(() =>
-    `The current rota for ${this.selectedYear()} will be replaced with a new one. This action cannot be undone. Continue?`
+    `The current ${this.activePoolTab()} rota for ${this.selectedYear()} will be replaced with a new one. This action cannot be undone. Continue?`
   );
 
   ngOnInit(): void {
@@ -66,16 +127,24 @@ export class App implements OnInit {
         );
       },
     });
-    this.loadRota(this.selectedYear());
+    this.loadRotas(this.selectedYear());
   }
 
   toggleStats(): void {
     this.showStats.update((v) => !v);
   }
 
+  onMonthChange(month: number): void {
+    this.currentMonth.set(month);
+  }
+
+  onPoolTabChange(tab: RotaType): void {
+    this.activePoolTab.set(tab);
+  }
+
   onYearChange(year: number): void {
     this.selectedYear.set(year);
-    this.loadRota(year);
+    this.loadRotas(year);
   }
 
   onGenerateRota(): void {
@@ -100,31 +169,44 @@ export class App implements OnInit {
   }
 
   onDoctorDropped(event: ReplacementEvent): void {
-    this.pendingReplacement.set(event);
+    // If there's only one doctor for the active type, replace directly
+    const tab = this.activePoolTab();
+    const doctors = tab === 'AC' ? event.acDoctors : event.apDoctors;
+    if (doctors.length === 1) {
+      this.doReplace(tab, event.date, doctors[0].doctor_id, event.newDoctor.id);
+    } else if (doctors.length > 1) {
+      this.pendingReplacement.set(event);
+    }
   }
 
-  onServiceTypeSelected(serviceType: ServiceTypeChoice): void {
+  onReplaceDoctorSelected(choice: ReplaceDoctorChoice): void {
     const replacement = this.pendingReplacement();
     if (!replacement) return;
+    this.pendingReplacement.set(null);
+    this.doReplace(
+      this.activePoolTab(),
+      replacement.date,
+      choice.doctor_id,
+      replacement.newDoctor.id,
+    );
+  }
 
-    const oldDoctorId = serviceType === 'atencion_continuada'
-      ? replacement.acDoctor.doctor_id
-      : replacement.apDoctor.doctor_id;
+  onCancelReplacement(): void {
+    this.pendingReplacement.set(null);
+  }
 
+  private doReplace(rotaType: RotaType, dateStr: string, oldDoctorId: string, newDoctorId: string): void {
     const request: ReplaceRequest = {
-      date: replacement.date,
-      service_type: serviceType,
+      date: dateStr,
       old_doctor_id: oldDoctorId,
-      new_doctor_id: replacement.newDoctor.id,
+      new_doctor_id: newDoctorId,
     };
 
-    this.pendingReplacement.set(null);
     this.loading.set(true);
 
-    this.rotaService.replaceDoctor(this.selectedYear(), request).subscribe({
+    this.rotaService.replaceDoctor(this.selectedYear(), rotaType, request).subscribe({
       next: (rota) => {
-        this.schedule.set(rota.schedule);
-        this.stats.set(rota.stats.doctors);
+        this.applyRota(rota);
         this.loading.set(false);
       },
       error: (err) => {
@@ -138,25 +220,30 @@ export class App implements OnInit {
     });
   }
 
-  onCancelReplacement(): void {
-    this.pendingReplacement.set(null);
-  }
-
-  private loadRota(year: number): void {
+  private loadRotas(year: number): void {
     this.loading.set(true);
-    this.rotaService.getRota(year).subscribe({
-      next: (rota) => {
-        this.schedule.set(rota.schedule);
-        this.stats.set(rota.stats.doctors);
-        this.hasExistingRota.set(true);
+    this.rotaService.getRotas(year).subscribe({
+      next: (rotas) => {
+        this.acSchedule.set([]);
+        this.apSchedule.set([]);
+        this.acStats.set([]);
+        this.apStats.set([]);
+        this.hasAcRota.set(false);
+        this.hasApRota.set(false);
+
+        for (const rota of rotas) {
+          this.applyRota(rota);
+        }
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.schedule.set([]);
-        this.stats.set([]);
-        this.hasExistingRota.set(false);
+        this.acSchedule.set([]);
+        this.apSchedule.set([]);
+        this.acStats.set([]);
+        this.apStats.set([]);
+        this.hasAcRota.set(false);
+        this.hasApRota.set(false);
         this.loading.set(false);
-        // 404 is expected when no rota exists — only show notification for real errors
         if (err.status !== 404) {
           this.notificationService.show(
             this.extractErrorMessage(err, 'Failed to load rota'),
@@ -167,26 +254,37 @@ export class App implements OnInit {
     });
   }
 
+  private applyRota(rota: RotaResponse): void {
+    if (rota.rota_type === 'AC') {
+      this.acSchedule.set(rota.schedule);
+      this.acStats.set(rota.stats.doctors);
+      this.hasAcRota.set(true);
+    } else {
+      this.apSchedule.set(rota.schedule);
+      this.apStats.set(rota.stats.doctors);
+      this.hasApRota.set(true);
+    }
+  }
+
   private doGenerateRota(): void {
-    const pool = this.doctorPoolService.doctors();
+    const tab = this.activePoolTab();
+    const pool = this.doctorPoolService.getDoctorsByType(tab);
     const year = this.selectedYear();
     this.loading.set(true);
     this.isGenerating.set(true);
-    this.rotaService.generateRota(year, pool).subscribe({
+    this.rotaService.generateRota(year, tab, pool).subscribe({
       next: (rota) => {
-        this.schedule.set(rota.schedule);
-        this.stats.set(rota.stats.doctors);
-        this.hasExistingRota.set(true);
+        this.applyRota(rota);
         this.loading.set(false);
         this.isGenerating.set(false);
         if (rota.warnings?.length) {
           this.notificationService.show(
-            `Rota generated with warnings:\n${rota.warnings.join('\n')}`,
+            `${tab} rota generated with warnings:\n${rota.warnings.join('\n')}`,
             'warning'
           );
         } else {
           this.notificationService.show(
-            `Rota generated successfully for ${year}`,
+            `${tab} rota generated successfully for ${year}`,
             'success'
           );
         }
@@ -196,7 +294,7 @@ export class App implements OnInit {
         this.loading.set(false);
         this.isGenerating.set(false);
         this.notificationService.show(
-          this.extractErrorMessage(err, 'Failed to generate rota'),
+          this.extractErrorMessage(err, `Failed to generate ${tab} rota`),
           'error'
         );
       },

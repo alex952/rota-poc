@@ -13,30 +13,28 @@ def calculate_stats(
     doctor_map = {d.id: d for d in pool}
 
     # Initialize counters
-    ac_hours: dict[str, int] = {d.id: 0 for d in pool}
-    ap_hours: dict[str, int] = {d.id: 0 for d in pool}
+    total_hours: dict[str, int] = {d.id: 0 for d in pool}
+    monthly_hours: dict[str, dict[int, int]] = {d.id: {} for d in pool}
     shifts_weekday: dict[str, int] = {d.id: 0 for d in pool}
     shifts_saturday: dict[str, int] = {d.id: 0 for d in pool}
     shifts_sunday_holiday: dict[str, int] = {d.id: 0 for d in pool}
 
     for day in schedule:
-        ac_id = day.atencion_continuada.doctor_id
-        ap_id = day.atencion_primaria.doctor_id
         hours = day.duration_hours
         day_type = day.day_type
+        month = day.date.month
 
-        # AC hours
-        if ac_id in ac_hours:
-            ac_hours[ac_id] += hours
-        # AP hours
-        if ap_id in ap_hours:
-            ap_hours[ap_id] += hours
-
-        # Shift counts — count per assignment (a doctor gets counted for
-        # each service type they're assigned on a given day type)
-        for did in (ac_id, ap_id):
+        for doc_ref in day.doctors:
+            did = doc_ref.doctor_id
             if did not in doctor_map:
                 continue
+
+            total_hours[did] += hours
+
+            if month not in monthly_hours[did]:
+                monthly_hours[did][month] = 0
+            monthly_hours[did][month] += hours
+
             if day_type == "weekday":
                 shifts_weekday[did] += 1
             elif day_type == "saturday":
@@ -47,14 +45,12 @@ def calculate_stats(
     result: list[DoctorStats] = []
     for doc in pool:
         did = doc.id
-        total = ac_hours.get(did, 0) + ap_hours.get(did, 0)
         result.append(
             DoctorStats(
                 doctor_id=did,
                 doctor_name=doc.name,
-                total_hours=total,
-                ac_hours=ac_hours.get(did, 0),
-                ap_hours=ap_hours.get(did, 0),
+                total_hours=total_hours.get(did, 0),
+                monthly_hours=monthly_hours.get(did, {}),
                 shifts_weekday=shifts_weekday.get(did, 0),
                 shifts_saturday=shifts_saturday.get(did, 0),
                 shifts_sunday_holiday=shifts_sunday_holiday.get(did, 0),

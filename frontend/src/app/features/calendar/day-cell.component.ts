@@ -1,13 +1,13 @@
 import { Component, input, output } from '@angular/core';
 import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
-import { DayAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment, DoctorRef } from '../../core/models/rota.model';
 import { Doctor } from '../../core/models/doctor.model';
 
 export interface ReplacementEvent {
   date: string;
   newDoctor: Doctor;
-  acDoctor: { doctor_id: string; doctor_name: string };
-  apDoctor: { doctor_id: string; doctor_name: string };
+  acDoctors: DoctorRef[];
+  apDoctors: DoctorRef[];
 }
 
 @Component({
@@ -28,14 +28,22 @@ export interface ReplacementEvent {
       <span class="day-number">{{ day() }}</span>
       @if (assignment()) {
         <div class="assignments">
-          <div class="ac-assignment" title="Atencion Continuada">
-            <span class="label">AC</span>
-            <span class="doctor-name clickable" (click)="onDoctorClick($event, assignment()!.atencion_continuada)">{{ assignment()!.atencion_continuada.doctor_name }}</span>
-          </div>
-          <div class="ap-assignment" title="Atencion Primaria">
-            <span class="label">AP</span>
-            <span class="doctor-name clickable" (click)="onDoctorClick($event, assignment()!.atencion_primaria)">{{ assignment()!.atencion_primaria.doctor_name }}</span>
-          </div>
+          @if (assignment()!.acDoctors.length > 0) {
+            <div class="ac-section" title="Atencion Continuada">
+              <span class="section-header">AC</span>
+              @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
+                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+              }
+            </div>
+          }
+          @if (assignment()!.apDoctors.length > 0) {
+            <div class="ap-section" title="Atencion Primaria">
+              <span class="section-header">AP</span>
+              @for (doc of assignment()!.apDoctors; track doc.doctor_id) {
+                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+              }
+            </div>
+          }
         </div>
       }
     </div>
@@ -91,59 +99,81 @@ export interface ReplacementEvent {
       gap: 2px;
     }
 
-    .ac-assignment,
-    .ap-assignment {
+    .ac-section,
+    .ap-section {
       display: flex;
-      align-items: center;
-      gap: 3px;
-      padding: 1px 3px;
+      flex-direction: column;
+      gap: 1px;
+      padding: 2px 3px;
       border-radius: 3px;
-      line-height: 1.3;
     }
 
-    .ac-assignment {
+    .section-header {
+      font-weight: 700;
+      font-size: 0.6rem;
+      opacity: 0.7;
+      letter-spacing: 0.03em;
+    }
+
+    .ac-section {
       background: #e3f2fd;
+    }
+
+    .ac-section .section-header {
       color: #1565c0;
     }
 
-    .ap-assignment {
+    .ap-section {
       background: #e8f5e9;
+    }
+
+    .ap-section .section-header {
       color: #2e7d32;
     }
 
-    .label {
-      font-weight: 700;
-      font-size: 0.65rem;
-      flex-shrink: 0;
-    }
-
-    .doctor-name {
-      font-size: 0.65rem;
+    .doctor-pill {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-weight: 500;
+      padding: 1px 5px;
+      border-radius: 8px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 100%;
+      line-height: 1.4;
     }
 
-    .doctor-name.clickable {
+    .ac-section .doctor-pill {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+
+    .ap-section .doctor-pill {
+      background: #c8e6c9;
+      color: #1b5e20;
+    }
+
+    .doctor-pill.clickable {
       cursor: pointer;
-      border-radius: 2px;
+      transition: filter 0.12s ease;
     }
 
-    .doctor-name.clickable:hover {
-      text-decoration: underline;
+    .doctor-pill.clickable:hover {
+      filter: brightness(0.9);
     }
+
   `],
 })
 export class DayCellComponent {
   readonly day = input.required<number>();
-  readonly assignment = input<DayAssignment | null>(null);
+  readonly assignment = input<MergedDayAssignment | null>(null);
   readonly dayType = input<string>('weekday');
   readonly date = input<string>('');
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
 
-  /** Only allow drops on cells that have an existing assignment */
   canDrop = (): boolean => {
     return this.assignment() !== null;
   };
@@ -163,8 +193,8 @@ export class DayCellComponent {
     this.doctorDropped.emit({
       date: currentAssignment.date,
       newDoctor: droppedDoctor,
-      acDoctor: currentAssignment.atencion_continuada,
-      apDoctor: currentAssignment.atencion_primaria,
+      acDoctors: currentAssignment.acDoctors,
+      apDoctors: currentAssignment.apDoctors,
     });
   }
 }

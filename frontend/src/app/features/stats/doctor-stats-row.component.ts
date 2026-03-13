@@ -13,17 +13,12 @@ import { DoctorStats } from '../../core/models/rota.model';
           <span class="stat-value">{{ stats().total_hours }}h</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">AC</span>
-          <span class="stat-value ac">{{ stats().ac_hours }}h</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">AP</span>
-          <span class="stat-value ap">{{ stats().ap_hours }}h</span>
+          <span class="stat-label">{{ monthName() }}</span>
+          <span class="stat-value month-hours">{{ currentMonthHours() }}h</span>
         </div>
       </div>
       <div class="hours-bar">
-        <div class="hours-bar-fill ac-fill" [style.width.%]="acBarWidth()"></div>
-        <div class="hours-bar-fill ap-fill" [style.width.%]="apBarWidth()"></div>
+        <div class="hours-bar-fill" [style.width.%]="barWidth()"></div>
       </div>
       <div class="shifts-row">
         <span class="shift-badge weekday">Wkd: {{ stats().shifts_weekday }}</span>
@@ -70,12 +65,8 @@ import { DoctorStats } from '../../core/models/rota.model';
       color: #333;
     }
 
-    .stat-value.ac {
+    .stat-value.month-hours {
       color: #1565c0;
-    }
-
-    .stat-value.ap {
-      color: #2e7d32;
     }
 
     .hours-bar {
@@ -90,14 +81,7 @@ import { DoctorStats } from '../../core/models/rota.model';
     .hours-bar-fill {
       height: 100%;
       transition: width 0.3s ease;
-    }
-
-    .hours-bar-fill.ac-fill {
       background: #1565c0;
-    }
-
-    .hours-bar-fill.ap-fill {
-      background: #2e7d32;
     }
 
     .shifts-row {
@@ -131,16 +115,24 @@ import { DoctorStats } from '../../core/models/rota.model';
 export class DoctorStatsRowComponent {
   readonly stats = input.required<DoctorStats>();
   readonly maxHours = input<number>(0);
+  readonly currentMonth = input<number>(new Date().getMonth() + 1);
 
-  readonly acBarWidth = computed(() => {
+  private static readonly MONTH_NAMES = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  readonly barWidth = computed(() => {
     const max = this.maxHours();
     if (max === 0) return 0;
-    return Math.round((this.stats().ac_hours / max) * 100);
+    return Math.round((this.stats().total_hours / max) * 100);
   });
 
-  readonly apBarWidth = computed(() => {
-    const max = this.maxHours();
-    if (max === 0) return 0;
-    return Math.round((this.stats().ap_hours / max) * 100);
-  });
+  readonly monthName = computed(() =>
+    DoctorStatsRowComponent.MONTH_NAMES[this.currentMonth() - 1] ?? ''
+  );
+
+  readonly currentMonthHours = computed(() =>
+    this.stats().monthly_hours[this.currentMonth()] ?? 0
+  );
 }

@@ -1,6 +1,7 @@
 """Rota API endpoints — generate, query, replace."""
 
 from datetime import datetime, time, timezone
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -12,10 +13,10 @@ from app.schemas.rota import (
     DayAssignment,
     DoctorIn,
     DoctorRef,
-    DoctorStats,
     GenerateRequest,
     ReplaceRequest,
     RotaResponse,
+    RotaType,
     StatsResponse,
 )
 from app.services.assignment import InfeasiblePoolError, generate_rota
@@ -25,7 +26,9 @@ from app.services.stats import calculate_stats
 router = APIRouter(prefix="/rota", tags=["rota"])
 
 
-def _build_rota_response(rota: Rota, db: Session, doctor_id_filter: str | None = None) -> RotaResponse:
+def _build_rota_response(
+    rota: Rota, db: Session, doctor_id_filter: str | None = None
+) -> RotaResponse:
     """Build a RotaResponse from a Rota DB model."""
     pool_data = rota.pool
     pool = [DoctorIn(**d) for d in pool_data]
@@ -40,29 +43,48 @@ def _build_rota_response(rota: Rota, db: Session, doctor_id_filter: str | None =
 
     if doctor_id_filter:
         assignments = [
-            a for a in assignments
-            if a.ac_doctor_id == doctor_id_filter or a.ap_doctor_id == doctor_id_filter
+            a for a in assignments if a.doctor_id == doctor_id_filter
         ]
 
-    schedule: list[DayAssignment] = []
+    # Group assignment rows by date to build DayAssignment with doctors list
+    date_groups: dict[str, list] = defaultdict(list)
+    date_meta: dict[str, dict] = {}
     for a in assignments:
-        ac_doc = doctor_map.get(a.ac_doctor_id)
-        ap_doc = doctor_map.get(a.ap_doctor_id)
+        date_key = a.date.isoformat()
+        date_groups[date_key].append(a)
+        if date_key not in date_meta:
+            date_meta[date_key] = {
+                "date": a.date,
+                "day_type": a.day_type,
+                "shift_start": a.shift_start,
+                "shift_end": a.shift_end,
+                "duration_hours": a.duration_hours,
+            }
+
+    schedule: list[DayAssignment] = []
+    for date_key in sorted(date_groups.keys()):
+        rows = date_groups[date_key]
+        meta = date_meta[date_key]
+        doctors = []
+        for a in rows:
+            doc = doctor_map.get(a.doctor_id)
+            doctors.append(
+                DoctorRef(
+                    doctor_id=a.doctor_id,
+                    doctor_name=doc.name if doc else a.doctor_id,
+                )
+            )
+        shift_start = meta["shift_start"]
+        if isinstance(shift_start, time):
+            shift_start = shift_start.strftime("%H:%M")
         schedule.append(
             DayAssignment(
-                date=a.date,
-                day_type=a.day_type,
-                shift_start=a.shift_start.strftime("%H:%M") if isinstance(a.shift_start, time) else a.shift_start,
-                shift_end=_format_shift_end(a.shift_end, a.day_type),
-                duration_hours=a.duration_hours,
-                atencion_continuada=DoctorRef(
-                    doctor_id=a.ac_doctor_id,
-                    doctor_name=ac_doc.name if ac_doc else a.ac_doctor_id,
-                ),
-                atencion_primaria=DoctorRef(
-                    doctor_id=a.ap_doctor_id,
-                    doctor_name=ap_doc.name if ap_doc else a.ap_doctor_id,
-                ),
+                date=meta["date"],
+                day_type=meta["day_type"],
+                shift_start=shift_start,
+                shift_end=_format_shift_end(meta["shift_end"], meta["day_type"]),
+                duration_hours=meta["duration_hours"],
+                doctors=doctors,
             )
         )
 
@@ -73,25 +95,45 @@ def _build_rota_response(rota: Rota, db: Session, doctor_id_filter: str | None =
         .order_by(RotaAssignment.date)
         .all()
     )
-    all_schedule: list[DayAssignment] = []
+
+    all_date_groups: dict[str, list] = defaultdict(list)
+    all_date_meta: dict[str, dict] = {}
     for a in all_assignments:
-        ac_doc = doctor_map.get(a.ac_doctor_id)
-        ap_doc = doctor_map.get(a.ap_doctor_id)
+        date_key = a.date.isoformat()
+        all_date_groups[date_key].append(a)
+        if date_key not in all_date_meta:
+            all_date_meta[date_key] = {
+                "date": a.date,
+                "day_type": a.day_type,
+                "shift_start": a.shift_start,
+                "shift_end": a.shift_end,
+                "duration_hours": a.duration_hours,
+            }
+
+    all_schedule: list[DayAssignment] = []
+    for date_key in sorted(all_date_groups.keys()):
+        rows = all_date_groups[date_key]
+        meta = all_date_meta[date_key]
+        doctors = []
+        for a in rows:
+            doc = doctor_map.get(a.doctor_id)
+            doctors.append(
+                DoctorRef(
+                    doctor_id=a.doctor_id,
+                    doctor_name=doc.name if doc else a.doctor_id,
+                )
+            )
+        shift_start = meta["shift_start"]
+        if isinstance(shift_start, time):
+            shift_start = shift_start.strftime("%H:%M")
         all_schedule.append(
             DayAssignment(
-                date=a.date,
-                day_type=a.day_type,
-                shift_start=a.shift_start.strftime("%H:%M") if isinstance(a.shift_start, time) else a.shift_start,
-                shift_end=_format_shift_end(a.shift_end, a.day_type),
-                duration_hours=a.duration_hours,
-                atencion_continuada=DoctorRef(
-                    doctor_id=a.ac_doctor_id,
-                    doctor_name=ac_doc.name if ac_doc else a.ac_doctor_id,
-                ),
-                atencion_primaria=DoctorRef(
-                    doctor_id=a.ap_doctor_id,
-                    doctor_name=ap_doc.name if ap_doc else a.ap_doctor_id,
-                ),
+                date=meta["date"],
+                day_type=meta["day_type"],
+                shift_start=shift_start,
+                shift_end=_format_shift_end(meta["shift_end"], meta["day_type"]),
+                duration_hours=meta["duration_hours"],
+                doctors=doctors,
             )
         )
 
@@ -100,6 +142,8 @@ def _build_rota_response(rota: Rota, db: Session, doctor_id_filter: str | None =
     return RotaResponse(
         year=rota.year,
         city=rota.city,
+        rota_type=rota.rota_type,
+        doctors_per_day=rota.doctors_per_day,
         generated_at=rota.generated_at,
         schedule=schedule,
         stats=StatsResponse(doctors=stats_list),
@@ -125,13 +169,7 @@ def _parse_time(t_str: str) -> time:
 
 @router.post("/generate", response_model=RotaResponse, status_code=201)
 def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_db)):
-    """Generate a new rota for the given year and doctor pool."""
-    if len(request.pool) < 2:
-        raise HTTPException(
-            status_code=400,
-            detail="Pool must have at least 2 doctors.",
-        )
-
+    """Generate a new rota for the given year, rota type, and doctor pool."""
     city = settings.CITY
 
     # Fetch holidays
@@ -147,12 +185,18 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
 
     # Generate rota
     try:
-        rota_result = generate_rota(request.year, request.pool, day_classifications)
+        rota_result = generate_rota(
+            request.year, request.rota_type, request.pool, day_classifications
+        )
     except InfeasiblePoolError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Delete existing rota for this year (replace)
-    existing = db.query(Rota).filter(Rota.year == request.year).first()
+    # Delete existing rota for this year + rota_type (replace)
+    existing = (
+        db.query(Rota)
+        .filter(Rota.year == request.year, Rota.rota_type == request.rota_type)
+        .first()
+    )
     if existing:
         db.delete(existing)
         db.flush()
@@ -161,9 +205,11 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
     now = datetime.now(timezone.utc)
     rota_db = Rota(
         year=request.year,
+        rota_type=request.rota_type,
         city=city,
         generated_at=now,
         pool=[d.model_dump() for d in request.pool],
+        doctors_per_day=rota_result.doctors_per_day,
     )
     db.add(rota_db)
     db.flush()  # get rota_db.id
@@ -179,20 +225,20 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
             )
         )
 
-    # Persist assignments
+    # Persist assignments — one row per doctor per day
     for day in rota_result.schedule:
-        db.add(
-            RotaAssignment(
-                rota_id=rota_db.id,
-                date=day.date,
-                day_type=day.day_type,
-                shift_start=_parse_time(day.shift_start),
-                shift_end=_parse_time(day.shift_end),
-                duration_hours=day.duration_hours,
-                ac_doctor_id=day.atencion_continuada.doctor_id,
-                ap_doctor_id=day.atencion_primaria.doctor_id,
+        for doc_ref in day.doctors:
+            db.add(
+                RotaAssignment(
+                    rota_id=rota_db.id,
+                    date=day.date,
+                    day_type=day.day_type,
+                    shift_start=_parse_time(day.shift_start),
+                    shift_end=_parse_time(day.shift_end),
+                    duration_hours=day.duration_hours,
+                    doctor_id=doc_ref.doctor_id,
+                )
             )
-        )
 
     db.commit()
     db.refresh(rota_db)
@@ -202,22 +248,56 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
     return response
 
 
-@router.get("/{year}", response_model=RotaResponse)
-def get_rota(year: int, doctor_id: str | None = None, db: Session = Depends(get_db)):
-    """Retrieve the stored rota for a given year."""
-    rota = db.query(Rota).filter(Rota.year == year).first()
+@router.get("/{year}/{rota_type}", response_model=RotaResponse)
+def get_rota_by_type(
+    year: int,
+    rota_type: RotaType,
+    doctor_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Retrieve the stored rota for a given year and rota type."""
+    rota = (
+        db.query(Rota)
+        .filter(Rota.year == year, Rota.rota_type == rota_type)
+        .first()
+    )
     if not rota:
-        raise HTTPException(status_code=404, detail=f"No rota found for year {year}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No {rota_type} rota found for year {year}",
+        )
 
     return _build_rota_response(rota, db, doctor_id_filter=doctor_id)
 
 
-@router.patch("/{year}/replace", response_model=RotaResponse)
-def replace_doctor(year: int, request: ReplaceRequest, db: Session = Depends(get_db)):
-    """Replace a doctor assignment on a specific date and service type."""
-    rota = db.query(Rota).filter(Rota.year == year).first()
+@router.get("/{year}", response_model=list[RotaResponse])
+def get_rotas(year: int, db: Session = Depends(get_db)):
+    """Retrieve all rotas (AC and AP) for a given year."""
+    rotas = db.query(Rota).filter(Rota.year == year).all()
+    if not rotas:
+        raise HTTPException(status_code=404, detail=f"No rotas found for year {year}")
+
+    return [_build_rota_response(r, db) for r in rotas]
+
+
+@router.patch("/{year}/{rota_type}/replace", response_model=RotaResponse)
+def replace_doctor(
+    year: int,
+    rota_type: RotaType,
+    request: ReplaceRequest,
+    db: Session = Depends(get_db),
+):
+    """Replace a doctor assignment on a specific date."""
+    rota = (
+        db.query(Rota)
+        .filter(Rota.year == year, Rota.rota_type == rota_type)
+        .first()
+    )
     if not rota:
-        raise HTTPException(status_code=404, detail=f"No rota found for year {year}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No {rota_type} rota found for year {year}",
+        )
 
     # Verify new_doctor_id is in the pool
     pool_ids = {d["id"] for d in rota.pool}
@@ -227,12 +307,13 @@ def replace_doctor(year: int, request: ReplaceRequest, db: Session = Depends(get
             detail=f"Doctor {request.new_doctor_id} is not in the original pool.",
         )
 
-    # Find the assignment
+    # Find the assignment row for the old doctor on that date
     assignment = (
         db.query(RotaAssignment)
         .filter(
             RotaAssignment.rota_id == rota.id,
             RotaAssignment.date == request.date,
+            RotaAssignment.doctor_id == request.old_doctor_id,
         )
         .first()
     )
@@ -240,30 +321,10 @@ def replace_doctor(year: int, request: ReplaceRequest, db: Session = Depends(get
     if not assignment:
         raise HTTPException(
             status_code=404,
-            detail=f"No assignment found for date {request.date}.",
+            detail=f"Doctor {request.old_doctor_id} is not assigned on {request.date}.",
         )
 
-    # Verify old doctor matches
-    if request.service_type == "atencion_continuada":
-        if assignment.ac_doctor_id != request.old_doctor_id:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Doctor {request.old_doctor_id} is not assigned AC on {request.date}.",
-            )
-        assignment.ac_doctor_id = request.new_doctor_id
-    elif request.service_type == "atencion_primaria":
-        if assignment.ap_doctor_id != request.old_doctor_id:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Doctor {request.old_doctor_id} is not assigned AP on {request.date}.",
-            )
-        assignment.ap_doctor_id = request.new_doctor_id
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid service_type: {request.service_type}. "
-            "Must be 'atencion_continuada' or 'atencion_primaria'.",
-        )
+    assignment.doctor_id = request.new_doctor_id
 
     db.commit()
     db.refresh(assignment)

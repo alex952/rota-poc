@@ -10,9 +10,8 @@ describe('StatsPanelComponent', () => {
     {
       doctor_id: 'doc-001',
       doctor_name: 'Dr. Garcia',
-      total_hours: 572,
-      ac_hours: 140,
-      ap_hours: 432,
+      total_hours: 1650,
+      monthly_hours: { 1: 140, 2: 130 },
       shifts_weekday: 20,
       shifts_saturday: 5,
       shifts_sunday_holiday: 4,
@@ -20,9 +19,8 @@ describe('StatsPanelComponent', () => {
     {
       doctor_id: 'doc-002',
       doctor_name: 'Dr. Lopez',
-      total_hours: 568,
-      ac_hours: 138,
-      ap_hours: 430,
+      total_hours: 1640,
+      monthly_hours: { 1: 138, 2: 132 },
       shifts_weekday: 19,
       shifts_saturday: 5,
       shifts_sunday_holiday: 5,
@@ -46,26 +44,18 @@ describe('StatsPanelComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Dr. Garcia');
     expect(text).toContain('Dr. Lopez');
-    expect(text).toContain('572');
-    expect(text).toContain('568');
+    expect(text).toContain('1650');
+    expect(text).toContain('1640');
   });
 
-  it('should show total hours, AC hours, AP hours for each doctor', () => {
+  it('should show total hours for each doctor', () => {
     fixture.componentRef.setInput('visible', true);
     fixture.componentRef.setInput('stats', mockStats);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-
-    // Dr. Garcia stats
-    expect(text).toContain('572');
-    expect(text).toContain('140');
-    expect(text).toContain('432');
-
-    // Dr. Lopez stats
-    expect(text).toContain('568');
-    expect(text).toContain('138');
-    expect(text).toContain('430');
+    expect(text).toContain('1650');
+    expect(text).toContain('1640');
   });
 
   it('should show shift counts by day type', () => {
@@ -74,12 +64,10 @@ describe('StatsPanelComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-
-    // Weekday, Saturday, Sunday/holiday counts should be present
-    expect(text).toContain('20'); // Garcia weekday
-    expect(text).toContain('19'); // Lopez weekday
-    expect(text).toContain('5');  // saturday
-    expect(text).toContain('4');  // Garcia holiday
+    expect(text).toContain('20');
+    expect(text).toContain('19');
+    expect(text).toContain('5');
+    expect(text).toContain('4');
   });
 
   it('should be hidden by default', () => {
@@ -88,10 +76,7 @@ describe('StatsPanelComponent', () => {
     fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('.stats-panel');
-    // When not visible, the panel should be off-screen via transform
     expect(panel).toBeTruthy();
-    const styles = getComputedStyle(panel);
-    // The panel exists in DOM but is translated off-screen
     expect(panel.classList.contains('open')).toBe(false);
   });
 
@@ -103,7 +88,6 @@ describe('StatsPanelComponent', () => {
     let panel = fixture.nativeElement.querySelector('.stats-panel');
     expect(panel.classList.contains('open')).toBe(false);
 
-    // Toggle to open
     fixture.componentRef.setInput('visible', true);
     fixture.detectChanges();
 
@@ -116,9 +100,8 @@ describe('StatsPanelComponent', () => {
       {
         doctor_id: 'doc-001',
         doctor_name: 'Dr. Garcia',
-        total_hours: 600,
-        ac_hours: 160,
-        ap_hours: 440,
+        total_hours: 1800,
+        monthly_hours: { 1: 160 },
         shifts_weekday: 22,
         shifts_saturday: 6,
         shifts_sunday_holiday: 5,
@@ -126,9 +109,8 @@ describe('StatsPanelComponent', () => {
       {
         doctor_id: 'doc-002',
         doctor_name: 'Dr. Lopez',
-        total_hours: 500,
-        ac_hours: 135,
-        ap_hours: 365,
+        total_hours: 1500,
+        monthly_hours: { 1: 135 },
         shifts_weekday: 16,
         shifts_saturday: 4,
         shifts_sunday_holiday: 3,
@@ -139,7 +121,6 @@ describe('StatsPanelComponent', () => {
     fixture.componentRef.setInput('stats', imbalancedStats);
     fixture.detectChanges();
 
-    // Should show a warning indicator when max-min difference > 10% of max
     const warningEl = fixture.nativeElement.querySelector('.equity-warning');
     expect(warningEl).toBeTruthy();
     expect(warningEl.textContent.toLowerCase()).toContain('imbalance');
@@ -150,7 +131,6 @@ describe('StatsPanelComponent', () => {
     fixture.componentRef.setInput('stats', mockStats);
     fixture.detectChanges();
 
-    // The difference between 572 and 568 is well within 10%
     const warningEl = fixture.nativeElement.querySelector('.equity-warning');
     expect(warningEl).toBeFalsy();
   });
@@ -164,23 +144,21 @@ describe('StatsPanelComponent', () => {
     expect(summaryEl).toBeTruthy();
 
     const summaryText = summaryEl.textContent;
-    // Total hours: 572 + 568 = 1140
-    expect(summaryText).toContain('1140');
-    // Average hours: 1140 / 2 = 570
-    expect(summaryText).toContain('570');
+    // Total hours: 1650 + 1640 = 3290
+    expect(summaryText).toContain('3290');
+    // Average hours: 3290 / 2 = 1645
+    expect(summaryText).toContain('1645');
   });
 
-  it('should show header with title and close button', () => {
+  it('should show header with active tab in title', () => {
     fixture.componentRef.setInput('visible', true);
     fixture.componentRef.setInput('stats', mockStats);
+    fixture.componentRef.setInput('activeTab', 'AC');
     fixture.detectChanges();
 
     const title = fixture.nativeElement.querySelector('.stats-title');
     expect(title).toBeTruthy();
-    expect(title.textContent).toContain('Rota Statistics');
-
-    const closeBtn = fixture.nativeElement.querySelector('.btn-close-stats');
-    expect(closeBtn).toBeTruthy();
+    expect(title.textContent).toContain('AC Statistics');
   });
 
   it('should emit close event when close button is clicked', () => {

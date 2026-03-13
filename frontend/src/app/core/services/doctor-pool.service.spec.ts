@@ -9,9 +9,9 @@ describe('DoctorPoolService', () => {
   let httpTesting: HttpTestingController;
 
   const mockDoctors: Doctor[] = [
-    { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
-    { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
-    { id: 'doc-003', name: 'Dr. Martinez', department: 'Cardiologia' },
+    { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
+    { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
+    { id: 'doc-011', name: 'Dr. Navarro', department: 'Urologia', rota_type: 'AP' },
   ];
 
   beforeEach(() => {
@@ -46,6 +46,7 @@ describe('DoctorPoolService', () => {
       id: 'doc-004',
       name: 'Dr. Fernandez',
       department: 'Neurologia',
+      rota_type: 'AC',
     };
 
     service.addDoctor(newDoctor);
@@ -61,6 +62,38 @@ describe('DoctorPoolService', () => {
 
     const doctors = service.doctors();
     expect(doctors.length).toBe(3);
-    expect(doctors.map((d) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-003']);
+    expect(doctors.map((d) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-011']);
+  });
+
+  it('should return AC doctors via computed signal', () => {
+    service.loadDoctors();
+    const req = httpTesting.expectOne('assets/doctors.json');
+    req.flush(mockDoctors);
+
+    const acDoctors = service.acDoctors();
+    expect(acDoctors.length).toBe(2);
+    expect(acDoctors.every(d => d.rota_type === 'AC')).toBe(true);
+  });
+
+  it('should return AP doctors via computed signal', () => {
+    service.loadDoctors();
+    const req = httpTesting.expectOne('assets/doctors.json');
+    req.flush(mockDoctors);
+
+    const apDoctors = service.apDoctors();
+    expect(apDoctors.length).toBe(1);
+    expect(apDoctors[0].rota_type).toBe('AP');
+  });
+
+  it('should get doctors by type', () => {
+    service.loadDoctors();
+    const req = httpTesting.expectOne('assets/doctors.json');
+    req.flush(mockDoctors);
+
+    const acDoctors = service.getDoctorsByType('AC');
+    expect(acDoctors.length).toBe(2);
+
+    const apDoctors = service.getDoctorsByType('AP');
+    expect(apDoctors.length).toBe(1);
   });
 });

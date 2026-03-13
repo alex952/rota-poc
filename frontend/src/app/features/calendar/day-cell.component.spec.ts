@@ -1,19 +1,33 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DayCellComponent } from './day-cell.component';
-import { DayAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment } from '../../core/models/rota.model';
 
 describe('DayCellComponent', () => {
   let component: DayCellComponent;
   let fixture: ComponentFixture<DayCellComponent>;
 
-  const mockAssignment: DayAssignment = {
+  const mockAssignment: MergedDayAssignment = {
     date: '2026-01-15',
     day_type: 'weekday',
     shift_start: '15:00',
     shift_end: '08:00+1',
     duration_hours: 17,
-    atencion_continuada: { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' },
-    atencion_primaria: { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' },
+    acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
+    apDoctors: [{ doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' }],
+  };
+
+  const mockMultiDoctorAssignment: MergedDayAssignment = {
+    date: '2026-01-15',
+    day_type: 'weekday',
+    shift_start: '15:00',
+    shift_end: '08:00+1',
+    duration_hours: 17,
+    acDoctors: [
+      { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' },
+      { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' },
+      { doctor_id: 'doc-003', doctor_name: 'Dr. Martinez' },
+    ],
+    apDoctors: [{ doctor_id: 'doc-011', doctor_name: 'Dr. Navarro' }],
   };
 
   beforeEach(async () => {
@@ -45,11 +59,23 @@ describe('DayCellComponent', () => {
     expect(text).toContain('Dr. Garcia');
     expect(text).toContain('Dr. Lopez');
 
-    // Verify AC and AP labels are shown
-    const acLabel = fixture.nativeElement.querySelector('.ac-assignment');
-    const apLabel = fixture.nativeElement.querySelector('.ap-assignment');
-    expect(acLabel).toBeTruthy();
-    expect(apLabel).toBeTruthy();
+    const acSection = fixture.nativeElement.querySelector('.ac-section');
+    const apSection = fixture.nativeElement.querySelector('.ap-section');
+    expect(acSection).toBeTruthy();
+    expect(apSection).toBeTruthy();
+  });
+
+  it('should show all doctors as pills when more than 2 per type', () => {
+    fixture.componentRef.setInput('day', 15);
+    fixture.componentRef.setInput('assignment', mockMultiDoctorAssignment);
+    fixture.componentRef.setInput('dayType', 'weekday');
+    fixture.detectChanges();
+
+    const pills = fixture.nativeElement.querySelectorAll('.ac-section .doctor-pill');
+    expect(pills.length).toBe(3);
+    expect(pills[0].textContent).toContain('Dr. Garcia');
+    expect(pills[1].textContent).toContain('Dr. Lopez');
+    expect(pills[2].textContent).toContain('Dr. Martinez');
   });
 
   it('should visually distinguish weekday day type', () => {
@@ -88,7 +114,6 @@ describe('DayCellComponent', () => {
     fixture.componentRef.setInput('dayType', 'weekday');
     fixture.detectChanges();
 
-    // CdkDropList adds the 'cdk-drop-list' CSS class to the host element
     const dropList = fixture.nativeElement.querySelector('.cdk-drop-list');
     expect(dropList).toBeTruthy();
   });

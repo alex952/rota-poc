@@ -1,7 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { DoctorCardComponent } from './doctor-card.component';
 import { AddDoctorDialogComponent } from './add-doctor-dialog.component';
-import { Doctor } from '../../core/models/doctor.model';
+import { Doctor, RotaType } from '../../core/models/doctor.model';
 import { CdkDropList } from '@angular/cdk/drag-drop';
 
 @Component({
@@ -12,6 +12,21 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
     <section class="doctor-pool">
       <h3 class="pool-title">Doctor Pool</h3>
 
+      <div class="pool-tabs">
+        <button
+          class="tab-btn"
+          [class.tab-active]="activeTab() === 'AC'"
+          [class.tab-ac]="activeTab() === 'AC'"
+          (click)="onTabClick('AC')"
+        >AC</button>
+        <button
+          class="tab-btn"
+          [class.tab-active]="activeTab() === 'AP'"
+          [class.tab-ap]="activeTab() === 'AP'"
+          (click)="onTabClick('AP')"
+        >AP</button>
+      </div>
+
       <div class="doctor-list" cdkDropList>
         @for (doctor of doctors(); track doctor.id) {
           <app-doctor-card [doctor]="doctor" />
@@ -20,6 +35,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
 
       @if (showAddDialog()) {
         <app-add-doctor-dialog
+          [defaultRotaType]="activeTab()"
           (doctorAdded)="onDoctorAdded($event)"
           (cancelled)="showAddDialog.set(false)"
         />
@@ -38,7 +54,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
           @if (isLoading()) {
             <span class="btn-spinner"></span>
           }
-          {{ hasExistingRota() ? 'Re-generate Rota' : 'Generate Rota' }}
+          {{ hasExistingRota() ? 'Re-generate ' + activeTab() + ' Rota' : 'Generate ' + activeTab() + ' Rota' }}
         </button>
       </div>
     </section>
@@ -63,6 +79,41 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
       color: #1a237e;
       border-bottom: 1px solid #e0e0e0;
       background: #e8eaf6;
+    }
+
+    .pool-tabs {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.55rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: none;
+      background: #f5f5f5;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-btn:hover {
+      background: #eee;
+    }
+
+    .tab-btn.tab-active.tab-ac {
+      background: #e3f2fd;
+      color: #1565c0;
+      border-bottom-color: #1565c0;
+    }
+
+    .tab-btn.tab-active.tab-ap {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-bottom-color: #2e7d32;
     }
 
     .doctor-list {
@@ -143,14 +194,20 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
 })
 export class DoctorPoolComponent {
   readonly doctors = input.required<Doctor[]>();
+  readonly activeTab = input.required<RotaType>();
   readonly hasExistingRota = input<boolean>(false);
   readonly isLoading = input<boolean>(false);
 
   readonly generateRota = output<void>();
   readonly addDoctorClick = output<void>();
   readonly doctorAdded = output<Doctor>();
+  readonly poolTabChange = output<RotaType>();
 
   readonly showAddDialog = signal(false);
+
+  onTabClick(tab: RotaType): void {
+    this.poolTabChange.emit(tab);
+  }
 
   onAddDoctorClick(): void {
     this.showAddDialog.set(true);
