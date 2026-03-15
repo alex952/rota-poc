@@ -1,19 +1,27 @@
 import { Component, computed, input, output, signal } from '@angular/core';
+import { DayCellComponent, ReplacementEvent } from './day-cell.component';
 import { MonthViewComponent } from './month-view.component';
-import { ReplacementEvent } from './day-cell.component';
 import { MergedDayAssignment } from '../../core/models/rota.model';
 
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [MonthViewComponent],
+  imports: [MonthViewComponent, DayCellComponent],
   template: `
     <section class="calendar">
       <div class="calendar-header">
         <div class="nav-group">
-          <button class="nav-btn" (click)="prevMonth()" [disabled]="!hasData() || currentMonth() === 1" title="Previous month">&lsaquo;</button>
+          @if (viewMode() === 'month') {
+            <button class="nav-btn" (click)="prevMonth()" [disabled]="!hasData() || currentMonth() === 1" title="Previous month">&lsaquo;</button>
+          } @else {
+            <button class="back-btn" (click)="showMonthView()" title="Back to month view">Month view</button>
+          }
           <span class="month-label" [class.disabled]="!hasData()" (click)="hasData() && goToCurrentMonth()" [title]="hasData() ? 'Go to current month' : ''">{{ currentMonthName() }} {{ year() }}</span>
-          <button class="nav-btn" (click)="nextMonth()" [disabled]="!hasData() || currentMonth() === 12" title="Next month">&rsaquo;</button>
+          @if (viewMode() === 'month') {
+            <button class="nav-btn" (click)="nextMonth()" [disabled]="!hasData() || currentMonth() === 12" title="Next month">&rsaquo;</button>
+          } @else {
+            <span class="day-view-label">{{ selectedDateLabel() }}</span>
+          }
         </div>
         @if (filteredDoctor()) {
           <div class="filter-pill">
@@ -35,13 +43,35 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       </div>
       <div class="calendar-body">
         @if (hasData()) {
-          <app-month-view
-            [month]="currentMonth()"
-            [year]="year()"
-            [assignments]="currentAssignments()"
-            (doctorDropped)="doctorDropped.emit($event)"
-            (doctorClicked)="onDoctorClicked($event)"
-          />
+          @if (viewMode() === 'month') {
+            <app-month-view
+              [month]="currentMonth()"
+              [year]="year()"
+              [assignments]="currentAssignments()"
+              (doctorDropped)="doctorDropped.emit($event)"
+              (doctorClicked)="onDoctorClicked($event)"
+              (daySelected)="showDayView($event)"
+            />
+          } @else {
+            <div class="day-view">
+              <div class="day-view-header">
+                <h3 class="day-view-title">{{ selectedDateLabel() }}</h3>
+                <p class="day-view-subtitle">Detailed assignments for the selected day.</p>
+              </div>
+              <div class="day-view-content">
+                <app-day-cell
+                  class="day-view-cell"
+                  [day]="selectedDayNumber()"
+                  [assignment]="selectedAssignment()"
+                  [dayType]="selectedDayType()"
+                  [date]="selectedDate()"
+                  [zoomable]="false"
+                  (doctorDropped)="doctorDropped.emit($event)"
+                  (doctorClicked)="onDoctorClicked($event)"
+                />
+              </div>
+            </div>
+          }
         } @else {
           <div class="empty-state">
             <div class="empty-state-icon">&#128197;</div>
@@ -73,6 +103,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      min-width: 0;
     }
 
     .nav-btn {
@@ -102,6 +133,24 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       cursor: not-allowed;
     }
 
+    .back-btn {
+      height: 32px;
+      padding: 0 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1a237e;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .back-btn:hover {
+      background: #e8eaf6;
+      border-color: #1a237e;
+    }
+
     .month-label {
       font-size: 1rem;
       font-weight: 700;
@@ -121,6 +170,16 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
     .month-label.disabled {
       cursor: default;
       opacity: 0.5;
+    }
+
+    .day-view-label {
+      font-size: 0.85rem;
+      color: #455a64;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
     }
 
     .filter-pill {
@@ -197,6 +256,44 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       overflow: hidden;
     }
 
+    .day-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 0.75rem;
+    }
+
+    .day-view-header {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #e8eaf6, #f5f7ff);
+      border: 1px solid #d7dcf7;
+    }
+
+    .day-view-title {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #1a237e;
+    }
+
+    .day-view-subtitle {
+      margin: 0.25rem 0 0;
+      font-size: 0.85rem;
+      color: #607d8b;
+    }
+
+    .day-view-content {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    .day-view-cell {
+      flex: 1;
+      min-height: 0;
+    }
+
     .empty-state {
       flex: 1;
       display: flex;
@@ -244,8 +341,9 @@ export class CalendarComponent {
   readonly monthChange = output<number>();
 
   readonly filteredDoctor = signal<{ doctor_id: string; doctor_name: string } | null>(null);
-
   readonly currentMonth = signal(new Date().getMonth() + 1);
+  readonly viewMode = signal<'month' | 'day'>('month');
+  readonly selectedDate = signal('');
 
   private static readonly MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -258,15 +356,15 @@ export class CalendarComponent {
 
   private readonly scheduleByMonth = computed(() => {
     const map = new Map<number, MergedDayAssignment[]>();
-    for (let m = 1; m <= 12; m++) {
-      map.set(m, []);
+    for (let month = 1; month <= 12; month++) {
+      map.set(month, []);
     }
-    for (const a of this.schedule()) {
-      const date = new Date(a.date + 'T00:00:00');
+    for (const assignment of this.schedule()) {
+      const date = new Date(assignment.date + 'T00:00:00');
       const month = date.getMonth() + 1;
-      const arr = map.get(month);
-      if (arr) {
-        arr.push(a);
+      const assignments = map.get(month);
+      if (assignments) {
+        assignments.push(assignment);
       }
     }
     return map;
@@ -277,18 +375,58 @@ export class CalendarComponent {
     const filter = this.filteredDoctor();
     if (!filter) return assignments;
     return assignments.filter(
-      a => a.acDoctors.some(d => d.doctor_id === filter.doctor_id)
-        || a.apDoctors.some(d => d.doctor_id === filter.doctor_id)
+      assignment => assignment.acDoctors.some(doctor => doctor.doctor_id === filter.doctor_id)
+        || assignment.apDoctors.some(doctor => doctor.doctor_id === filter.doctor_id)
     );
   });
 
+  readonly selectedAssignment = computed(() => {
+    const selectedDate = this.selectedDate();
+    if (!selectedDate) return null;
+    return this.schedule().find((assignment) => assignment.date === selectedDate) ?? null;
+  });
+
+  readonly selectedDayNumber = computed(() => {
+    const selectedDate = this.selectedDate();
+    if (!selectedDate) return 1;
+    return new Date(selectedDate + 'T00:00:00').getDate();
+  });
+
+  readonly selectedDayType = computed(() => {
+    const assignment = this.selectedAssignment();
+    if (assignment) return assignment.day_type;
+
+    const selectedDate = this.selectedDate();
+    if (!selectedDate) return 'weekday';
+
+    const date = new Date(selectedDate + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0) return 'holiday';
+    if (dayOfWeek === 6) return 'saturday';
+    return 'weekday';
+  });
+
+  readonly selectedDateLabel = computed(() => {
+    const selectedDate = this.selectedDate();
+    if (!selectedDate) return '';
+    const date = new Date(selectedDate + 'T00:00:00');
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  });
+
   prevMonth(): void {
-    this.currentMonth.update(m => Math.max(1, m - 1));
+    this.currentMonth.update((month) => Math.max(1, month - 1));
+    this.viewMode.set('month');
     this.monthChange.emit(this.currentMonth());
   }
 
   nextMonth(): void {
-    this.currentMonth.update(m => Math.min(12, m + 1));
+    this.currentMonth.update((month) => Math.min(12, month + 1));
+    this.viewMode.set('month');
     this.monthChange.emit(this.currentMonth());
   }
 
@@ -305,7 +443,17 @@ export class CalendarComponent {
 
   goToCurrentMonth(): void {
     this.currentMonth.set(new Date().getMonth() + 1);
+    this.viewMode.set('month');
     this.monthChange.emit(this.currentMonth());
+  }
+
+  showDayView(date: string): void {
+    this.selectedDate.set(date);
+    this.viewMode.set('day');
+  }
+
+  showMonthView(): void {
+    this.viewMode.set('month');
   }
 
   clearFilter(): void {
@@ -317,6 +465,7 @@ export class CalendarComponent {
     const input = event.target as HTMLInputElement;
     const value = parseInt(input.value, 10);
     if (!isNaN(value) && value >= 2020 && value <= 2100) {
+      this.viewMode.set('month');
       this.yearChange.emit(value);
     }
   }

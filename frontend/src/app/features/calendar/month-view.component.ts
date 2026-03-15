@@ -28,6 +28,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
               [date]="cell.date"
               (doctorDropped)="doctorDropped.emit($event)"
               (doctorClicked)="doctorClicked.emit($event)"
+              (daySelected)="daySelected.emit($event)"
             />
           }
         }
@@ -90,6 +91,7 @@ export class MonthViewComponent {
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
+  readonly daySelected = output<string>();
 
   private static readonly MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',

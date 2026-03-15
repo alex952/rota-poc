@@ -91,4 +91,31 @@ describe('MonthViewComponent', () => {
     expect(text).toContain('Dr. Garcia');
     expect(text).toContain('Dr. Lopez');
   });
+
+  it('should emit daySelected when a day cell is clicked', () => {
+    const assignments: MergedDayAssignment[] = [
+      {
+        date: '2026-01-15',
+        day_type: 'weekday',
+        shift_start: '15:00',
+        shift_end: '08:00+1',
+        duration_hours: 17,
+        acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
+        apDoctors: [],
+      },
+    ];
+
+    fixture.componentRef.setInput('month', 1);
+    fixture.componentRef.setInput('year', 2026);
+    fixture.componentRef.setInput('assignments', assignments);
+    fixture.detectChanges();
+
+    const spy = vi.fn();
+    component.daySelected.subscribe(spy);
+
+    const dayCells = fixture.nativeElement.querySelectorAll('.day-cell');
+    dayCells[14].click();
+
+    expect(spy).toHaveBeenCalledWith('2026-01-15');
+  });
 });

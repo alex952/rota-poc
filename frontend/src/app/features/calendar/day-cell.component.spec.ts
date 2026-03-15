@@ -112,9 +112,35 @@ describe('DayCellComponent', () => {
     fixture.componentRef.setInput('day', 15);
     fixture.componentRef.setInput('assignment', mockAssignment);
     fixture.componentRef.setInput('dayType', 'weekday');
+    fixture.componentRef.setInput('date', '2026-01-15');
     fixture.detectChanges();
 
     const dropList = fixture.nativeElement.querySelector('.cdk-drop-list');
     expect(dropList).toBeTruthy();
+  });
+
+  it('should emit daySelected when clicking the cell', () => {
+    fixture.componentRef.setInput('day', 15);
+    fixture.componentRef.setInput('assignment', mockAssignment);
+    fixture.componentRef.setInput('dayType', 'weekday');
+    fixture.componentRef.setInput('date', '2026-01-15');
+    fixture.detectChanges();
+
+    const spy = vi.fn();
+    component.daySelected.subscribe(spy);
+
+    fixture.nativeElement.querySelector('.day-cell').click();
+
+    expect(spy).toHaveBeenCalledWith('2026-01-15');
+  });
+
+  it('should expose a scrollable assignments container', () => {
+    fixture.componentRef.setInput('day', 15);
+    fixture.componentRef.setInput('assignment', mockMultiDoctorAssignment);
+    fixture.componentRef.setInput('dayType', 'weekday');
+    fixture.detectChanges();
+
+    const assignments = fixture.nativeElement.querySelector('[data-testid="day-assignments"]');
+    expect(assignments).toBeTruthy();
   });
 });

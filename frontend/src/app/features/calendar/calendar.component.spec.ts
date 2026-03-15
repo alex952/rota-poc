@@ -120,4 +120,25 @@ describe('CalendarComponent', () => {
       expect(spy).toHaveBeenCalledWith(2027);
     }
   });
+
+  it('should switch to day view when a day is clicked and return to month view', () => {
+    fixture.componentRef.setInput('year', 2026);
+    fixture.componentRef.setInput('schedule', mockSchedule);
+    component.currentMonth.set(1);
+    fixture.detectChanges();
+
+    const dayCell = fixture.nativeElement.querySelector('.day-cell') as HTMLElement;
+    dayCell.click();
+    fixture.detectChanges();
+
+    expect(component.viewMode()).toBe('day');
+    expect(fixture.nativeElement.textContent).toContain('Detailed assignments for the selected day.');
+
+    const backButton = fixture.nativeElement.querySelector('.back-btn') as HTMLButtonElement;
+    backButton.click();
+    fixture.detectChanges();
+
+    expect(component.viewMode()).toBe('month');
+    expect(fixture.nativeElement.querySelector('app-month-view')).toBeTruthy();
+  });
 });

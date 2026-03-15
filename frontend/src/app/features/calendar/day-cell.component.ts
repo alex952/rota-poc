@@ -21,13 +21,15 @@ export interface ReplacementEvent {
       [class.day-saturday]="dayType() === 'saturday'"
       [class.day-holiday]="dayType() === 'holiday'"
       [class.drop-target]="assignment() !== null"
+      [class.zoomable]="zoomable()"
       cdkDropList
+      (click)="onDayClick()"
       (cdkDropListDropped)="onDrop($event)"
       [cdkDropListEnterPredicate]="canDrop"
     >
       <span class="day-number">{{ day() }}</span>
       @if (assignment()) {
-        <div class="assignments">
+        <div class="assignments" data-testid="day-assignments">
           @if (assignment()!.acDoctors.length > 0) {
             <div class="ac-section" title="Atencion Continuada">
               <span class="section-header">AC</span>
@@ -56,6 +58,8 @@ export interface ReplacementEvent {
 
     .day-cell {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       padding: 4px;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
@@ -63,14 +67,23 @@ export interface ReplacementEvent {
       background: #fff;
       transition: background-color 0.15s ease;
       overflow: hidden;
+      min-height: 0;
     }
 
     .day-cell:hover {
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
+    .day-cell.zoomable {
+      cursor: zoom-in;
+    }
+
     .day-cell.drop-target {
       cursor: pointer;
+    }
+
+    .day-cell.drop-target.zoomable {
+      cursor: zoom-in;
     }
 
     .day-weekday {
@@ -97,6 +110,11 @@ export interface ReplacementEvent {
       display: flex;
       flex-direction: column;
       gap: 2px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      padding-right: 2px;
     }
 
     .ac-section,
@@ -170,9 +188,11 @@ export class DayCellComponent {
   readonly assignment = input<MergedDayAssignment | null>(null);
   readonly dayType = input<string>('weekday');
   readonly date = input<string>('');
+  readonly zoomable = input<boolean>(true);
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
+  readonly daySelected = output<string>();
 
   canDrop = (): boolean => {
     return this.assignment() !== null;
@@ -181,6 +201,11 @@ export class DayCellComponent {
   onDoctorClick(event: MouseEvent, doctor: { doctor_id: string; doctor_name: string }): void {
     event.stopPropagation();
     this.doctorClicked.emit(doctor);
+  }
+
+  onDayClick(): void {
+    if (!this.zoomable() || !this.date()) return;
+    this.daySelected.emit(this.date());
   }
 
   onDrop(event: CdkDragDrop<any>): void {
