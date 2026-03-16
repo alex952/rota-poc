@@ -4,7 +4,7 @@ from app.schemas.rota import DayAssignment, DoctorIn, DoctorStats
 
 
 def calculate_stats(
-    schedule: list[DayAssignment], pool: list[DoctorIn]
+    schedule: list[DayAssignment], pool: list[DoctorIn], target_hours: dict[str, int] | None = None
 ) -> list[DoctorStats]:
     """Calculate per-doctor statistics from a schedule.
 
@@ -14,6 +14,8 @@ def calculate_stats(
 
     # Initialize counters
     total_hours: dict[str, int] = {d.id: 0 for d in pool}
+    primary_hours: dict[str, int] = {d.id: 0 for d in pool}
+    refuerzo_hours: dict[str, int] = {d.id: 0 for d in pool}
     monthly_hours: dict[str, dict[int, int]] = {d.id: {} for d in pool}
     shifts_weekday: dict[str, int] = {d.id: 0 for d in pool}
     shifts_saturday: dict[str, int] = {d.id: 0 for d in pool}
@@ -30,6 +32,7 @@ def calculate_stats(
                 continue
 
             total_hours[did] += hours
+            primary_hours[did] += hours
 
             if month not in monthly_hours[did]:
                 monthly_hours[did][month] = 0
@@ -42,14 +45,31 @@ def calculate_stats(
             else:  # "holiday"
                 shifts_sunday_holiday[did] += 1
 
+        for refuerzo in day.refuerzos:
+            did = refuerzo.doctor_id
+            if did not in doctor_map:
+                continue
+
+            total_hours[did] += refuerzo.duration_hours
+            refuerzo_hours[did] += refuerzo.duration_hours
+
+            if month not in monthly_hours[did]:
+                monthly_hours[did][month] = 0
+            monthly_hours[did][month] += refuerzo.duration_hours
+
     result: list[DoctorStats] = []
     for doc in pool:
         did = doc.id
+        target = target_hours.get(did, 0) if target_hours else 0
         result.append(
             DoctorStats(
                 doctor_id=did,
                 doctor_name=doc.name,
                 total_hours=total_hours.get(did, 0),
+                target_hours=target,
+                hours_vs_target=total_hours.get(did, 0) - target,
+                primary_hours=primary_hours.get(did, 0),
+                refuerzo_hours=refuerzo_hours.get(did, 0),
                 monthly_hours=monthly_hours.get(did, {}),
                 shifts_weekday=shifts_weekday.get(did, 0),
                 shifts_saturday=shifts_saturday.get(did, 0),

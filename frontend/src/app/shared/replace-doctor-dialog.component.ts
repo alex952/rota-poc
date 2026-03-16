@@ -4,6 +4,7 @@ import { DoctorRef } from '../core/models/rota.model';
 export interface ReplaceDoctorChoice {
   doctor_id: string;
   doctor_name: string;
+  assignment_kind: 'primary' | 'refuerzo';
 }
 
 @Component({
@@ -18,7 +19,7 @@ export interface ReplaceDoctorChoice {
         </p>
         <div class="doctor-buttons">
           @for (doc of doctors(); track doc.doctor_id) {
-            <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name })">
+            <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name, assignment_kind: doc.assignment_kind })">
               {{ doc.doctor_name }}
             </button>
           }
@@ -109,7 +110,7 @@ export interface ReplaceDoctorChoice {
 export class ReplaceDoctorDialogComponent {
   readonly date = input.required<string>();
   readonly doctorName = input.required<string>();
-  readonly doctors = input.required<DoctorRef[]>();
+  readonly doctors = input.required<Array<DoctorRef & { assignment_kind: 'primary' | 'refuerzo' }>>();
 
   readonly selected = output<ReplaceDoctorChoice>();
   readonly cancelled = output<void>();

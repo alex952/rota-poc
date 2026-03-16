@@ -370,3 +370,59 @@ def test_equity_by_day_type(ac_rota_4):
         assert diff <= 2, (
             f"{day_type} equity violated: max-min={diff}, values={values}"
         )
+
+
+def test_ac_reduced_hours_target_is_personalized(day_classifications_2026):
+    """Reduced-hours AC doctors use a lower personalized target."""
+    pool = _make_pool(4)
+    pool[0].hours_reduced_per_day = 2
+
+    rota = generate_rota(2026, "AC", pool, day_classifications_2026)
+    stats_by_id = {doctor.doctor_id: doctor for doctor in rota.stats.doctors}
+
+    assert stats_by_id[pool[0].id].target_hours < AC_MIN_HOURS_YEAR
+    assert stats_by_id[pool[1].id].target_hours == AC_MIN_HOURS_YEAR
+
+
+def test_ac_reduced_primary_creates_linked_refuerzo(day_classifications_2026):
+    """Reduced-hours primary AC shifts create exactly one linked refuerzo."""
+    pool = _make_pool(4)
+    pool[0].hours_reduced_per_day = 2
+
+    rota = generate_rota(2026, "AC", pool, day_classifications_2026)
+    reduced_days = [
+        day for day in rota.schedule if any(doc.doctor_id == pool[0].id for doc in day.doctors)
+    ]
+
+    assert reduced_days
+    assert all(len(day.refuerzos) == 1 for day in reduced_days)
+
+
+def test_ac_refuerzo_hours_match_day_type(day_classifications_2026):
+    """Refuerzo duration follows weekday/saturday vs holiday rules."""
+    pool = _make_pool(4)
+    pool[0].hours_reduced_per_day = 2
+
+    rota = generate_rota(2026, "AC", pool, day_classifications_2026)
+
+    for day in rota.schedule:
+        for refuerzo in day.refuerzos:
+            if day.day_type == "holiday":
+                assert refuerzo.duration_hours == 12
+                assert refuerzo.shift_start == "10:00"
+                assert refuerzo.shift_end == "22:00"
+            else:
+                assert refuerzo.duration_hours == 7
+                assert refuerzo.shift_start == "15:00"
+                assert refuerzo.shift_end == "22:00"
+
+
+def test_ac_multi_doctor_days_do_not_create_refuerzos(day_classifications_2026):
+    """Refuerzo is only created when the reduced-hours doctor is the sole primary assignee."""
+    pool = _make_pool(8)
+    pool[0].hours_reduced_per_day = 2
+
+    rota = generate_rota(2026, "AC", pool, day_classifications_2026)
+
+    assert rota.doctors_per_day == 2
+    assert all(len(day.refuerzos) == 0 for day in rota.schedule)

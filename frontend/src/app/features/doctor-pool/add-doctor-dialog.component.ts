@@ -18,6 +18,10 @@ import { Doctor, RotaType } from '../../core/models/doctor.model';
           <label for="department">Department</label>
           <input id="department" formControlName="department" type="text" placeholder="Department" />
         </div>
+        <div class="form-field">
+          <label for="hoursReduced">Hours Reduced / Day</label>
+          <input id="hoursReduced" formControlName="hours_reduced_per_day" type="number" min="0" placeholder="0" />
+        </div>
         <div class="dialog-actions">
           <button type="button" class="btn-cancel" (click)="cancelled.emit()">Cancel</button>
           <button type="submit" class="btn-submit">Add</button>
@@ -114,6 +118,7 @@ export class AddDoctorDialogComponent {
   readonly form: FormGroup = this.fb.group({
     name: ['', Validators.required],
     department: ['', Validators.required],
+    hours_reduced_per_day: [0, [Validators.required, Validators.min(0)]],
   });
 
   onSubmit(): void {
@@ -123,6 +128,7 @@ export class AddDoctorDialogComponent {
         name: this.form.value['name'],
         department: this.form.value['department'],
         rota_type: this.defaultRotaType(),
+        hours_reduced_per_day: Number(this.form.value['hours_reduced_per_day'] ?? 0),
       };
       this.doctorAdded.emit(doctor);
       this.form.reset();

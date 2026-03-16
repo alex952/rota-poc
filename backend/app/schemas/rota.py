@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 RotaType = Literal["AC", "AP"]
+AssignmentKind = Literal["primary", "refuerzo"]
 
 # --- Request schemas ---
 
@@ -13,6 +14,7 @@ class DoctorIn(BaseModel):
     id: str
     name: str
     department: str
+    hours_reduced_per_day: int = 0
 
 
 class GenerateRequest(BaseModel):
@@ -25,6 +27,7 @@ class ReplaceRequest(BaseModel):
     date: date
     old_doctor_id: str
     new_doctor_id: str
+    assignment_kind: AssignmentKind = "primary"
 
 
 # --- Response schemas ---
@@ -35,6 +38,16 @@ class DoctorRef(BaseModel):
     doctor_name: str
 
 
+class RefuerzoAssignment(BaseModel):
+    doctor_id: str
+    doctor_name: str
+    linked_primary_doctor_id: str
+    linked_primary_doctor_name: str
+    shift_start: str
+    shift_end: str
+    duration_hours: int
+
+
 class DayAssignment(BaseModel):
     date: date
     day_type: str  # "weekday", "saturday", "holiday"
@@ -42,12 +55,17 @@ class DayAssignment(BaseModel):
     shift_end: str  # e.g. "08:00+1"
     duration_hours: int
     doctors: list[DoctorRef]
+    refuerzos: list[RefuerzoAssignment] = []
 
 
 class DoctorStats(BaseModel):
     doctor_id: str
     doctor_name: str
     total_hours: int
+    target_hours: int
+    hours_vs_target: int
+    primary_hours: int
+    refuerzo_hours: int
     monthly_hours: dict[int, int]  # month number -> hours
     shifts_weekday: int
     shifts_saturday: int

@@ -80,7 +80,8 @@ Generates a new rota for the given year, rota type, and doctor pool. Uses the ap
     {
       "id": "doc-001",
       "name": "Dr. Garcia",
-      "department": "Medicina General"
+      "department": "Medicina General",
+      "hours_reduced_per_day": 2
     },
     {
       "id": "doc-002",
@@ -105,14 +106,25 @@ Generates a new rota for the given year, rota type, and doctor pool. Uses the ap
       "day_type": "holiday",
       "shift_start": "09:00",
       "shift_end": "08:00+1",
-      "duration_hours": 23,
-      "doctors": [
-        {
-          "doctor_id": "doc-001",
-          "doctor_name": "Dr. Garcia"
-        }
-      ]
-    }
+        "duration_hours": 23,
+        "doctors": [
+          {
+            "doctor_id": "doc-001",
+            "doctor_name": "Dr. Garcia"
+          }
+        ],
+        "refuerzos": [
+          {
+            "doctor_id": "doc-003",
+            "doctor_name": "Dr. Martinez",
+            "linked_primary_doctor_id": "doc-001",
+            "linked_primary_doctor_name": "Dr. Garcia",
+            "shift_start": "10:00",
+            "shift_end": "22:00",
+            "duration_hours": 12
+          }
+        ]
+      }
   ],
   "stats": {
     "doctors": [
@@ -120,6 +132,10 @@ Generates a new rota for the given year, rota type, and doctor pool. Uses the ap
         "doctor_id": "doc-001",
         "doctor_name": "Dr. Garcia",
         "total_hours": 1650,
+        "target_hours": 1512,
+        "hours_vs_target": 138,
+        "primary_hours": 1580,
+        "refuerzo_hours": 70,
         "monthly_hours": { "1": 140, "2": 130, "3": 138 },
         "shifts_weekday": 60,
         "shifts_saturday": 15,
@@ -136,10 +152,12 @@ Generates a new rota for the given year, rota type, and doctor pool. Uses the ap
 
 **Key changes from previous version:**
 - `rota_type` in request body (AC or AP)
+- doctor pool entries may include `hours_reduced_per_day` (AC only behavior)
 - `doctors_per_day` auto-computed and returned in response
 - `DayAssignment.doctors` is a list (supports multi-doctor days)
+- `DayAssignment.refuerzos` exposes linked AC refuerzo assignments
 - `DoctorStats` has `monthly_hours` instead of `ac_hours`/`ap_hours`
-- Minimum hours are hard constraints — returns 400 if not achievable
+- AC minimum hours are personalized per doctor when reduced-hours metadata is present
 
 ---
 

@@ -14,12 +14,13 @@ from app.schemas.rota import (
     DoctorIn,
     DoctorRef,
     GenerateRequest,
+    RefuerzoAssignment,
     ReplaceRequest,
     RotaResponse,
     RotaType,
     StatsResponse,
 )
-from app.services.assignment import InfeasiblePoolError, generate_rota
+from app.services.assignment import InfeasiblePoolError, _build_target_hours, generate_rota
 from app.services.holidays import classify_year, get_holidays
 from app.services.stats import calculate_stats
 
@@ -33,6 +34,7 @@ def _build_rota_response(
     pool_data = rota.pool
     pool = [DoctorIn(**d) for d in pool_data]
     doctor_map = {d.id: d for d in pool}
+    target_hours = _build_target_hours(rota.rota_type, pool, classify_year(rota.year, {h.date for h in get_holidays(rota.year, rota.city, db)}))
 
     assignments = (
         db.query(RotaAssignment)
@@ -46,7 +48,7 @@ def _build_rota_response(
             a for a in assignments if a.doctor_id == doctor_id_filter
         ]
 
-    # Group assignment rows by date to build DayAssignment with doctors list
+    # Group assignment rows by date to build DayAssignment with doctors + refuerzos
     date_groups: dict[str, list] = defaultdict(list)
     date_meta: dict[str, dict] = {}
     for a in assignments:
@@ -66,14 +68,31 @@ def _build_rota_response(
         rows = date_groups[date_key]
         meta = date_meta[date_key]
         doctors = []
+        refuerzos = []
         for a in rows:
             doc = doctor_map.get(a.doctor_id)
-            doctors.append(
-                DoctorRef(
-                    doctor_id=a.doctor_id,
-                    doctor_name=doc.name if doc else a.doctor_id,
+            if a.assignment_kind == "refuerzo":
+                linked_doc = doctor_map.get(a.linked_primary_doctor_id)
+                refuerzos.append(
+                    RefuerzoAssignment(
+                        doctor_id=a.doctor_id,
+                        doctor_name=doc.name if doc else a.doctor_id,
+                        linked_primary_doctor_id=a.linked_primary_doctor_id,
+                        linked_primary_doctor_name=(
+                            linked_doc.name if linked_doc else a.linked_primary_doctor_id
+                        ),
+                        shift_start=a.shift_start.strftime("%H:%M"),
+                        shift_end=a.shift_end.strftime("%H:%M"),
+                        duration_hours=a.duration_hours,
+                    )
                 )
-            )
+            else:
+                doctors.append(
+                    DoctorRef(
+                        doctor_id=a.doctor_id,
+                        doctor_name=doc.name if doc else a.doctor_id,
+                    )
+                )
         shift_start = meta["shift_start"]
         if isinstance(shift_start, time):
             shift_start = shift_start.strftime("%H:%M")
@@ -85,6 +104,7 @@ def _build_rota_response(
                 shift_end=_format_shift_end(meta["shift_end"], meta["day_type"]),
                 duration_hours=meta["duration_hours"],
                 doctors=doctors,
+                refuerzos=refuerzos,
             )
         )
 
@@ -115,14 +135,31 @@ def _build_rota_response(
         rows = all_date_groups[date_key]
         meta = all_date_meta[date_key]
         doctors = []
+        refuerzos = []
         for a in rows:
             doc = doctor_map.get(a.doctor_id)
-            doctors.append(
-                DoctorRef(
-                    doctor_id=a.doctor_id,
-                    doctor_name=doc.name if doc else a.doctor_id,
+            if a.assignment_kind == "refuerzo":
+                linked_doc = doctor_map.get(a.linked_primary_doctor_id)
+                refuerzos.append(
+                    RefuerzoAssignment(
+                        doctor_id=a.doctor_id,
+                        doctor_name=doc.name if doc else a.doctor_id,
+                        linked_primary_doctor_id=a.linked_primary_doctor_id,
+                        linked_primary_doctor_name=(
+                            linked_doc.name if linked_doc else a.linked_primary_doctor_id
+                        ),
+                        shift_start=a.shift_start.strftime("%H:%M"),
+                        shift_end=a.shift_end.strftime("%H:%M"),
+                        duration_hours=a.duration_hours,
+                    )
                 )
-            )
+            else:
+                doctors.append(
+                    DoctorRef(
+                        doctor_id=a.doctor_id,
+                        doctor_name=doc.name if doc else a.doctor_id,
+                    )
+                )
         shift_start = meta["shift_start"]
         if isinstance(shift_start, time):
             shift_start = shift_start.strftime("%H:%M")
@@ -134,10 +171,11 @@ def _build_rota_response(
                 shift_end=_format_shift_end(meta["shift_end"], meta["day_type"]),
                 duration_hours=meta["duration_hours"],
                 doctors=doctors,
+                refuerzos=refuerzos,
             )
         )
 
-    stats_list = calculate_stats(all_schedule, pool)
+    stats_list = calculate_stats(all_schedule, pool, target_hours)
 
     return RotaResponse(
         year=rota.year,
@@ -222,6 +260,7 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
                 doctor_id=doc.id,
                 name=doc.name,
                 department=doc.department,
+                hours_reduced_per_day=doc.hours_reduced_per_day,
             )
         )
 
@@ -237,6 +276,22 @@ def generate_rota_endpoint(request: GenerateRequest, db: Session = Depends(get_d
                     shift_end=_parse_time(day.shift_end),
                     duration_hours=day.duration_hours,
                     doctor_id=doc_ref.doctor_id,
+                    assignment_kind="primary",
+                    linked_primary_doctor_id=None,
+                )
+            )
+        for refuerzo in day.refuerzos:
+            db.add(
+                RotaAssignment(
+                    rota_id=rota_db.id,
+                    date=day.date,
+                    day_type=day.day_type,
+                    shift_start=_parse_time(refuerzo.shift_start),
+                    shift_end=_parse_time(refuerzo.shift_end),
+                    duration_hours=refuerzo.duration_hours,
+                    doctor_id=refuerzo.doctor_id,
+                    assignment_kind="refuerzo",
+                    linked_primary_doctor_id=refuerzo.linked_primary_doctor_id,
                 )
             )
 
@@ -314,6 +369,7 @@ def replace_doctor(
             RotaAssignment.rota_id == rota.id,
             RotaAssignment.date == request.date,
             RotaAssignment.doctor_id == request.old_doctor_id,
+            RotaAssignment.assignment_kind == request.assignment_kind,
         )
         .first()
     )
@@ -321,7 +377,10 @@ def replace_doctor(
     if not assignment:
         raise HTTPException(
             status_code=404,
-            detail=f"Doctor {request.old_doctor_id} is not assigned on {request.date}.",
+            detail=(
+                f"Doctor {request.old_doctor_id} is not assigned as "
+                f"{request.assignment_kind} on {request.date}."
+            ),
         )
 
     assignment.doctor_id = request.new_doctor_id

@@ -1,12 +1,13 @@
 import { Component, input, output } from '@angular/core';
 import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
-import { MergedDayAssignment, DoctorRef } from '../../core/models/rota.model';
+import { MergedDayAssignment, DoctorRef, RefuerzoAssignment } from '../../core/models/rota.model';
 import { Doctor } from '../../core/models/doctor.model';
 
 export interface ReplacementEvent {
   date: string;
   newDoctor: Doctor;
   acDoctors: DoctorRef[];
+  acRefuerzos: RefuerzoAssignment[];
   apDoctors: DoctorRef[];
 }
 
@@ -35,6 +36,16 @@ export interface ReplacementEvent {
               <span class="section-header">AC</span>
               @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
                 <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+              }
+            </div>
+          }
+          @if ((assignment()!.acRefuerzos ?? []).length > 0) {
+            <div class="refuerzo-section" title="Refuerzo">
+              <span class="section-header">REF</span>
+              @for (refuerzo of assignment()!.acRefuerzos ?? []; track refuerzo.doctor_id + '-' + refuerzo.linked_primary_doctor_id) {
+                <span class="doctor-pill clickable" (click)="onDoctorClick($event, { doctor_id: refuerzo.doctor_id, doctor_name: refuerzo.doctor_name })">
+                  {{ refuerzo.doctor_name }} ({{ refuerzo.duration_hours }}h)
+                </span>
               }
             </div>
           }
@@ -118,7 +129,8 @@ export interface ReplacementEvent {
     }
 
     .ac-section,
-    .ap-section {
+    .ap-section,
+    .refuerzo-section {
       display: flex;
       flex-direction: column;
       gap: 1px;
@@ -149,6 +161,14 @@ export interface ReplacementEvent {
       color: #2e7d32;
     }
 
+    .refuerzo-section {
+      background: #fff3e0;
+    }
+
+    .refuerzo-section .section-header {
+      color: #ef6c00;
+    }
+
     .doctor-pill {
       display: inline-block;
       font-size: 0.6rem;
@@ -170,6 +190,11 @@ export interface ReplacementEvent {
     .ap-section .doctor-pill {
       background: #c8e6c9;
       color: #1b5e20;
+    }
+
+    .refuerzo-section .doctor-pill {
+      background: #ffe0b2;
+      color: #e65100;
     }
 
     .doctor-pill.clickable {
@@ -219,6 +244,7 @@ export class DayCellComponent {
       date: currentAssignment.date,
       newDoctor: droppedDoctor,
       acDoctors: currentAssignment.acDoctors,
+      acRefuerzos: currentAssignment.acRefuerzos ?? [],
       apDoctors: currentAssignment.apDoctors,
     });
   }

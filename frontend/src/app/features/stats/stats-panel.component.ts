@@ -34,6 +34,10 @@ import { RotaType } from '../../core/models/doctor.model';
             <span class="summary-value">{{ averageHours() }}h</span>
           </div>
           <div class="summary-row">
+            <span class="summary-label">Average Delta</span>
+            <span class="summary-value">{{ averageDelta() }}h</span>
+          </div>
+          <div class="summary-row">
             <span class="summary-label">Doctors</span>
             <span class="summary-value">{{ stats().length }}</span>
           </div>
@@ -196,9 +200,19 @@ export class StatsPanelComponent {
     this.stats().reduce((sum, d) => sum + d.total_hours, 0),
   );
 
+  readonly totalDelta = computed(() =>
+    this.stats().reduce((sum, d) => sum + (d.hours_vs_target ?? 0), 0),
+  );
+
   readonly averageHours = computed(() => {
     const s = this.stats();
     if (s.length === 0) return 0;
     return Math.round(this.totalHours() / s.length);
+  });
+
+  readonly averageDelta = computed(() => {
+    const s = this.stats();
+    if (s.length === 0) return 0;
+    return Math.round(this.totalDelta() / s.length);
   });
 }

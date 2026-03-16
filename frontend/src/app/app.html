@@ -55,7 +55,7 @@
   <app-replace-doctor-dialog
     [date]="pendingReplacement()!.date"
     [doctorName]="pendingReplacement()!.newDoctor.name"
-    [doctors]="activePoolTab() === 'AC' ? pendingReplacement()!.acDoctors : pendingReplacement()!.apDoctors"
+    [doctors]="getReplaceableDoctors(activePoolTab(), pendingReplacement()!)"
     (selected)="onReplaceDoctorSelected($event)"
     (cancelled)="onCancelReplacement()"
   />

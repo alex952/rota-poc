@@ -13,8 +13,28 @@ import { DoctorStats } from '../../core/models/rota.model';
           <span class="stat-value">{{ stats().total_hours }}h</span>
         </div>
         <div class="stat-item">
+          <span class="stat-label">Target</span>
+          <span class="stat-value">{{ stats().target_hours ?? 0 }}h</span>
+        </div>
+        <div class="stat-item">
           <span class="stat-label">{{ monthName() }}</span>
           <span class="stat-value month-hours">{{ currentMonthHours() }}h</span>
+        </div>
+      </div>
+      <div class="stats-grid compact">
+        <div class="stat-item">
+          <span class="stat-label">Delta</span>
+          <span class="stat-value" [class.negative]="(stats().hours_vs_target ?? 0) < 0">
+            {{ (stats().hours_vs_target ?? 0) >= 0 ? '+' : '' }}{{ stats().hours_vs_target ?? 0 }}h
+          </span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Primary</span>
+          <span class="stat-value">{{ stats().primary_hours ?? 0 }}h</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Refuerzo</span>
+          <span class="stat-value">{{ stats().refuerzo_hours ?? 0 }}h</span>
         </div>
       </div>
       <div class="hours-bar">
@@ -67,6 +87,14 @@ import { DoctorStats } from '../../core/models/rota.model';
 
     .stat-value.month-hours {
       color: #1565c0;
+    }
+
+    .stat-value.negative {
+      color: #c62828;
+    }
+
+    .stats-grid.compact {
+      margin-top: -0.1rem;
     }
 
     .hours-bar {
@@ -123,7 +151,7 @@ export class DoctorStatsRowComponent {
   ];
 
   readonly barWidth = computed(() => {
-    const max = this.maxHours();
+    const max = Math.max(this.maxHours(), this.stats().target_hours ?? 0);
     if (max === 0) return 0;
     return Math.round((this.stats().total_hours / max) * 100);
   });

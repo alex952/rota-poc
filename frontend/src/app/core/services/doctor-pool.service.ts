@@ -18,7 +18,12 @@ export class DoctorPoolService {
 
   loadDoctors(): void {
     this.http.get<Doctor[]>('assets/doctors.json').subscribe({
-      next: (docs) => this.doctors.set(docs),
+      next: (docs) => this.doctors.set(
+        docs.map((doctor) => ({
+          ...doctor,
+          hours_reduced_per_day: doctor.hours_reduced_per_day ?? 0,
+        }))
+      ),
       error: (err) => console.error('Failed to load doctors.json', err),
     });
   }

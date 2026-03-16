@@ -260,6 +260,71 @@ def test_get_rota_filter_by_doctor(client):
     assert len(data["schedule"]) < 365
 
 
+def test_generate_ac_reduced_hours_includes_targets_and_refuerzos(client):
+    """AC reduced-hours responses expose target metadata and linked refuerzos."""
+    reduced_pool = [
+        {**AC_POOL_4[0], "hours_reduced_per_day": 2},
+        *AC_POOL_4[1:],
+    ]
+
+    with _mock_holiday_api():
+        response = client.post(
+            "/api/v1/rota/generate",
+            json={"year": 2026, "rota_type": "AC", "pool": reduced_pool},
+        )
+
+    assert response.status_code == 201, response.text
+    data = response.json()
+
+    reduced_stats = next(
+        doctor for doctor in data["stats"]["doctors"] if doctor["doctor_id"] == "doc-001"
+    )
+    assert reduced_stats["target_hours"] < 1620
+    assert any(day["refuerzos"] for day in data["schedule"])
+
+
+def test_replace_refuerzo_assignment(client):
+    """PATCH can replace a refuerzo assignment when assignment_kind is provided."""
+    reduced_pool = [
+        {**AC_POOL_4[0], "hours_reduced_per_day": 2},
+        *AC_POOL_4[1:],
+    ]
+
+    with _mock_holiday_api():
+        generate_response = client.post(
+            "/api/v1/rota/generate",
+            json={"year": 2026, "rota_type": "AC", "pool": reduced_pool},
+        )
+
+    data = generate_response.json()
+    day_with_refuerzo = next(day for day in data["schedule"] if day["refuerzos"])
+    original_refuerzo = day_with_refuerzo["refuerzos"][0]
+
+    # Use a doctor in the AC pool that is not the original refuerzo assignee or a primary on that day.
+    replacement_doctor = next(
+        doctor["id"]
+        for doctor in reduced_pool
+        if doctor["id"] != original_refuerzo["doctor_id"]
+        and doctor["id"] not in {d["doctor_id"] for d in day_with_refuerzo["doctors"]}
+    )
+
+    response = client.patch(
+        "/api/v1/rota/2026/AC/replace",
+        json={
+            "date": day_with_refuerzo["date"],
+            "old_doctor_id": original_refuerzo["doctor_id"],
+            "new_doctor_id": replacement_doctor,
+            "assignment_kind": "refuerzo",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    replaced_day = next(
+        day for day in response.json()["schedule"] if day["date"] == day_with_refuerzo["date"]
+    )
+    assert replaced_day["refuerzos"][0]["doctor_id"] == replacement_doctor
+
+
 # ---------------------------------------------------------------------------
 # 9. Re-generate replaces previous
 # ---------------------------------------------------------------------------

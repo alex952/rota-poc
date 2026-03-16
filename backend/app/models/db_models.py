@@ -51,6 +51,7 @@ class RotaDoctor(Base):
     doctor_id: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     department: Mapped[str] = mapped_column(String(200), nullable=False)
+    hours_reduced_per_day: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     rota: Mapped["Rota"] = relationship(back_populates="doctors")
 
@@ -70,11 +71,13 @@ class RotaAssignment(Base):
     shift_end: Mapped[time] = mapped_column(Time, nullable=False)
     duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
     doctor_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    assignment_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="primary")
+    linked_primary_doctor_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     rota: Mapped["Rota"] = relationship(back_populates="assignments")
 
     __table_args__ = (
-        UniqueConstraint("rota_id", "date", "doctor_id"),
+        UniqueConstraint("rota_id", "date", "doctor_id", "assignment_kind"),
         Index("ix_rota_assignments_doctor", "rota_id", "doctor_id"),
     )
 

@@ -10,7 +10,7 @@ import { RotaService } from './core/services/rota.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
 import { Doctor, RotaType } from './core/models/doctor.model';
-import { DayAssignment, DoctorStats, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
+import { DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, RefuerzoAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
@@ -100,6 +100,7 @@ export class App implements OnInit {
         shift_end: ref.shift_end,
         duration_hours: ref.duration_hours,
         acDoctors: ac?.doctors ?? [],
+        acRefuerzos: ac?.refuerzos ?? [],
         apDoctors: ap?.doctors ?? [],
       });
     }
@@ -169,12 +170,17 @@ export class App implements OnInit {
   }
 
   onDoctorDropped(event: ReplacementEvent): void {
-    // If there's only one doctor for the active type, replace directly
     const tab = this.activePoolTab();
-    const doctors = tab === 'AC' ? event.acDoctors : event.apDoctors;
-    if (doctors.length === 1) {
-      this.doReplace(tab, event.date, doctors[0].doctor_id, event.newDoctor.id);
-    } else if (doctors.length > 1) {
+    const replaceableDoctors = this.getReplaceableDoctors(tab, event);
+    if (replaceableDoctors.length === 1) {
+      this.doReplace(
+        tab,
+        event.date,
+        replaceableDoctors[0].doctor_id,
+        event.newDoctor.id,
+        replaceableDoctors[0].assignment_kind,
+      );
+    } else if (replaceableDoctors.length > 1) {
       this.pendingReplacement.set(event);
     }
   }
@@ -188,6 +194,7 @@ export class App implements OnInit {
       replacement.date,
       choice.doctor_id,
       replacement.newDoctor.id,
+      choice.assignment_kind,
     );
   }
 
@@ -195,11 +202,18 @@ export class App implements OnInit {
     this.pendingReplacement.set(null);
   }
 
-  private doReplace(rotaType: RotaType, dateStr: string, oldDoctorId: string, newDoctorId: string): void {
+  private doReplace(
+    rotaType: RotaType,
+    dateStr: string,
+    oldDoctorId: string,
+    newDoctorId: string,
+    assignmentKind: 'primary' | 'refuerzo' = 'primary',
+  ): void {
     const request: ReplaceRequest = {
       date: dateStr,
       old_doctor_id: oldDoctorId,
       new_doctor_id: newDoctorId,
+      assignment_kind: assignmentKind,
     };
 
     this.loading.set(true);
@@ -264,6 +278,24 @@ export class App implements OnInit {
       this.apStats.set(rota.stats.doctors);
       this.hasApRota.set(true);
     }
+  }
+
+  protected getReplaceableDoctors(
+    rotaType: RotaType,
+    event: ReplacementEvent,
+  ): Array<DoctorRef & { assignment_kind: 'primary' | 'refuerzo' }> {
+    if (rotaType === 'AP') {
+      return event.apDoctors.map((doctor) => ({ ...doctor, assignment_kind: 'primary' as const }));
+    }
+
+    return [
+      ...event.acDoctors.map((doctor) => ({ ...doctor, assignment_kind: 'primary' as const })),
+      ...(event.acRefuerzos ?? []).map((refuerzo: RefuerzoAssignment) => ({
+        doctor_id: refuerzo.doctor_id,
+        doctor_name: `${refuerzo.doctor_name} (refuerzo)`,
+        assignment_kind: 'refuerzo' as const,
+      })),
+    ];
   }
 
   private doGenerateRota(): void {

@@ -17,7 +17,16 @@ export class RotaService {
   }
 
   generateRota(year: number, rotaType: RotaType, pool: Doctor[]): Observable<RotaResponse> {
-    const request: GenerateRequest = { year, rota_type: rotaType, pool };
+    const request: GenerateRequest = {
+      year,
+      rota_type: rotaType,
+      pool: pool.map((doctor) => ({
+        id: doctor.id,
+        name: doctor.name,
+        department: doctor.department,
+        hours_reduced_per_day: doctor.hours_reduced_per_day ?? 0,
+      })),
+    };
     return this.http.post<RotaResponse>('/api/v1/rota/generate', request);
   }
 

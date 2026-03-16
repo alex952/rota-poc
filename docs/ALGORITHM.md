@@ -4,26 +4,41 @@
 
 The scheduling algorithm generates a full-year on-call schedule for a **single rota type** (AC or AP). AC and AP are generated independently with separate doctor pools.
 
+For **AC**, doctors may now have `hours_reduced_per_day > 0`. Those doctors keep participating in the primary AC rota, but their hard yearly minimum is personalized from monthly working-day reductions, and each day they are assigned as a primary AC doctor generates one linked **refuerzo** assignment on the same date.
+
 ---
 
 ## Overview
 
 ```
 generate_rota(year, rota_type, pool, day_classifications):
-  1. Compute doctors_per_day from pool size and minimum hours
-  2. For each day D in the year:
+  1. Compute per-doctor yearly targets
+  2. Compute doctors_per_day from pool size and minimum hours
+  3. For each day D in the year:
      a. Build eligible doctor pool (rest-day filtering)
-     b. Pick `doctors_per_day` doctors (sort by equity → hours → round-robin position)
+     b. Pick `doctors_per_day` doctors (sort by day-type equity → target progress → round-robin position)
      c. Update tracking (hours, shift counts, last-assigned date)
-  3. Validate minimum hours (HARD constraint)
-  4. Return schedule + stats
+  4. For AC only, create linked refuerzo assignments for reduced-hours primary doctors
+  5. Validate personalized minimum hours (HARD constraint)
+  6. Return schedule + stats
 ```
 
 ---
 
 ## Step-by-Step
 
-### 1. Compute doctors_per_day
+### 1. Compute per-doctor targets
+
+- **AP:** every doctor keeps the flat `425h/year` target
+- **AC:** each doctor's yearly target is:
+
+```python
+sum(max(0, 135 - (hours_reduced_per_day * working_weekdays_in_month)) for month in year)
+```
+
+This means non-reduced AC doctors still target `1620h/year`, while reduced-hours doctors validate against a lower personalized minimum.
+
+### 2. Compute doctors_per_day
 
 The algorithm auto-computes how many doctors are needed per day to ensure minimum hours can be met:
 
@@ -39,7 +54,7 @@ Example calculations (~6,635 total AC hours/year):
 - AC pool of 8 → ceil(8 × 1620 / 6635) = ceil(1.95) = **2 doctors/day**
 - AP pool of 10 → ceil(10 × 425 / 6635) = ceil(0.64) = **1 doctor/day**
 
-### 2. Build the eligible pool
+### 3. Build the eligible pool
 
 All doctors are split into two groups based on their previous day's assignments:
 
@@ -50,31 +65,43 @@ If there are enough rested doctors (>= `doctors_per_day`), only rested doctors a
 
 Additionally, doctors already assigned today (when `doctors_per_day > 1`) are excluded from subsequent picks for the same day.
 
-### 3. Pick the doctors
+### 4. Pick the doctors
 
 Eligible doctors are sorted by a composite key (ascending):
 
 | Priority | Criterion | Purpose |
 |----------|-----------|---------|
 | 1st | Fewest shifts of this day-type (weekday/saturday/holiday) | Day-type equity |
-| 2nd | Fewest total hours | Hour balance |
-| 3rd | Round-robin position `(doctor_index - rr_pointer) % N` | Break cohort lock-in |
+| 2nd | Lowest progress toward personalized target | Fairness across mixed contracts |
+| 3rd | Fewest total hours | Hour balance |
+| 4th | Round-robin position `(doctor_index - rr_pointer) % N` | Break cohort lock-in |
 
 A **sliding round-robin pointer** (`rr_pointer`) advances by 1 each day. This ensures that when multiple doctors are tied on equity and hours, different subsets win the tiebreak on different days — preventing the same group from always being assigned together.
 
 The top `doctors_per_day` candidates are assigned.
 
-### 4. Update tracking
+### 5. Update tracking
 
 For each assigned doctor:
 - `last_assigned[doctor]` = D (used for rest-day checks)
 - Increment their hour counter by the day's duration
 - Increment their day-type shift counter
 
-### 5. Hard validation
+### 6. Linked AC refuerzos
+
+After the primary AC schedule is generated:
+
+- Every reduced-hours primary AC assignment creates **one** linked refuerzo on the same date
+- Refuerzo durations are:
+  - Mon-Sat: `15:00 -> 22:00` (`7h`)
+  - Sunday/holiday: `10:00 -> 22:00` (`12h`)
+- Refuerzo candidates come from the AC pool excluding same-day primary assignees
+- Any AC assignment, including refuerzo, consumes the next-day AC rest rule
+
+### 7. Hard validation
 
 After the full year is generated, every doctor's total hours are checked:
-- **AC:** every doctor must have >= 1,620 hours/year
+- **AC:** every doctor must have >= their personalized yearly target
 - **AP:** every doctor must have >= 425 hours/year
 
 If any doctor falls short, an `InfeasiblePoolError` is raised. This is a **hard constraint** — the rota is rejected, not returned with warnings.
