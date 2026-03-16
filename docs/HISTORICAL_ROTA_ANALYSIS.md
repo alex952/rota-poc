@@ -15,7 +15,7 @@ Both cover AC (Atencion Continuada / PAS) assignments. This document captures pa
 | Role | Count | Details |
 |------|-------|---------|
 | Main doctors (AC/PAS) | 4 | Isabel, Marina, Cynthia, Cesar |
-| Residents | 21 | Numbered R:1 through R:21, paired 1–2 per shift alongside the main doctor |
+| AP refuerzo references | 21 | Numbered `R:1` through `R:21`; these refer to Atencion Primaria reinforcement staff, not residents, and are not part of the AC/PAS core rotation |
 | Vacation substitutes | ~25 entries | Labeled `VAC/N`, fill in during main doctor absences |
 | Junior substitutes | ~12 entries | Labeled `J/N`, appear Oct–Dec (possibly replacing Isabel) |
 
@@ -26,7 +26,7 @@ Both cover AC (Atencion Continuada / PAS) assignments. This document captures pa
 | Role | Count | Details |
 |------|-------|---------|
 | Main doctors (AC/PAS) | 5 (4 effective slots) | Miguel A, Paula, Fabiola, Ruth, Jessica |
-| Residents | 17 | Numbered R:1 through R:17, paired 1–2 per shift |
+| AP refuerzo references | 17 | Numbered `R:1` through `R:17`; these refer to Atencion Primaria reinforcement staff, not residents, and are not part of the AC/PAS core rotation |
 | Vacation substitutes | Present | Labeled `VAC N`, used during summer and autumn months |
 
 **Notable:** Ruth and Jessica are **always assigned together** on the same day — every cell reads "Ruth | Jessica" or "Jessica | Ruth". They share a single rotation slot (job-share / media jornada), making the effective pool **4 rotation slots** despite having 5 named doctors. Their monthly hours are nearly identical (differing by 0–2h in only 3 of 12 months). The documents include `Horas Ruth:N` and `Horas Paula:N` annotations to track partial-hour adjustments for the shared slot.
@@ -138,14 +138,18 @@ The theoretical expectation for a strict 4-rotation over 365 days is ~1,644h/yea
 
 ## Shift Structure
 
-Both centers use the same shift structure. Each daily assignment includes:
+For the AC/PAS rota itself, both centers use the same core daily shift structure:
 
-1. **One main doctor** (or a job-share pair) from the pool
-2. **One or two residents** (R:N) paired with the main doctor
-3. **Shift times and durations** matching our algorithm's day-type classification:
+1. **One main AC/PAS doctor** (or a job-share pair) from the pool
+2. **Shift times and durations** matching our algorithm's day-type classification:
    - Weekday: 17h (15:00–08:00+1)
    - Saturday: 18h (15:00–09:00+1)
    - Holiday/Sunday: 23h (09:00–08:00+1)
+
+Important clarification on notation and scope:
+- `R:N` does **not** mean residente; it means **refuerzo** and refers to **Atencion Primaria (AP)** reinforcement coverage
+- Those `R:` entries should therefore not be treated as part of the AC/PAS staffing model analyzed here
+- The Atencion Continuada staff on the special contract are a **separate on-call-only workforce**, not a normal recurring schedule pool comparable to the AC/PAS main-doctor rotation
 
 Special notations found in the documents:
 - `X/N` — appears ~once per doctor per month; likely a compensation or special duty day
@@ -170,9 +174,9 @@ Both centers use a dead-simple sequential rotation with no optimization. Aaiun a
 
 Alicante Sur demonstrates that two doctors can share a single rotation slot. Ruth and Jessica always appear together, with near-identical hours (0–2h difference). This is not currently modeled in our system. **A future feature could allow defining a "shared slot" where two doctors split one rotation position.**
 
-### 4. Two-tier staffing (doctor + residents)
+### 4. AP refuerzo notation should not be modeled as AC secondary staffing
 
-Each shift pairs a main doctor with 1–2 residents from a pool of 17–21. We currently model only the main doctor assignment. **Resident pairing could be a future feature** — the resident pool is much larger and likely has its own rotation and constraints.
+The `R:N` notation in the source rotas refers to **AP refuerzo**, not residents. That means this analysis should **not** infer a second AC staffing tier from those entries. This aligns with the current implementation: the generator already accepts a `rota_type` and produces **separate AC and AP rotas with separate pools**, rather than treating AP reinforcement as a second layer inside the AC rota.
 
 ### 5. Manual adjustments are the norm
 
@@ -194,9 +198,9 @@ Both centers show actual monthly hours clustering around 126–156h, with the ta
 
 The rigid human rotation means Saturday/holiday distribution is random. Alicante Sur's data proves this causes real inequity — Miguel A systematically gets fewer weekends, ending 94h below the highest doctor yearly. Our algorithm actively balances day-type distribution (weekday/saturday/holiday counts within ±1), which directly addresses this observed weakness.
 
-### 10. No cross-type coupling observed
+### 10. AC and AP are correctly treated as separate scheduling domains in the current system
 
-Both sets of documents cover only AC/PAS assignments. AP assignments are presumably scheduled separately (different documents, different pool). This confirms our design decision to generate AC and AP rotas independently.
+The clarified notation makes the separation cleaner: `R:` entries belong to **AP refuerzo**, while the main rota analyzed here is the **AC/PAS** doctor rotation. In addition, some Atencion Continuada personnel are on a **special on-call-only contract**, so they should not be treated as part of a normal monthly schedule pool. This validates the current system design, where the generate-rota flow already handles AC and AP independently by rota type, with separate pools and separate generation passes.
 
 ---
 
@@ -207,7 +211,7 @@ Both sets of documents cover only AC/PAS assignments. AP assignments are presuma
 | Main doctor slots | 4 | 4 (5 doctors, 1 job-share) |
 | Doctors per day | 1 | 1 (or 2 shared) |
 | Rotation type | Strict 4-day | Strict 4-day |
-| Residents per shift | 1–2 (pool of 21) | 1–2 (pool of 17) |
+| AP refuerzo references in source docs | `R:1`-`R:21` | `R:1`-`R:17` |
 | Monthly hour range | 138–156h | 126–156h |
 | Monthly spread (avg) | 6.8h | 12.9h |
 | Yearly spread | 41h | 94h |
@@ -215,7 +219,7 @@ Both sets of documents cover only AC/PAS assignments. AP assignments are presuma
 | Job-share | No | Yes (Ruth/Jessica) |
 | Mid-year pool change | Yes (Isabel) | No |
 
-The patterns are strikingly consistent across both centers despite different locations, staff, and operational contexts. The strict 4-day rotation, two-tier staffing, manual hour adjustments, and ad-hoc vacation handling appear to be standard practice across the Spanish military hospital system.
+The patterns are strikingly consistent across both centers despite different locations, staff, and operational contexts. The strict 4-day AC/PAS rotation, manual hour adjustments, and ad-hoc vacation handling appear to be standard practice across the Spanish military hospital system. The earlier apparent "two-tier" pattern should instead be understood as separate AP refuerzo notation alongside the AC rota, plus distinct on-call-only AC contract staff outside the normal schedule pool.
 
 ---
 
@@ -223,7 +227,7 @@ The patterns are strikingly consistent across both centers despite different loc
 
 Based on this analysis, potential future enhancements to explore:
 
-- **Resident pairing** — model the 21-resident pool as a second tier, with its own rotation constraints
+- **Special-contract AC on-call modeling** — if needed in future, model the Atencion Continuada on-call-only contract explicitly as its own scheduling mode rather than folding it into the standard AC rota
 - **Vacation-aware generation** — accept date ranges where doctors are unavailable, auto-slot substitutes
 - **Mid-year re-generation** — handle pool changes (additions/departures) without rebuilding the entire year
 - **Manual adjustment tracking** — record and display post-generation hour adjustments (the +7h, +12h pattern)
