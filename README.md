@@ -20,14 +20,13 @@ docker compose up --build
 
 **Prerequisites:** Python 3.12+, Node 22+, PostgreSQL 16+
 
-**Backend:**
+**Backend (NestJS):**
 ```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+cd backend-nest
+npm install
 # Start PostgreSQL (or use: docker compose up db)
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+npm run migration:run
+npm run start:dev
 ```
 
 **Frontend:**
@@ -51,11 +50,10 @@ The hospital city is configured via the `CITY` environment variable on the backe
 
 ## Running Tests
 
-**Backend (31 tests):**
+**Backend (NestJS):**
 ```bash
-cd backend
-source .venv/bin/activate
-pytest tests/ -v
+cd backend-nest
+npm test
 ```
 
 **Frontend (71 tests):**
@@ -68,7 +66,8 @@ npx ng test --watch=false
 
 ```
 rota-poc/
-├── backend/           # Python/FastAPI assignment microservice
+├── backend/           # Original Python/FastAPI backend reference
+├── backend-nest/      # NestJS backend migration target
 ├── frontend/          # Angular 19+ schedule UI
 ├── docs/              # Product and technical documentation
 │   ├── PRD.md         # Product requirements & acceptance criteria
@@ -92,7 +91,7 @@ rota-poc/
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.x, Alembic |
+| Backend | NestJS 11, TypeScript, TypeORM |
 | Frontend | Angular 19+, TypeScript, Angular CDK (drag-and-drop) |
 | Database | PostgreSQL 16 |
 | Testing | pytest (backend), vitest (frontend) |
