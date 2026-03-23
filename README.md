@@ -14,15 +14,14 @@ docker compose up --build
 
 - Frontend: http://localhost:4200
 - Backend API: http://localhost:8000
-- API docs (Swagger): http://localhost:8000/docs
 
 ### Local Development
 
-**Prerequisites:** Python 3.12+, Node 22+, PostgreSQL 16+
+**Prerequisites:** Node 22+, PostgreSQL 16+
 
 **Backend (NestJS):**
 ```bash
-cd backend-nest
+cd backend
 npm install
 # Start PostgreSQL (or use: docker compose up db)
 npm run migration:run
@@ -52,7 +51,7 @@ The hospital city is configured via the `CITY` environment variable on the backe
 
 **Backend (NestJS):**
 ```bash
-cd backend-nest
+cd backend
 npm test
 ```
 
@@ -66,8 +65,7 @@ npx ng test --watch=false
 
 ```
 rota-poc/
-├── backend/           # Original Python/FastAPI backend reference
-├── backend-nest/      # NestJS backend migration target
+├── backend/           # NestJS backend API and scheduling engine
 ├── frontend/          # Angular 19+ schedule UI
 ├── docs/              # Product and technical documentation
 │   ├── PRD.md         # Product requirements & acceptance criteria
@@ -85,6 +83,7 @@ rota-poc/
 | [docs/PRD.md](docs/PRD.md) | Product requirements with acceptance criteria for all features |
 | [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Architecture, API contracts, database schema, algorithm design |
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Implementation details, developer guide, testing strategy |
+| [docs/BACKEND_ARCHITECTURE_REFERENCE.md](docs/BACKEND_ARCHITECTURE_REFERENCE.md) | NestJS backend module and request-flow reference |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | Assignment algorithm design, constraints, and trade-offs |
 
 ## Tech Stack
@@ -94,5 +93,5 @@ rota-poc/
 | Backend | NestJS 11, TypeScript, TypeORM |
 | Frontend | Angular 19+, TypeScript, Angular CDK (drag-and-drop) |
 | Database | PostgreSQL 16 |
-| Testing | pytest (backend), vitest (frontend) |
+| Testing | Jest (backend), Angular CLI test runner (frontend) |
 | Infrastructure | Docker Compose, Nginx |

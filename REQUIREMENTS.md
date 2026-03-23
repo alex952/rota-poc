@@ -55,7 +55,7 @@ The service will query a website tor retrieve the holidays for the city of the h
 
 The service will store the calculated rota for fast future access which will make possible the filtering of the rota schedule by person, as well as the replacement of that person with another doctor.
 
-Tech stack is Python with FastAPI/Pydantic and SQLAlchemy with PostgrSQL db engine.
+Tech stack is NestJS with TypeScript, class-validator, and TypeORM with PostgreSQL.
 
 ### Schedule UI
 Simple UI service to render the calendar view of the rota. The UI will display a two-column layout with the left column showing the doctor pool in a card-style component that can be drag-and-dropped into the right column that will display a calendar with the days of the month and the assignments calculated by the backend service. A selector of the year (defaulting to current year) will be displayed somewhere in the app.
@@ -66,7 +66,7 @@ The left hand side of the layout will show a set of buttons on the bottom to add
 
 An hidden right-hand side panel will show the stats (also returned by the service) of hours for each doctor, etc.
 
-Tech stack will be AngularJS
+Tech stack will be Angular 19+
 
 ## Other details
 Ensure all versions for frameworks/languages are latest and include a way to run the code conveniently locally as well as a dockerized environment to test.

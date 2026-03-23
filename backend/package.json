@@ -1,5 +1,5 @@
 {
-  "name": "rota-backend-nest",
+  "name": "rota-backend",
   "version": "0.1.0",
   "private": true,
   "description": "Doctor Rota Assignment App - NestJS backend",

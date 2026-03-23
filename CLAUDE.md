@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Doctor Rota Assignment App — a PoC for automated on-call scheduling for doctors in Spanish hospitals. Monorepo with a Python/FastAPI backend and an Angular 19+ frontend.
+Doctor Rota Assignment App — a PoC for automated on-call scheduling for doctors in Spanish hospitals. Monorepo with a NestJS backend and an Angular 19+ frontend.
 
 ## Repository Structure
 
-- `backend/` — Python 3.12 / FastAPI / SQLAlchemy / PostgreSQL
+- `backend/` — NestJS 11 / TypeScript / TypeORM / PostgreSQL
 - `frontend/` — Angular 19+ / TypeScript / Angular CDK
-- `docs/` — PRD, Technical Design, Implementation Guide
+- `docs/` — PRD, Technical Design, Backend Reference, Implementation Guide
 - `docker-compose.yml` — Full stack (db, backend, frontend)
 
 ## Quick Commands
@@ -17,11 +17,11 @@ Doctor Rota Assignment App — a PoC for automated on-call scheduling for doctor
 
 ```bash
 cd backend
-source .venv/bin/activate       # activate virtualenv
-pytest tests/ -v                # run all 51 backend tests
-uvicorn app.main:app --reload --port 8000  # run dev server
-alembic upgrade head            # run database migrations
-alembic revision --autogenerate -m "description"  # create new migration
+npm install
+npm test
+npm run build
+npm run start:dev
+npm run migration:run
 ```
 
 ### Frontend
@@ -45,7 +45,7 @@ docker compose up db            # just PostgreSQL (for local backend dev)
 - **Backend API** at `/api/v1`: config, rota CRUD, holidays, health
 - **Database**: PostgreSQL with 4 tables — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Angular standalone components with signal-based state
-- **Algorithm**: Independent per-type balanced round-robin with auto-computed doctors_per_day, rest-day, sliding round-robin pointer, and equity constraints in `backend/app/services/assignment.py`
+- **Algorithm**: Independent per-type balanced round-robin with auto-computed `doctorsPerDay`, rest-day, sliding round-robin pointer, and equity constraints in `backend/src/scheduling/assignment.service.ts`
 
 ## Key Configuration
 
@@ -56,13 +56,12 @@ Environment variables (backend):
 
 ## Coding Conventions
 
-### Backend (Python)
-- Sync SQLAlchemy (not async) for simplicity
-- Pydantic v2 models for all request/response schemas in `app/schemas/`
-- SQLAlchemy 2.x `mapped_column` style in `app/models/`
-- Business logic in `app/services/`, routes in `app/api/`
-- Tests use in-memory SQLite with `StaticPool` (see `tests/conftest.py`)
-- Mock external APIs (holiday service) in tests using `unittest.mock.patch`
+### Backend (NestJS/TypeScript)
+- Keep HTTP layer thin: controllers delegate to services
+- DTO validation lives in `src/**/dto/` and is enforced by the global `ValidationPipe`
+- Persistence uses TypeORM entities and migrations under `src/database/`
+- Scheduling logic stays in `src/scheduling/`, not controllers
+- Tests use Jest; e2e coverage runs against `sql.js` plus mocked `fetch`
 
 ### Frontend (Angular/TypeScript)
 - Angular 19+ standalone components — no NgModules
@@ -74,7 +73,7 @@ Environment variables (backend):
 
 ## Testing
 
-- Backend: `pytest` — 51 tests (23 algorithm, 7 holidays, 16 API, 5 other)
+- Backend: `npm test` — Jest unit and e2e coverage from `backend/test/`
 - Frontend: `vitest` — 83 tests (14 service, 53 component, 15 integration)
 - All PRD acceptance criteria have corresponding test cases (see docs/IMPLEMENTATION.md section 4.4)
 - Tests should be written BEFORE implementation (ATDD approach)
@@ -93,6 +92,7 @@ These rules are enforced by the algorithm and verified by tests:
 
 - `docs/PRD.md` — Product requirements with all acceptance criteria
 - `docs/TECHNICAL_DESIGN.md` — API contracts, DB schema, algorithm design
+- `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — NestJS module and persistence layout
 - `docs/IMPLEMENTATION.md` — Developer guide, component hierarchy, testing strategy
 - `docs/ALGORITHM.md` — Assignment algorithm design, constraints, and trade-offs
 

@@ -1,6 +1,6 @@
 # Assignment Algorithm
 
-**Source:** [`backend/app/services/assignment.py`](../backend/app/services/assignment.py)
+**Source:** [`backend/src/scheduling/assignment.service.ts`](../backend/src/scheduling/assignment.service.ts)
 
 The scheduling algorithm generates a full-year on-call schedule for a **single rota type** (AC or AP). AC and AP are generated independently with separate doctor pools.
 
