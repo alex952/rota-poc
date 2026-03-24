@@ -23,6 +23,17 @@ describe('CalendarComponent', () => {
       shift_end: '08:00+1',
       duration_hours: 17,
       acDoctors: [{ doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' }],
+      acRefuerzos: [
+        {
+          doctor_id: 'doc-003',
+          doctor_name: 'Dr. Martinez',
+          linked_primary_doctor_id: 'doc-002',
+          linked_primary_doctor_name: 'Dr. Lopez',
+          shift_start: '15:00',
+          shift_end: '20:00',
+          duration_hours: 5,
+        },
+      ],
       apDoctors: [{ doctor_id: 'doc-011', doctor_name: 'Dr. Navarro' }],
     },
     {
@@ -140,5 +151,16 @@ describe('CalendarComponent', () => {
 
     expect(component.viewMode()).toBe('month');
     expect(fixture.nativeElement.querySelector('app-month-view')).toBeTruthy();
+  });
+
+  it('should keep days where the filtered doctor is assigned as refuerzo', () => {
+    fixture.componentRef.setInput('year', 2026);
+    fixture.componentRef.setInput('schedule', mockSchedule);
+    component.currentMonth.set(2);
+    component.filteredDoctor.set({ doctor_id: 'doc-003', doctor_name: 'Dr. Martinez' });
+    fixture.detectChanges();
+
+    expect(component.currentAssignments()).toHaveLength(1);
+    expect(component.currentAssignments()[0].date).toBe('2026-02-15');
   });
 });

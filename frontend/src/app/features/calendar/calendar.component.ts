@@ -376,6 +376,7 @@ export class CalendarComponent {
     if (!filter) return assignments;
     return assignments.filter(
       assignment => assignment.acDoctors.some(doctor => doctor.doctor_id === filter.doctor_id)
+        || (assignment.acRefuerzos ?? []).some(refuerzo => refuerzo.doctor_id === filter.doctor_id)
         || assignment.apDoctors.some(doctor => doctor.doctor_id === filter.doctor_id)
     );
   });
