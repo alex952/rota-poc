@@ -13,4 +13,8 @@ export class ReplaceDoctorDto {
   @IsOptional()
   @IsIn(['primary', 'refuerzo'])
   assignment_kind?: 'primary' | 'refuerzo';
+
+  @IsOptional()
+  @IsString()
+  linked_primary_doctor_id?: string;
 }

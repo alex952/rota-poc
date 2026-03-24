@@ -71,7 +71,7 @@ function progressRatio(hours: number, target: number): number {
   return hours / target;
 }
 
-function refuerzoDetails(dayType: DayInfo['dayType']) {
+export function refuerzoDetails(dayType: DayInfo['dayType']) {
   if (dayType === 'holiday') {
     return {
       durationHours: REFUERZO_HOLIDAY_HOURS,
