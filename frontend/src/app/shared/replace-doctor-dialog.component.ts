@@ -5,6 +5,7 @@ export interface ReplaceDoctorChoice {
   doctor_id: string;
   doctor_name: string;
   assignment_kind: 'primary' | 'refuerzo';
+  linked_primary_doctor_id?: string;
 }
 
 @Component({
@@ -13,13 +14,13 @@ export interface ReplaceDoctorChoice {
   template: `
     <div class="replace-doctor-backdrop">
       <div class="replace-doctor-dialog">
-        <p class="dialog-title">Replace which doctor on {{ date() }}?</p>
+        <p class="dialog-title">Assign {{ doctorName() }} on {{ date() }}</p>
         <p class="dialog-subtitle">
-          Replacing with <strong>{{ doctorName() }}</strong>
+          Choose the assignment to update
         </p>
         <div class="doctor-buttons">
-          @for (doc of doctors(); track doc.doctor_id) {
-            <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name, assignment_kind: doc.assignment_kind })">
+          @for (doc of doctors(); track doc.doctor_id + '-' + doc.assignment_kind + '-' + (doc.linked_primary_doctor_id ?? '')) {
+            <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name, assignment_kind: doc.assignment_kind, linked_primary_doctor_id: doc.linked_primary_doctor_id })">
               {{ doc.doctor_name }}
             </button>
           }
@@ -110,7 +111,7 @@ export interface ReplaceDoctorChoice {
 export class ReplaceDoctorDialogComponent {
   readonly date = input.required<string>();
   readonly doctorName = input.required<string>();
-  readonly doctors = input.required<Array<DoctorRef & { assignment_kind: 'primary' | 'refuerzo' }>>();
+  readonly doctors = input.required<Array<DoctorRef & { assignment_kind: 'primary' | 'refuerzo'; linked_primary_doctor_id?: string }>>();
 
   readonly selected = output<ReplaceDoctorChoice>();
   readonly cancelled = output<void>();

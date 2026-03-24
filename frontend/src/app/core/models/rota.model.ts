@@ -65,6 +65,7 @@ export interface ReplaceRequest {
   old_doctor_id: string;
   new_doctor_id: string;
   assignment_kind?: 'primary' | 'refuerzo';
+  linked_primary_doctor_id?: string;
 }
 
 /** Merged day for the combined calendar view */
