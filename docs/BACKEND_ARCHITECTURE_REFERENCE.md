@@ -1,31 +1,31 @@
-# Backend Architecture Reference
+# Referencia de Arquitectura del Backend
 
-This document summarizes the current NestJS backend now that the Python implementation has been retired.
+Este documento resume el backend NestJS actual ahora que la implementación en Python ha sido retirada.
 
-## System Shape
+## Forma del Sistema
 
-- `backend/src/main.ts` bootstraps a Fastify-based Nest app, applies `/api/v1` as the global prefix, enables CORS, and registers validation.
-- `backend/src/app.module.ts` composes the config, database, holidays, rota, and health modules.
-- TypeORM is the persistence layer for PostgreSQL in production and `sql.js` in tests.
-- Scheduling and holiday classification remain in plain domain services so the HTTP layer stays thin.
+- `backend/src/main.ts` arranca una aplicación Nest basada en Fastify, aplica `/api/v1` como prefijo global, habilita CORS y registra la validación.
+- `backend/src/app.module.ts` compone los módulos de config, database, holidays, rota y health.
+- TypeORM es la capa de persistencia para PostgreSQL en producción y `sql.js` en pruebas.
+- La planificación y la clasificación de festivos permanecen en servicios de dominio puros para mantener la capa HTTP delgada.
 
-## Request Flow
+## Flujo de Solicitudes
 
-1. A controller receives the HTTP request and validates input DTOs with the global `ValidationPipe`.
-2. The relevant service loads holidays/config and runs the scheduling logic when needed.
-3. TypeORM persists `rotas`, `rota_doctors`, `rota_assignments`, and cached `holidays`.
-4. `RotaResponseMapper` rebuilds the API response shape, including stats and filtered rota views.
+1. Un controlador recibe la solicitud HTTP y valida los DTOs de entrada con el `ValidationPipe` global.
+2. El servicio relevante carga festivos/config y ejecuta la lógica de planificación cuando es necesario.
+3. TypeORM persiste `rotas`, `rota_doctors`, `rota_assignments` y `holidays` en caché.
+4. `RotaResponseMapper` reconstruye la forma de respuesta de la API, incluyendo estadísticas y vistas de rota filtradas.
 
-## Modules
+## Módulos
 
-- `src/config/` exposes application config such as `CITY`.
-- `src/database/` owns TypeORM setup and migrations.
-- `src/holidays/` fetches Spanish holidays, filters them by city/region, and caches them.
-- `src/scheduling/` contains the rota algorithm and stats calculation.
-- `src/rota/` owns generation, retrieval, replacement, entities, and response mapping.
-- `src/health/` provides the `/health` liveness endpoint.
+- `src/config/` expone la configuración de la aplicación como `CITY`.
+- `src/database/` gestiona la configuración de TypeORM y las migraciones.
+- `src/holidays/` obtiene los festivos españoles, los filtra por ciudad/región y los almacena en caché.
+- `src/scheduling/` contiene el algoritmo de rota y el cálculo de estadísticas.
+- `src/rota/` gestiona la generación, recuperación, sustitución, entidades y mapeo de respuestas.
+- `src/health/` proporciona el endpoint de liveness `/health`.
 
-## API Surface
+## Superficie de API
 
 - `GET /health`
 - `GET /api/v1/config`
@@ -35,28 +35,28 @@ This document summarizes the current NestJS backend now that the Python implemen
 - `GET /api/v1/rota/:year`
 - `PATCH /api/v1/rota/:year/:rotaType/replace`
 
-## Data Model
+## Modelo de Datos
 
-- `rotas`: one persisted rota per `(year, rota_type)` plus the original pool snapshot.
-- `rota_doctors`: normalized pool members for a rota, including `hours_reduced_per_day`.
-- `rota_assignments`: one row per assignment and assignment kind (`primary` or `refuerzo`).
-- `holidays`: cached holiday rows keyed by `(year, city, date)`.
+- `rotas`: una rota persistida por `(año, tipo_rota)` más la instantánea del grupo original.
+- `rota_doctors`: miembros del grupo normalizados para una rota, incluyendo `hours_reduced_per_day`.
+- `rota_assignments`: una fila por asignación y tipo de asignación (`primary` o `refuerzo`).
+- `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`.
 
-Important constraints:
+Restricciones importantes:
 
-- `rotas(year, rota_type)` is unique.
-- `rota_doctors(rota_id, doctor_id)` is unique.
-- `rota_assignments(rota_id, date, doctor_id, assignment_kind)` is unique.
-- Child rows cascade on rota deletion.
+- `rotas(año, tipo_rota)` es único.
+- `rota_doctors(rota_id, doctor_id)` es único.
+- `rota_assignments(rota_id, fecha, doctor_id, tipo_asignación)` es único.
+- Las filas hijas se eliminan en cascada al borrar una rota.
 
-## Testing Shape
+## Forma de las Pruebas
 
-- `backend/test/unit/assignment.spec.ts` covers rota generation rules and invariants.
-- `backend/test/unit/holidays.spec.ts` covers holiday filtering and caching behavior.
-- `backend/test/e2e/app.e2e-spec.ts` covers the HTTP contract against an in-memory `sql.js` database.
+- `backend/test/unit/assignment.spec.ts` cubre las reglas de generación de rota e invariantes.
+- `backend/test/unit/holidays.spec.ts` cubre el comportamiento de filtrado y caché de festivos.
+- `backend/test/e2e/app.e2e-spec.ts` cubre el contrato HTTP contra una base de datos `sql.js` en memoria.
 
-## Operational Notes
+## Notas Operativas
 
-- Production and Docker use PostgreSQL migrations via `npm run migration:run` or `npm run migration:run:dist`.
-- The API response preserves overnight shift formatting with `+1`, while PostgreSQL stores only valid `TIME` values.
-- The backend does not currently expose Swagger; the stable contract is documented in code and tests.
+- Producción y Docker usan migraciones PostgreSQL mediante `npm run migration:run` o `npm run migration:run:dist`.
+- La respuesta de la API preserva el formato de turno nocturno con `+1`, mientras que PostgreSQL almacena solo valores `TIME` válidos.
+- El backend no expone Swagger actualmente; el contrato estable está documentado en código y pruebas.

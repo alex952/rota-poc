@@ -1,235 +1,235 @@
-# Historical Rota Analysis
+# Análisis de Rotas Históricas
 
-**Sources:**
-- **PAS Aaiun** — Human-scheduled monthly rota documents (Jan 2026 – Jan 2027), military hospital deployment
-- **PAS Alicante Sur** — Human-scheduled monthly rota documents (Jan 2026 – Jan 2027), domestic hospital
+**Fuentes:**
+- **PAS Aaiún** — Documentos de rota mensual programados manualmente (Ene 2026 – Ene 2027), hospital de despliegue militar
+- **PAS Alicante Sur** — Documentos de rota mensual programados manualmente (Ene 2026 – Ene 2027), hospital doméstico
 
-Both cover AC (Atencion Continuada / PAS) assignments. This document captures patterns and lessons from real human-scheduled rotas to guide future algorithm alignment.
+Ambos cubren asignaciones de AC (Atención Continuada / PAS). Este documento captura patrones y lecciones de rotas programadas por humanos reales para guiar la alineación futura del algoritmo.
 
 ---
 
-## Pool Composition
+## Composición del Grupo
 
-### Aaiun
+### Aaiún
 
-| Role | Count | Details |
-|------|-------|---------|
-| Main doctors (AC/PAS) | 4 | Isabel, Marina, Cynthia, Cesar |
-| AP refuerzo references | 21 | Numbered `R:1` through `R:21`; these refer to Atencion Primaria reinforcement staff, not residents, and are not part of the AC/PAS core rotation |
-| Vacation substitutes | ~25 entries | Labeled `VAC/N`, fill in during main doctor absences |
-| Junior substitutes | ~12 entries | Labeled `J/N`, appear Oct–Dec (possibly replacing Isabel) |
+| Rol | Cantidad | Detalles |
+|-----|---------|---------|
+| Médicos principales (AC/PAS) | 4 | Isabel, Marina, Cynthia, Cesar |
+| Referencias de refuerzo AP | 21 | Numerados `R:1` a `R:21`; se refieren a personal de refuerzo de Atención Primaria, no residentes, y no forman parte de la rotación principal de AC/PAS |
+| Sustitutos de vacaciones | ~25 entradas | Etiquetados `VAC/N`, cubren durante las ausencias de los médicos principales |
+| Sustitutos junior | ~12 entradas | Etiquetados `J/N`, aparecen Oct–Dic (posiblemente reemplazando a Isabel) |
 
-**Notable:** Isabel disappears from monthly hour totals from October onward and is absent from the yearly summary. She appears to have been partially or fully replaced by J/ and VAC/ substitutes — suggesting mid-year departure or extended leave.
+**Notable:** Isabel desaparece de los totales de horas mensuales a partir de octubre y está ausente del resumen anual. Parece haber sido parcial o totalmente reemplazada por sustitutos J/ y VAC/ — lo que sugiere una salida a mediados de año o una baja prolongada.
 
 ### Alicante Sur
 
-| Role | Count | Details |
-|------|-------|---------|
-| Main doctors (AC/PAS) | 5 (4 effective slots) | Miguel A, Paula, Fabiola, Ruth, Jessica |
-| AP refuerzo references | 17 | Numbered `R:1` through `R:17`; these refer to Atencion Primaria reinforcement staff, not residents, and are not part of the AC/PAS core rotation |
-| Vacation substitutes | Present | Labeled `VAC N`, used during summer and autumn months |
+| Rol | Cantidad | Detalles |
+|-----|---------|---------|
+| Médicos principales (AC/PAS) | 5 (4 puestos efectivos) | Miguel A, Paula, Fabiola, Ruth, Jessica |
+| Referencias de refuerzo AP | 17 | Numerados `R:1` a `R:17`; se refieren a personal de refuerzo de Atención Primaria, no residentes, y no forman parte de la rotación principal de AC/PAS |
+| Sustitutos de vacaciones | Presentes | Etiquetados `VAC N`, usados durante los meses de verano y otoño |
 
-**Notable:** Ruth and Jessica are **always assigned together** on the same day — every cell reads "Ruth | Jessica" or "Jessica | Ruth". They share a single rotation slot (job-share / media jornada), making the effective pool **4 rotation slots** despite having 5 named doctors. Their monthly hours are nearly identical (differing by 0–2h in only 3 of 12 months). The documents include `Horas Ruth:N` and `Horas Paula:N` annotations to track partial-hour adjustments for the shared slot.
+**Notable:** Ruth y Jessica son **siempre asignadas juntas** el mismo día — cada celda lee "Ruth | Jessica" o "Jessica | Ruth". Comparten un único puesto de rotación (trabajo compartido / media jornada), haciendo que el grupo efectivo sea de **4 puestos de rotación** a pesar de tener 5 médicos nombrados. Sus horas mensuales son casi idénticas (diferencia de 0-2h en solo 3 de los 12 meses). Los documentos incluyen anotaciones `Horas Ruth:N` y `Horas Paula:N` para rastrear ajustes de horas parciales para el puesto compartido.
 
-**Miguel A consistently under-hours:** Miguel averages 141h/month vs ~147h for others, with 4 months below 135h (Feb: 126h, Apr: 133h, Jul: 126h, Oct: 127h). This pattern of exactly 126h (= ~7 weekday shifts × 17h + 1 weekend) suggests he systematically receives fewer weekend/holiday shifts — a known weakness of rigid rotations without day-type balancing.
+**Miguel A sistemáticamente con menos horas:** Miguel promedia 141h/mes frente a ~147h de los demás, con 4 meses por debajo de 135h (Feb: 126h, Abr: 133h, Jul: 126h, Oct: 127h). Este patrón de exactamente 126h (= ~7 turnos de día laborable × 17h + 1 fin de semana) sugiere que sistemáticamente recibe menos turnos de fin de semana/festivo — una debilidad conocida de las rotaciones rígidas sin equilibrio de tipo de día.
 
 ---
 
-## Rotation Pattern
+## Patrón de Rotación
 
-Both centers use a **strict 4-slot rotation** with zero deviations (verified across all months):
+Ambos centros usan una **rotación estricta de 4 puestos** sin ninguna desviación (verificado en todos los meses):
 
-### Aaiun
+### Aaiún
 
 ```
-Day 1: Isabel    Day 5: Isabel    Day 9: Isabel   ...
-Day 2: Marina    Day 6: Marina    Day 10: Marina  ...
-Day 3: Cynthia   Day 7: Cynthia   Day 11: Cynthia ...
-Day 4: Cesar     Day 8: Cesar     Day 12: Cesar   ...
+Día 1: Isabel    Día 5: Isabel    Día 9: Isabel   ...
+Día 2: Marina    Día 6: Marina    Día 10: Marina  ...
+Día 3: Cynthia   Día 7: Cynthia   Día 11: Cynthia ...
+Día 4: Cesar     Día 8: Cesar     Día 12: Cesar   ...
 ```
 
 ### Alicante Sur
 
 ```
-Day 1: Miguel A       Day 5: Miguel A       ...
-Day 2: Paula          Day 6: Paula          ...
-Day 3: Ruth/Jessica   Day 7: Ruth/Jessica   ...
-Day 4: Fabiola        Day 8: Fabiola        ...
+Día 1: Miguel A       Día 5: Miguel A       ...
+Día 2: Paula          Día 6: Paula          ...
+Día 3: Ruth/Jessica   Día 7: Ruth/Jessica   ...
+Día 4: Fabiola        Día 8: Fabiola        ...
 ```
 
-Both give each slot:
-- **1 shift every 4 days** (3 full rest days between shifts)
-- **~7–8 shifts/month**
-- **~91 shifts/year**
+Ambos dan a cada puesto:
+- **1 turno cada 4 días** (3 días completos de descanso entre turnos)
+- **~7-8 turnos/mes**
+- **~91 turnos/año**
 
-The rotation is completely deterministic — no optimization logic, no balancing by day type. Whichever day type (weekday/saturday/holiday) falls on your rotation slot is what you get.
+La rotación es completamente determinista — sin lógica de optimización, sin equilibrio por tipo de día. El tipo de día (laborable/sábado/festivo) que cae en tu puesto de rotación es el que te corresponde.
 
 ---
 
-## Monthly Hours
+## Horas Mensuales
 
-### Aaiun — Per-Doctor Monthly Totals (2026)
+### Aaiún — Totales Mensuales por Médico (2026)
 
-| Month | Cynthia | Cesar | Marina | Avg | Spread |
-|-------|---------|-------|--------|-----|--------|
-| Jan | 144 | 138 | 149 | 143.7 | 11h |
+| Mes | Cynthia | Cesar | Marina | Promedio | Diferencia |
+|-----|---------|-------|--------|---------|-----------|
+| Ene | 144 | 138 | 149 | 143.7 | 11h |
 | Feb | 147 | 145 | 145 | 145.7 | 2h |
 | Mar | 138 | 149 | 149 | 145.3 | 11h |
-| Apr | 144 | 156 | 150 | 150.0 | 12h |
+| Abr | 144 | 156 | 150 | 150.0 | 12h |
 | May | 149 | 145 | 144 | 146.0 | 5h |
 | Jun | 153 | 150 | 154 | 152.3 | 4h |
 | Jul | 150 | 143 | 150 | 147.7 | 7h |
-| Aug | 149 | 138 | 150 | 145.7 | 12h |
+| Ago | 149 | 138 | 150 | 145.7 | 12h |
 | Sep | 140 | 143 | 140 | 141.0 | 3h |
 | Oct | 150 | 151 | 156 | 152.3 | 6h |
 | Nov | 152 | 145 | 150 | 149.0 | 7h |
-| Dec | 149 | 144 | 151 | 148.0 | 7h |
+| Dic | 149 | 144 | 151 | 148.0 | 7h |
 
-**Monthly spread:** 2h–12h (average 6.8h). Isabel excluded — she did not complete the full year.
+**Diferencia mensual:** 2h–12h (media 6.8h). Isabel excluida — no completó el año completo.
 
-### Alicante Sur — Per-Doctor Monthly Totals (2026)
+### Alicante Sur — Totales Mensuales por Médico (2026)
 
-| Month | Ruth | Jessica | Fabiola | Paula | Miguel A | Avg | Spread |
-|-------|------|---------|---------|-------|----------|-----|--------|
-| Jan | 144 | 144 | 138 | 149 | 150 | 145.0 | 12h |
+| Mes | Ruth | Jessica | Fabiola | Paula | Miguel A | Promedio | Diferencia |
+|-----|------|---------|---------|-------|----------|---------|-----------|
+| Ene | 144 | 144 | 138 | 149 | 150 | 145.0 | 12h |
 | Feb | 140 | 140 | 145 | 145 | 126 | 139.2 | 19h |
 | Mar | 138 | 140 | 149 | 149 | 144 | 144.0 | 11h |
-| Apr | 144 | 144 | 156 | 150 | 133 | 145.4 | 23h |
+| Abr | 144 | 144 | 156 | 150 | 133 | 145.4 | 23h |
 | May | 149 | 149 | 145 | 144 | 149 | 147.2 | 5h |
 | Jun | 146 | 147 | 150 | 147 | 144 | 146.8 | 6h |
 | Jul | 150 | 150 | 143 | 150 | 126 | 143.8 | 24h |
-| Aug | 149 | 149 | 138 | 150 | 144 | 146.0 | 12h |
+| Ago | 149 | 149 | 138 | 150 | 144 | 146.0 | 12h |
 | Sep | 140 | 140 | 143 | 140 | 143 | 141.2 | 3h |
 | Oct | 150 | 150 | 151 | 156 | 127 | 146.8 | 29h |
 | Nov | 152 | 152 | 149 | 150 | 149 | 150.4 | 3h |
-| Dec | 150 | 150 | 144 | 151 | 152 | 149.4 | 8h |
+| Dic | 150 | 150 | 144 | 151 | 152 | 149.4 | 8h |
 
-**Monthly spread:** 3h–29h (average 12.9h). Significantly wider than Aaiun, driven largely by Miguel A's under-allocation on weekends.
+**Diferencia mensual:** 3h–29h (media 12.9h). Significativamente más amplia que Aaiún, impulsada principalmente por la infraasignación de Miguel A en fines de semana.
 
-### Hourly Patterns
+### Patrones de Horas
 
-Base hours often land at **126h** (≈ 7 weekday shifts × 17h + 1 partial) or **143–149h**, with manual adjustments of **+7h, +12h, +21h** added to reach target. These adjustments likely come from covering extra shifts, vacation replacements, or compensation hours. This pattern is consistent across both centers.
+Las horas base a menudo caen en **126h** (≈ 7 turnos de día laborable × 17h + 1 parcial) o **143-149h**, con ajustes manuales de **+7h, +12h, +21h** añadidos para alcanzar el objetivo. Estos ajustes probablemente provienen de cubrir turnos extra, sustituciones de vacaciones o horas de compensación. Este patrón es consistente en ambos centros.
 
-### Yearly Totals
+### Totales Anuales
 
-**Aaiun** (from December document):
+**Aaiún** (del documento de diciembre):
 
-| Doctor | Raw Hours | After Vacation Deduction |
-|--------|-----------|--------------------------|
-| Cynthia | 1,765h | 1,567h |
-| Cesar | 1,747h | 1,622h |
-| Marina | 1,788h | 1,643h |
-| **Spread** | **41h** | **76h** |
+| Médico | Horas Brutas | Tras Deducción de Vacaciones |
+|--------|-------------|----------------------------|
+| Cynthia | 1.765h | 1.567h |
+| Cesar | 1.747h | 1.622h |
+| Marina | 1.788h | 1.643h |
+| **Diferencia** | **41h** | **76h** |
 
-**Alicante Sur** (computed from monthly totals):
+**Alicante Sur** (calculado a partir de totales mensuales):
 
-| Doctor | 2026 Hours |
+| Médico | Horas 2026 |
 |--------|-----------|
-| Ruth | 1,752h |
-| Jessica | 1,755h |
-| Fabiola | 1,751h |
-| Paula | 1,781h |
-| Miguel A | 1,687h |
-| **Spread** | **94h** |
+| Ruth | 1.752h |
+| Jessica | 1.755h |
+| Fabiola | 1.751h |
+| Paula | 1.781h |
+| Miguel A | 1.687h |
+| **Diferencia** | **94h** |
 
-The theoretical expectation for a strict 4-rotation over 365 days is ~1,644h/year (~137h/month). Both centers exceed this — the surplus comes from covering absent doctors' shifts and substitute work. Alicante Sur's wider spread (94h vs 41h) is almost entirely due to Miguel A being systematically under-allocated on weekends.
-
----
-
-## Shift Structure
-
-For the AC/PAS rota itself, both centers use the same core daily shift structure:
-
-1. **One main AC/PAS doctor** (or a job-share pair) from the pool
-2. **Shift times and durations** matching our algorithm's day-type classification:
-   - Weekday: 17h (15:00–08:00+1)
-   - Saturday: 18h (15:00–09:00+1)
-   - Holiday/Sunday: 23h (09:00–08:00+1)
-
-Important clarification on notation and scope:
-- `R:N` does **not** mean residente; it means **refuerzo** and refers to **Atencion Primaria (AP)** reinforcement coverage
-- Those `R:` entries should therefore not be treated as part of the AC/PAS staffing model analyzed here
-- The Atencion Continuada staff on the special contract are a **separate on-call-only workforce**, not a normal recurring schedule pool comparable to the AC/PAS main-doctor rotation
-
-Special notations found in the documents:
-- `X/N` — appears ~once per doctor per month; likely a compensation or special duty day
-- `VAC/N` or `VAC N` — vacation substitute doctor taking a numbered shift
-- `J/N` — junior or replacement doctor (Aaiun only, concentrated in Oct–Dec)
-- `Permiso` — permission/leave day
-- `Horas Name:N` — partial hour tracking annotations (Alicante Sur, for job-share splitting)
+La expectativa teórica para una rotación estricta de 4 puestos durante 365 días es ~1.644h/año (~137h/mes). Ambos centros superan esto — el excedente proviene de cubrir los turnos de médicos ausentes y trabajo de sustitución. La diferencia más amplia de Alicante Sur (94h frente a 41h) se debe casi en su totalidad a que Miguel A es sistemáticamente infraasignado en fines de semana.
 
 ---
 
-## Key Takeaways for Algorithm Alignment
+## Estructura de Turnos
 
-### 1. Real pools are small (4 effective slots)
+Para la propia rota AC/PAS, ambos centros usan la misma estructura de turno diario básica:
 
-Both centers operate with **4 effective rotation slots** — Aaiun has 4 doctors, Alicante Sur has 5 doctors but 2 (Ruth/Jessica) share a slot. This is far smaller than our test data (20 per pool). The algorithm must work well with pools of 4–5 doctors, which is the realistic operational scenario.
+1. **Un médico AC/PAS principal** (o una pareja de trabajo compartido) del grupo
+2. **Horarios y duraciones de turno** que coinciden con la clasificación de tipo de día de nuestro algoritmo:
+   - Día laborable: 17h (15:00-08:00+1)
+   - Sábado: 18h (15:00-09:00+1)
+   - Festivo/Domingo: 23h (09:00-08:00+1)
 
-### 2. Strict rotation is the human baseline
+Aclaración importante sobre la notación y el alcance:
+- `R:N` **no** significa residente; significa **refuerzo** y se refiere a cobertura de **Atención Primaria (AP)**
+- Por tanto, esas entradas `R:` no deben tratarse como parte del modelo de dotación AC/PAS analizado aquí
+- El personal de Atención Continuada con contrato especial es una **plantilla exclusiva de guardia**, no un grupo de programación recurrente normal comparable a la rotación de médicos principales AC/PAS
 
-Both centers use a dead-simple sequential rotation with no optimization. Aaiun achieves reasonable monthly equity (~7h spread) because the fixed rotation is inherently fair over time. However, Alicante Sur shows the weakness: without day-type balancing, individual doctors can be systematically under- or over-allocated on weekends (Miguel A's 94h yearly spread). Our algorithm should match Aaiun's equity at minimum and improve on Alicante Sur's.
-
-### 3. Job-sharing is real
-
-Alicante Sur demonstrates that two doctors can share a single rotation slot. Ruth and Jessica always appear together, with near-identical hours (0–2h difference). This is not currently modeled in our system. **A future feature could allow defining a "shared slot" where two doctors split one rotation position.**
-
-### 4. AP refuerzo notation should not be modeled as AC secondary staffing
-
-The `R:N` notation in the source rotas refers to **AP refuerzo**, not residents. That means this analysis should **not** infer a second AC staffing tier from those entries. This aligns with the current implementation: the generator already accepts a `rota_type` and produces **separate AC and AP rotas with separate pools**, rather than treating AP reinforcement as a second layer inside the AC rota.
-
-### 5. Manual adjustments are the norm
-
-The `+7h`, `+12h`, `+21h` additions on monthly totals show that real schedules require post-generation tweaking. Our drag-and-drop replacement feature maps directly to this need. The algorithm produces a baseline; humans will always fine-tune.
-
-### 6. Vacation handling is ad-hoc
-
-Vacation coverage is handled by substitute doctors (VAC/, J/) rather than redistributing among the remaining pool. This suggests a future feature: vacation-aware generation that either excludes doctors for date ranges or slots in named substitutes.
-
-### 7. Pool changes happen mid-year
-
-Isabel's departure shows that pool composition changes during the year are real. The system should support re-generating a rota when doctors join or leave, preserving already-served assignments where possible.
-
-### 8. The 135h/month AC minimum matches reality
-
-Both centers show actual monthly hours clustering around 126–156h, with the target clearly in the 135–150h range. Our 1,620h/year (135h/month x 12) hard constraint is well-calibrated to real-world expectations.
-
-### 9. Day-type equity is a clear improvement over manual
-
-The rigid human rotation means Saturday/holiday distribution is random. Alicante Sur's data proves this causes real inequity — Miguel A systematically gets fewer weekends, ending 94h below the highest doctor yearly. Our algorithm actively balances day-type distribution (weekday/saturday/holiday counts within ±1), which directly addresses this observed weakness.
-
-### 10. AC and AP are correctly treated as separate scheduling domains in the current system
-
-The clarified notation makes the separation cleaner: `R:` entries belong to **AP refuerzo**, while the main rota analyzed here is the **AC/PAS** doctor rotation. In addition, some Atencion Continuada personnel are on a **special on-call-only contract**, so they should not be treated as part of a normal monthly schedule pool. This validates the current system design, where the generate-rota flow already handles AC and AP independently by rota type, with separate pools and separate generation passes.
+Notaciones especiales encontradas en los documentos:
+- `X/N` — aparece ~una vez por médico por mes; probablemente un día de compensación o servicio especial
+- `VAC/N` o `VAC N` — médico sustituto de vacaciones que cubre un turno numerado
+- `J/N` — médico junior o de reemplazo (solo Aaiún, concentrado en Oct-Dic)
+- `Permiso` — día de permiso/baja
+- `Horas Nombre:N` — anotaciones de seguimiento de horas parciales (Alicante Sur, para la división del trabajo compartido)
 
 ---
 
-## Cross-Center Comparison
+## Conclusiones Clave para la Alineación del Algoritmo
 
-| Metric | Aaiun | Alicante Sur |
-|--------|-------|--------------|
-| Main doctor slots | 4 | 4 (5 doctors, 1 job-share) |
-| Doctors per day | 1 | 1 (or 2 shared) |
-| Rotation type | Strict 4-day | Strict 4-day |
-| AP refuerzo references in source docs | `R:1`-`R:21` | `R:1`-`R:17` |
-| Monthly hour range | 138–156h | 126–156h |
-| Monthly spread (avg) | 6.8h | 12.9h |
-| Yearly spread | 41h | 94h |
-| Vacation subs | VAC/, J/ | VAC |
-| Job-share | No | Yes (Ruth/Jessica) |
-| Mid-year pool change | Yes (Isabel) | No |
+### 1. Los grupos reales son pequeños (4 puestos efectivos)
 
-The patterns are strikingly consistent across both centers despite different locations, staff, and operational contexts. The strict 4-day AC/PAS rotation, manual hour adjustments, and ad-hoc vacation handling appear to be standard practice across the Spanish military hospital system. The earlier apparent "two-tier" pattern should instead be understood as separate AP refuerzo notation alongside the AC rota, plus distinct on-call-only AC contract staff outside the normal schedule pool.
+Ambos centros operan con **4 puestos de rotación efectivos** — Aaiún tiene 4 médicos, Alicante Sur tiene 5 médicos pero 2 (Ruth/Jessica) comparten un puesto. Esto es mucho más pequeño que nuestros datos de prueba (20 por grupo). El algoritmo debe funcionar bien con grupos de 4-5 médicos, que es el escenario operativo realista.
+
+### 2. La rotación estricta es la línea de base humana
+
+Ambos centros usan una rotación secuencial simple sin optimización. Aaiún logra una equidad mensual razonable (~7h de diferencia) porque la rotación fija es intrínsecamente justa con el tiempo. Sin embargo, Alicante Sur muestra la debilidad: sin equilibrio de tipo de día, los médicos individuales pueden ser sistemáticamente infraasignados o sobreasignados en fines de semana (diferencia anual de 94h de Miguel A). Nuestro algoritmo debe igualar la equidad de Aaiún como mínimo y mejorar sobre la de Alicante Sur.
+
+### 3. El trabajo compartido es real
+
+Alicante Sur demuestra que dos médicos pueden compartir un único puesto de rotación. Ruth y Jessica aparecen siempre juntas, con horas casi idénticas (diferencia de 0-2h). Esto no está modelado actualmente en nuestro sistema. **Una futura funcionalidad podría permitir definir un "puesto compartido" donde dos médicos dividan una posición de rotación.**
+
+### 4. La notación de refuerzo AP no debe modelarse como dotación secundaria de AC
+
+La notación `R:N` en las rotas de origen se refiere a **refuerzo AP**, no a residentes. Esto significa que este análisis **no** debe inferir un segundo nivel de dotación AC a partir de esas entradas. Esto se alinea con la implementación actual: el generador ya acepta un `rota_type` y produce **rotas AC y AP separadas con grupos separados**, en lugar de tratar el refuerzo AP como una segunda capa dentro de la rota AC.
+
+### 5. Los ajustes manuales son la norma
+
+Las adiciones de `+7h`, `+12h`, `+21h` en los totales mensuales muestran que los calendarios reales requieren ajustes post-generación. Nuestra función de sustitución mediante arrastrar y soltar responde directamente a esta necesidad. El algoritmo produce una línea de base; los humanos siempre ajustarán.
+
+### 6. La gestión de vacaciones es ad hoc
+
+La cobertura de vacaciones se gestiona mediante médicos sustitutos (VAC/, J/) en lugar de redistribuir entre el grupo restante. Esto sugiere una futura funcionalidad: generación con conciencia de vacaciones que excluya médicos para rangos de fechas o inserte sustitutos nombrados.
+
+### 7. Los cambios de grupo ocurren a mitad del año
+
+La salida de Isabel muestra que los cambios de composición del grupo durante el año son reales. El sistema debería admitir la regeneración de una rota cuando los médicos se unen o se marchan, preservando las asignaciones ya realizadas donde sea posible.
+
+### 8. El mínimo de 135h/mes de AC coincide con la realidad
+
+Ambos centros muestran horas mensuales reales agrupadas en torno a 126-156h, con el objetivo claramente en el rango de 135-150h. Nuestra restricción dura de 1.620h/año (135h/mes x 12) está bien calibrada con las expectativas del mundo real.
+
+### 9. La equidad de tipo de día es una mejora clara respecto al método manual
+
+La rotación humana rígida significa que la distribución de sábados/festivos es aleatoria. Los datos de Alicante Sur demuestran que esto causa una inequidad real — Miguel A sistemáticamente obtiene menos fines de semana, terminando 94h por debajo del médico con más horas anuales. Nuestro algoritmo equilibra activamente la distribución de tipos de día (recuentos laborable/sábado/festivo dentro de ±1), lo que aborda directamente esta debilidad observada.
+
+### 10. AC y AP se tratan correctamente como dominios de planificación separados en el sistema actual
+
+La notación clarificada hace la separación más limpia: las entradas `R:` pertenecen al **refuerzo AP**, mientras que la rota principal analizada aquí es la rotación de médicos **AC/PAS**. Además, algunos médicos de Atención Continuada tienen un **contrato especial exclusivo de guardia**, por lo que no deben tratarse como parte de un grupo de programación mensual normal. Esto valida el diseño actual del sistema, donde el flujo de generación de rota ya maneja AC y AP de forma independiente por tipo de rota, con grupos separados y pasadas de generación separadas.
 
 ---
 
-## Future Considerations
+## Comparación entre Centros
 
-Based on this analysis, potential future enhancements to explore:
+| Métrica | Aaiún | Alicante Sur |
+|---------|-------|--------------|
+| Puestos de médicos principales | 4 | 4 (5 médicos, 1 trabajo compartido) |
+| Médicos por día | 1 | 1 (o 2 compartidos) |
+| Tipo de rotación | Estricta 4 días | Estricta 4 días |
+| Referencias de refuerzo AP en documentos fuente | `R:1`-`R:21` | `R:1`-`R:17` |
+| Rango de horas mensuales | 138-156h | 126-156h |
+| Diferencia mensual (promedio) | 6.8h | 12.9h |
+| Diferencia anual | 41h | 94h |
+| Sustitutos de vacaciones | VAC/, J/ | VAC |
+| Trabajo compartido | No | Sí (Ruth/Jessica) |
+| Cambio de grupo a mitad de año | Sí (Isabel) | No |
 
-- **Special-contract AC on-call modeling** — if needed in future, model the Atencion Continuada on-call-only contract explicitly as its own scheduling mode rather than folding it into the standard AC rota
-- **Vacation-aware generation** — accept date ranges where doctors are unavailable, auto-slot substitutes
-- **Mid-year re-generation** — handle pool changes (additions/departures) without rebuilding the entire year
-- **Manual adjustment tracking** — record and display post-generation hour adjustments (the +7h, +12h pattern)
-- **Small pool optimization** — ensure the algorithm degrades gracefully to a simple rotation for pools of 3–4, since that matches the real-world baseline
-- **Job-share support** — allow two doctors to share a single rotation slot, splitting hours and tracking individually
+Los patrones son llamativamente consistentes en ambos centros a pesar de las diferentes ubicaciones, personal y contextos operativos. La rotación estricta de 4 días de AC/PAS, los ajustes manuales de horas y la gestión ad hoc de vacaciones parecen ser práctica estándar en el sistema de hospitales militares españoles. El aparente patrón anterior de "dos niveles" debe entenderse en cambio como notación de refuerzo AP separada junto a la rota AC, más personal AC con contrato exclusivo de guardia fuera del grupo de programación normal.
+
+---
+
+## Consideraciones Futuras
+
+Basándose en este análisis, posibles mejoras futuras a explorar:
+
+- **Modelado de AC en guardia con contrato especial** — si se necesita en el futuro, modelar el contrato exclusivo de guardia de Atención Continuada explícitamente como su propio modo de planificación, en lugar de integrarlo en la rota AC estándar
+- **Generación con conciencia de vacaciones** — aceptar rangos de fechas donde los médicos no están disponibles, insertar automáticamente sustitutos
+- **Regeneración a mitad de año** — gestionar cambios de grupo (incorporaciones/salidas) sin reconstruir todo el año
+- **Seguimiento de ajustes manuales** — registrar y mostrar los ajustes de horas post-generación (el patrón +7h, +12h)
+- **Optimización para grupos pequeños** — garantizar que el algoritmo degrada graciosamente a una rotación simple para grupos de 3-4, ya que eso coincide con la línea de base del mundo real
+- **Soporte de trabajo compartido** — permitir que dos médicos compartan un único puesto de rotación, dividiendo las horas y haciendo seguimiento individualmente
