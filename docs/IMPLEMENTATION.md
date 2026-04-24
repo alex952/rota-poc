@@ -1,6 +1,6 @@
-# Implementation Guide
+# Guía de Implementación
 
-## Repository Layout
+## Estructura del Repositorio
 
 ```text
 rota-poc/
@@ -17,9 +17,9 @@ rota-poc/
 └── docs/
 ```
 
-## Backend Workflow
+## Flujo de Trabajo del Backend
 
-### Install and run
+### Instalación y Ejecución
 
 ```bash
 cd backend
@@ -28,7 +28,7 @@ npm run migration:run
 npm run start:dev
 ```
 
-### Run tests
+### Ejecutar Pruebas
 
 ```bash
 cd backend
@@ -36,27 +36,27 @@ npm test
 npm run build
 ```
 
-### Production start
+### Inicio en Producción
 
-The Docker image builds TypeScript, runs `npm run migration:run:dist`, and starts `node dist/src/main.js`.
+La imagen Docker compila TypeScript, ejecuta `npm run migration:run:dist` e inicia `node dist/src/main.js`.
 
-## Backend Conventions
+## Convenciones del Backend
 
-- Controllers stay small and delegate to services
-- DTOs define request contracts
-- Entities represent persisted rows only
-- Response-shape adaptation belongs in `RotaResponseMapper`
-- Scheduling rules live in `src/scheduling/`
-- Holiday fetch and cache behavior lives in `src/holidays/`
+- Los controladores son pequeños y delegan en servicios
+- Los DTOs definen los contratos de solicitud
+- Las entidades representan únicamente filas persistidas
+- La adaptación de la forma de respuesta pertenece a `RotaResponseMapper`
+- Las reglas de planificación residen en `src/scheduling/`
+- El comportamiento de obtención y caché de festivos reside en `src/holidays/`
 
-## Database and Migrations
+## Base de Datos y Migraciones
 
-- TypeORM configuration lives in `src/database/typeorm.config.ts`
-- CLI datasource lives in `src/database/data-source.ts`
-- PostgreSQL is the default runtime database
-- `sql.js` is used only for test isolation
+- La configuración de TypeORM reside en `src/database/typeorm.config.ts`
+- La fuente de datos de la CLI reside en `src/database/data-source.ts`
+- PostgreSQL es la base de datos por defecto en tiempo de ejecución
+- `sql.js` se usa únicamente para el aislamiento de pruebas
 
-Migration commands:
+Comandos de migración:
 
 ```bash
 cd backend
@@ -65,26 +65,26 @@ npm run migration:run
 npm run migration:revert
 ```
 
-## Testing Notes
+## Notas de Pruebas
 
-- Unit tests cover holiday logic and scheduling invariants
-- E2E tests cover the public HTTP contract
-- The test app uses the same Nest bootstrap shape as production, with `sql.js` in place of PostgreSQL
-- External holiday API calls are mocked in tests
+- Las pruebas unitarias cubren la lógica de festivos y los invariantes de planificación
+- Las pruebas E2E cubren el contrato HTTP público
+- La aplicación de prueba usa la misma forma de bootstrap de Nest que en producción, con `sql.js` en lugar de PostgreSQL
+- Las llamadas a la API externa de festivos están simuladas (mocked) en las pruebas
 
-## Frontend Expectations
+## Expectativas del Frontend
 
-The frontend expects:
+El frontend espera:
 
-- `/api/v1/config` for the city banner
-- `/api/v1/rota/:year` to preload AC and AP schedules together
-- `/api/v1/rota/generate` to return a full persisted rota response
-- `/api/v1/rota/:year/:rotaType/replace` to return the refreshed rota after replacement
+- `/api/v1/config` para el banner de ciudad
+- `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
+- `/api/v1/rota/generate` para devolver una respuesta completa de rota persistida
+- `/api/v1/rota/:year/:rotaType/replace` para devolver la rota actualizada tras la sustitución
 
-## Current Operational Constraints
+## Restricciones Operativas Actuales
 
-- No authentication
-- Single configured city per backend instance
-- No undo support
-- No Swagger/OpenAPI UI yet
-- Docker Compose is the primary local full-stack workflow
+- Sin autenticación
+- Una única ciudad configurada por instancia de backend
+- Sin soporte de deshacer
+- Sin Swagger/OpenAPI UI todavía
+- Docker Compose es el flujo de trabajo principal local para el stack completo

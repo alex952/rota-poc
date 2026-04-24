@@ -1,184 +1,184 @@
-# Assignment Algorithm
+# Algoritmo de Asignación
 
-**Source:** [`backend/src/scheduling/assignment.service.ts`](../backend/src/scheduling/assignment.service.ts)
+**Fuente:** [`backend/src/scheduling/assignment.service.ts`](../backend/src/scheduling/assignment.service.ts)
 
-The scheduling algorithm generates a full-year on-call schedule for a **single rota type** (AC or AP). AC and AP are generated independently with separate doctor pools.
+El algoritmo de planificación genera un calendario de guardias completo para todo el año para un **único tipo de rota** (AC o AP). AC y AP se generan de forma independiente con grupos de médicos separados.
 
-For **AC**, doctors may now have `hours_reduced_per_day > 0`. Those doctors keep participating in the primary AC rota, but their hard yearly minimum is personalized from monthly working-day reductions, and each day they are assigned as a primary AC doctor generates one linked **refuerzo** assignment on the same date.
-
----
-
-## Overview
-
-```
-generate_rota(year, rota_type, pool, day_classifications):
-  1. Compute per-doctor yearly targets
-  2. Compute doctors_per_day from pool size and minimum hours
-  3. For each day D in the year:
-     a. Build eligible doctor pool (rest-day filtering)
-     b. Pick `doctors_per_day` doctors (sort by day-type equity → target progress → round-robin position)
-     c. Update tracking (hours, shift counts, last-assigned date)
-  4. For AC only, create linked refuerzo assignments for reduced-hours primary doctors
-  5. Validate personalized minimum hours (HARD constraint)
-  6. Return schedule + stats
-```
+Para **AC**, los médicos pueden tener `hours_reduced_per_day > 0`. Esos médicos siguen participando en la rota AC principal, pero su mínimo anual obligatorio se personaliza a partir de las reducciones de días laborables mensuales, y cada día que son asignados como médico principal de AC genera una asignación de **refuerzo** vinculada en la misma fecha.
 
 ---
 
-## Step-by-Step
+## Visión General
 
-### 1. Compute per-doctor targets
+```
+generar_rota(año, tipo_rota, grupo, clasificaciones_días):
+  1. Calcular objetivos anuales por médico
+  2. Calcular doctors_per_day a partir del tamaño del grupo y las horas mínimas
+  3. Para cada día D del año:
+     a. Construir el grupo elegible de médicos (filtrado por día de descanso)
+     b. Seleccionar `doctors_per_day` médicos (ordenar por equidad de tipo de día → progreso hacia objetivo → posición round-robin)
+     c. Actualizar seguimiento (horas, recuentos de turnos, fecha última asignación)
+  4. Solo para AC, crear asignaciones de refuerzo vinculadas para médicos con horas reducidas
+  5. Validar horas mínimas personalizadas (restricción DURA)
+  6. Devolver calendario + estadísticas
+```
 
-- **AP:** every doctor keeps the flat `425h/year` target
-- **AC:** each doctor's yearly target is:
+---
+
+## Paso a Paso
+
+### 1. Calcular objetivos por médico
+
+- **AP:** cada médico mantiene el objetivo plano de `425h/año`
+- **AC:** el objetivo anual de cada médico es:
 
 ```python
-sum(max(0, 135 - (hours_reduced_per_day * working_weekdays_in_month)) for month in year)
+sum(max(0, 135 - (hours_reduced_per_day * días_laborables_en_mes)) for mes in año)
 ```
 
-This means non-reduced AC doctors still target `1620h/year`, while reduced-hours doctors validate against a lower personalized minimum.
+Esto significa que los médicos de AC sin reducción siguen con el objetivo de `1.620h/año`, mientras que los médicos con reducción de horas se validan contra un mínimo personalizado más bajo.
 
-### 2. Compute doctors_per_day
+### 2. Calcular doctors_per_day
 
-The algorithm auto-computes how many doctors are needed per day to ensure minimum hours can be met:
+El algoritmo calcula automáticamente cuántos médicos son necesarios por día para garantizar que se puedan cumplir las horas mínimas:
 
 ```python
-total_yearly_hours = sum(d.duration_hours for d in day_classifications)
-min_hours = 1620 if rota_type == "AC" else 425  # AC: 135h/month × 12
-doctors_per_day = ceil(len(pool) * min_hours / total_yearly_hours)
+total_horas_anuales = sum(d.duration_hours for d in clasificaciones_días)
+horas_min = 1620 if tipo_rota == "AC" else 425  # AC: 135h/mes × 12
+doctors_per_day = ceil(len(grupo) * horas_min / total_horas_anuales)
 ```
 
-Example calculations (~6,635 total AC hours/year):
-- AC pool of 4 → ceil(4 × 1620 / 6635) = ceil(0.98) = **1 doctor/day**
-- AC pool of 5 → ceil(5 × 1620 / 6635) = ceil(1.22) = **2 doctors/day**
-- AC pool of 8 → ceil(8 × 1620 / 6635) = ceil(1.95) = **2 doctors/day**
-- AP pool of 10 → ceil(10 × 425 / 6635) = ceil(0.64) = **1 doctor/day**
+Ejemplos de cálculo (~6.635 horas totales de AC/año):
+- Grupo AC de 4 → ceil(4 × 1620 / 6635) = ceil(0.98) = **1 médico/día**
+- Grupo AC de 5 → ceil(5 × 1620 / 6635) = ceil(1.22) = **2 médicos/día**
+- Grupo AC de 8 → ceil(8 × 1620 / 6635) = ceil(1.95) = **2 médicos/día**
+- Grupo AP de 10 → ceil(10 × 425 / 6635) = ceil(0.64) = **1 médico/día**
 
-### 3. Build the eligible pool
+### 3. Construir el grupo elegible
 
-All doctors are split into two groups based on their previous day's assignments:
+Todos los médicos se dividen en dos grupos según las asignaciones del día anterior:
 
-- **Rested:** not assigned on D-1
-- **Unrested:** assigned on D-1
+- **Descansados:** no asignados en D-1
+- **Sin descanso:** asignados en D-1
 
-If there are enough rested doctors (>= `doctors_per_day`), only rested doctors are eligible. Otherwise, the full pool is used — the rest-day rule becomes a **soft constraint** to avoid dead ends in small pools.
+Si hay suficientes médicos descansados (>= `doctors_per_day`), solo los médicos descansados son elegibles. En caso contrario, se usa el grupo completo — la regla de día de descanso se convierte en una **restricción blanda** para evitar callejones sin salida en grupos pequeños.
 
-Additionally, doctors already assigned today (when `doctors_per_day > 1`) are excluded from subsequent picks for the same day.
+Además, los médicos ya asignados hoy (cuando `doctors_per_day > 1`) se excluyen de selecciones posteriores para el mismo día.
 
-### 4. Pick the doctors
+### 4. Seleccionar los médicos
 
-Eligible doctors are sorted by a composite key (ascending):
+Los médicos elegibles se ordenan por una clave compuesta (ascendente):
 
-| Priority | Criterion | Purpose |
-|----------|-----------|---------|
-| 1st | Fewest shifts of this day-type (weekday/saturday/holiday) | Day-type equity |
-| 2nd | Lowest progress toward personalized target | Fairness across mixed contracts |
-| 3rd | Fewest total hours | Hour balance |
-| 4th | Round-robin position `(doctor_index - rr_pointer) % N` | Break cohort lock-in |
+| Prioridad | Criterio | Propósito |
+|-----------|---------|----------|
+| 1ª | Menos turnos de este tipo de día (laborable/sábado/festivo) | Equidad de tipo de día |
+| 2ª | Menor progreso hacia el objetivo personalizado | Equidad entre contratos mixtos |
+| 3ª | Menos horas totales | Equilibrio de horas |
+| 4ª | Posición round-robin `(índice_médico - puntero_rr) % N` | Romper bloqueo de grupo |
 
-A **sliding round-robin pointer** (`rr_pointer`) advances by 1 each day. This ensures that when multiple doctors are tied on equity and hours, different subsets win the tiebreak on different days — preventing the same group from always being assigned together.
+Un **puntero round-robin deslizante** (`puntero_rr`) avanza 1 cada día. Esto garantiza que cuando múltiples médicos están empatados en equidad y horas, diferentes subconjuntos ganan el desempate en días diferentes — evitando que siempre se asigne el mismo grupo.
 
-The top `doctors_per_day` candidates are assigned.
+Los `doctors_per_day` candidatos principales son asignados.
 
-### 5. Update tracking
+### 5. Actualizar seguimiento
 
-For each assigned doctor:
-- `last_assigned[doctor]` = D (used for rest-day checks)
-- Increment their hour counter by the day's duration
-- Increment their day-type shift counter
+Para cada médico asignado:
+- `última_asignación[médico]` = D (usado para verificaciones de día de descanso)
+- Incrementar su contador de horas por la duración del día
+- Incrementar su contador de turnos por tipo de día
 
-### 6. Linked AC refuerzos
+### 6. Refuerzos de AC vinculados
 
-After the primary AC schedule is generated:
+Después de que se genera el calendario principal de AC:
 
-- Every reduced-hours primary AC assignment creates **one** linked refuerzo on the same date
-- Refuerzo durations are:
-  - Mon-Sat: `15:00 -> 22:00` (`7h`)
-  - Sunday/holiday: `10:00 -> 22:00` (`12h`)
-- Refuerzo candidates come from the AC pool excluding same-day primary assignees
-- Any AC assignment, including refuerzo, consumes the next-day AC rest rule
+- Cada asignación AC principal con horas reducidas crea **un** refuerzo vinculado en la misma fecha
+- Las duraciones del refuerzo son:
+  - Lun-Sáb: `15:00 -> 22:00` (`7h`)
+  - Domingo/festivo: `10:00 -> 22:00` (`12h`)
+- Los candidatos a refuerzo provienen del grupo AC excluyendo los asignados principales del mismo día
+- Cualquier asignación de AC, incluyendo refuerzo, consume la regla de descanso AC del día siguiente
 
-### 7. Hard validation
+### 7. Validación Dura
 
-After the full year is generated, every doctor's total hours are checked:
-- **AC:** every doctor must have >= their personalized yearly target
-- **AP:** every doctor must have >= 425 hours/year
+Después de que se genera el año completo, se verifican las horas totales de cada médico:
+- **AC:** cada médico debe tener >= su objetivo anual personalizado
+- **AP:** cada médico debe tener >= 425 horas/año
 
-If any doctor falls short, an `InfeasiblePoolError` is raised. This is a **hard constraint** — the rota is rejected, not returned with warnings.
-
----
-
-## Constraints
-
-| ID | Rule | Enforcement |
-|----|------|-------------|
-| HC-1 | Separate AC/AP pools — a doctor belongs to one pool only | **Hard** — enforced by caller (separate pool per generate call) |
-| HC-2 | Rest day: assigned on D → unavailable on D+1 (within same rota type) | **Hard** for pools >= 2×doctors_per_day; **soft** for smaller pools |
-| HC-3 | Minimum hours: 1,620h/year AC, 425h/year AP per doctor | **Hard** — `InfeasiblePoolError` raised if not met |
-| HC-4 | `doctors_per_day` auto-computed | **Hard** — guaranteed by algorithm |
+Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una **restricción dura** — la rota se rechaza, no se devuelve con advertencias.
 
 ---
 
-## Feasibility Check (pre-generation)
+## Restricciones
 
-Before the main loop runs, the algorithm validates the pool:
-
-- **Pool must have >= `doctors_per_day + doctors_per_day` doctors** (need enough for rest-day rotation). If not, `InfeasiblePoolError` is raised.
-- Safety check: if `doctors_per_day × total_yearly_hours / pool_size < min_hours`, the configuration is infeasible.
-
----
-
-## Why independent per-type generation matters
-
-With separate AC and AP pools:
-- There is **no cross-type coupling** — AC rest days don't affect AP and vice versa
-- Each generate call handles one type with its own pool, its own rest-day tracking, and its own validation
-- The calendar merges both types on the frontend for display
-
-This is a significant simplification from the previous single-pass design where AC and AP assignments were coupled through shared rest-day tracking.
+| ID | Regla | Aplicación |
+|----|------|------------|
+| RD-1 | Grupos AC/AP separados — un médico pertenece a un solo grupo | **Dura** — aplicada por el invocador (grupo separado por llamada de generación) |
+| RD-2 | Día de descanso: asignado en D → no disponible en D+1 (dentro del mismo tipo de rota) | **Dura** para grupos >= 2×doctors_per_day; **blanda** para grupos más pequeños |
+| RD-3 | Horas mínimas: 1.620h/año AC, 425h/año AP por médico | **Dura** — `InfeasiblePoolError` lanzado si no se cumple |
+| RD-4 | `doctors_per_day` calculado automáticamente | **Dura** — garantizado por el algoritmo |
 
 ---
 
-## Optimization goals (priority order)
+## Verificación de Factibilidad (pre-generación)
 
-1. **Minimum hours** — every doctor must reach the hard minimum (1,620h AC or 425h AP)
-2. **Day-type equity** — each doctor gets roughly the same count (±1) of weekday, Saturday, and holiday shifts
-3. **Hour equity** — minimize the max-min total hour difference across doctors
-4. **Group variation** — prevent the same subset of doctors from always being assigned together (sliding round-robin pointer)
+Antes de que se ejecute el bucle principal, el algoritmo valida el grupo:
 
-Goals 2–4 are encoded in the sort key. Goal 1 is enforced as a hard post-generation validation.
+- **El grupo debe tener >= `doctors_per_day + doctors_per_day` médicos** (necesita suficientes para la rotación de días de descanso). Si no, se lanza `InfeasiblePoolError`.
+- Verificación de seguridad: si `doctors_per_day × total_horas_anuales / tamaño_grupo < horas_min`, la configuración no es factible.
 
 ---
 
-## Day types and durations
+## Por qué importa la generación independiente por tipo
 
-| Condition | Day Type | Duration | Shift |
-|-----------|----------|----------|-------|
-| Sunday, or date in holiday set | `holiday` | 23h | 09:00 → 08:00+1 |
-| Saturday (not a holiday) | `saturday` | 18h | 15:00 → 09:00+1 |
-| All other days | `weekday` | 17h | 15:00 → 08:00+1 |
+Con grupos AC y AP separados:
+- **No hay acoplamiento entre tipos** — los días de descanso de AC no afectan a AP y viceversa
+- Cada llamada de generación maneja un tipo con su propio grupo, su propio seguimiento de días de descanso y su propia validación
+- El calendario fusiona ambos tipos en el frontend para su visualización
 
-**Precedence:** Holiday > Saturday > Weekday. A Saturday that is also a public holiday is classified as `holiday` (23h, not 18h).
-
----
-
-## Trade-offs and limitations
-
-- **Greedy, not optimal.** The algorithm picks the locally best candidates each day. For pools of 4+ doctors this produces well-balanced schedules. For very small pools (2–3 doctors), a constraint programming solver (e.g., Google OR-Tools) would be needed for guaranteed optimality.
-- **No backtracking.** Once a day is assigned, it's never revisited. This keeps the algorithm O(D × N × K) where D = days in year, N = pool size, and K = doctors_per_day, but means it can't recover from suboptimal early choices.
-- **Rest-day softness.** For small pools, enforcing strict rest days may create dead ends. The algorithm gracefully degrades by allowing unrested doctors when necessary, rather than failing.
-- **Hard minimums.** Unlike the previous soft-constraint approach, the algorithm now **rejects** schedules that don't meet minimums. This means very large pools may be infeasible (not enough hours to distribute).
+Esto es una simplificación significativa respecto al diseño anterior de un único paso donde las asignaciones de AC y AP estaban acopladas a través del seguimiento compartido de días de descanso.
 
 ---
 
-## Data structures
+## Objetivos de Optimización (orden de prioridad)
 
-| Structure | Type | Purpose |
+1. **Horas mínimas** — cada médico debe alcanzar el mínimo obligatorio (1.620h AC o 425h AP)
+2. **Equidad de tipo de día** — cada médico obtiene aproximadamente el mismo recuento (±1) de turnos laborables, de sábado y festivos
+3. **Equidad de horas** — minimizar la diferencia máximo-mínimo de horas totales entre médicos
+4. **Variación de grupo** — evitar que el mismo subconjunto de médicos sea siempre asignado junto (puntero round-robin deslizante)
+
+Los objetivos 2-4 están codificados en la clave de ordenación. El objetivo 1 se aplica como validación dura post-generación.
+
+---
+
+## Tipos de Día y Duraciones
+
+| Condición | Tipo de Día | Duración | Turno |
+|-----------|------------|---------|-------|
+| Domingo, o fecha en conjunto de festivos | `festivo` | 23h | 09:00 → 08:00+1 |
+| Sábado (no festivo) | `sábado` | 18h | 15:00 → 09:00+1 |
+| Todos los demás días | `laborable` | 17h | 15:00 → 08:00+1 |
+
+**Precedencia:** Festivo > Sábado > Laborable. Un sábado que también es festivo se clasifica como `festivo` (23h, no 18h).
+
+---
+
+## Compromisos y Limitaciones
+
+- **Codicioso, no óptimo.** El algoritmo selecciona los mejores candidatos localmente cada día. Para grupos de 4 o más médicos esto produce calendarios bien equilibrados. Para grupos muy pequeños (2-3 médicos), se necesitaría un solver de programación por restricciones (p. ej., Google OR-Tools) para garantizar la optimalidad.
+- **Sin retroceso.** Una vez asignado un día, nunca se revisita. Esto mantiene el algoritmo en O(D × N × K) donde D = días del año, N = tamaño del grupo y K = doctors_per_day, pero significa que no puede recuperarse de elecciones subóptimas tempranas.
+- **Suavidad del día de descanso.** Para grupos pequeños, aplicar días de descanso estrictos puede crear callejones sin salida. El algoritmo degrada graciosamente permitiendo médicos sin descanso cuando es necesario, en lugar de fallar.
+- **Mínimos duros.** A diferencia del enfoque anterior de restricción blanda, el algoritmo ahora **rechaza** calendarios que no cumplen los mínimos. Esto significa que grupos muy grandes pueden ser inviables (no hay suficientes horas para distribuir).
+
+---
+
+## Estructuras de Datos
+
+| Estructura | Tipo | Propósito |
 |-----------|------|---------|
-| `last_assigned` | `dict[str, date \| None]` | Last assignment date per doctor — rest-day filtering |
-| `rr_pointer` | `int` | Sliding round-robin pointer — advances by 1 each day for group variation |
-| `doctor_index` | `dict[str, int]` | Pre-computed index lookup for O(1) round-robin position |
-| `total_hours` | `dict[str, int]` | Cumulative hours per doctor — hour equity + minimum validation |
-| `{weekday,saturday,holiday}_count` | `dict[str, int]` | Shift counts per doctor per day-type — day-type equity |
+| `última_asignación` | `dict[str, date \| None]` | Fecha de última asignación por médico — filtrado de día de descanso |
+| `puntero_rr` | `int` | Puntero round-robin deslizante — avanza 1 cada día para variación de grupo |
+| `índice_médico` | `dict[str, int]` | Búsqueda de índice pre-calculada para posición round-robin en O(1) |
+| `horas_totales` | `dict[str, int]` | Horas acumuladas por médico — equidad de horas + validación de mínimos |
+| `{laborable,sábado,festivo}_count` | `dict[str, int]` | Recuentos de turnos por médico por tipo de día — equidad de tipo de día |
 
-All structures are indexed by doctor ID and initialized to zero/None at the start of generation.
+Todas las estructuras están indexadas por ID de médico e inicializadas a cero/None al inicio de la generación.

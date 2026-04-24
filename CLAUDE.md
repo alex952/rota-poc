@@ -1,17 +1,21 @@
 # CLAUDE.md
 
-## Project Overview
+## Idioma
 
-Doctor Rota Assignment App — a PoC for automated on-call scheduling for doctors in Spanish hospitals. Monorepo with a NestJS backend and an Angular 19+ frontend.
+A partir de ahora, toda la comunicación, documentación y comentarios de código nuevos deben escribirse en **español**.
 
-## Repository Structure
+## Descripción del Proyecto
+
+Aplicación de Asignación de Guardias Médicas — una PoC para la planificación automatizada de guardias para médicos en hospitales españoles. Monorepo con un backend NestJS y un frontend Angular 19+.
+
+## Estructura del Repositorio
 
 - `backend/` — NestJS 11 / TypeScript / TypeORM / PostgreSQL
 - `frontend/` — Angular 19+ / TypeScript / Angular CDK
-- `docs/` — PRD, Technical Design, Backend Reference, Implementation Guide
-- `docker-compose.yml` — Full stack (db, backend, frontend)
+- `docs/` — PRD, Diseño Técnico, Referencia de Backend, Guía de Implementación
+- `docker-compose.yml` — Stack completo (db, backend, frontend)
 
-## Quick Commands
+## Comandos Rápidos
 
 ### Backend
 
@@ -28,74 +32,74 @@ npm run migration:run
 
 ```bash
 cd frontend
-npx ng test --watch=false       # run all 83 frontend tests
-npx ng build                    # production build
-npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # dev server
+npx ng test --watch=false       # ejecutar los 83 tests del frontend
+npx ng build                    # build de producción
+npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desarrollo
 ```
 
 ### Docker
 
 ```bash
-docker compose up --build       # full stack
-docker compose up db            # just PostgreSQL (for local backend dev)
+docker compose up --build       # stack completo
+docker compose up db            # solo PostgreSQL (para desarrollo local del backend)
 ```
 
-## Architecture
+## Arquitectura
 
-- **Backend API** at `/api/v1`: config, rota CRUD, holidays, health
-- **Database**: PostgreSQL with 4 tables — rotas, rota_doctors, rota_assignments, holidays
-- **Frontend**: Angular standalone components with signal-based state
-- **Algorithm**: Independent per-type balanced round-robin with auto-computed `doctorsPerDay`, rest-day, sliding round-robin pointer, and equity constraints in `backend/src/scheduling/assignment.service.ts`
+- **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health
+- **Base de datos**: PostgreSQL con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
+- **Frontend**: Componentes standalone de Angular con estado basado en signals
+- **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` calculado automáticamente, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`
 
-## Key Configuration
+## Configuración Principal
 
-Environment variables (backend):
-- `DATABASE_URL` — PostgreSQL connection string
-- `HOLIDAY_API_URL` — Spanish holiday API (default: date.nager.at)
-- `CITY` — Hospital city (default: Madrid), drives holiday resolution and UI display
+Variables de entorno (backend):
+- `DATABASE_URL` — Cadena de conexión a PostgreSQL
+- `HOLIDAY_API_URL` — API de festivos española (por defecto: date.nager.at)
+- `CITY` — Ciudad del hospital (por defecto: Madrid), determina la resolución de festivos y la visualización en la interfaz
 
-## Coding Conventions
+## Convenciones de Código
 
 ### Backend (NestJS/TypeScript)
-- Keep HTTP layer thin: controllers delegate to services
-- DTO validation lives in `src/**/dto/` and is enforced by the global `ValidationPipe`
-- Persistence uses TypeORM entities and migrations under `src/database/`
-- Scheduling logic stays in `src/scheduling/`, not controllers
-- Tests use Jest; e2e coverage runs against `sql.js` plus mocked `fetch`
+- Mantener la capa HTTP delgada: los controladores delegan en servicios
+- La validación de DTOs reside en `src/**/dto/` y es aplicada por el `ValidationPipe` global
+- La persistencia usa entidades TypeORM y migraciones en `src/database/`
+- La lógica de planificación permanece en `src/scheduling/`, no en los controladores
+- Las pruebas usan Jest; la cobertura e2e se ejecuta contra `sql.js` más `fetch` simulado
 
 ### Frontend (Angular/TypeScript)
-- Angular 19+ standalone components — no NgModules
-- Signal-based state management (not RxJS subjects for component state)
-- vitest test runner (not Jasmine/Karma) — do NOT use `fail()`, use `throw new Error()`
-- `provideHttpClient()` + `provideHttpClientTesting()` for service tests
-- Component tests use `TestBed.configureTestingModule()`
-- SCSS for styling, inline in components
+- Componentes standalone de Angular 19+ — sin NgModules
+- Gestión de estado basada en signals (no sujetos RxJS para el estado de componentes)
+- Test runner vitest (no Jasmine/Karma) — NO usar `fail()`, usar `throw new Error()`
+- `provideHttpClient()` + `provideHttpClientTesting()` para tests de servicios
+- Los tests de componentes usan `TestBed.configureTestingModule()`
+- SCSS para estilos, inline en los componentes
 
-## Testing
+## Pruebas
 
-- Backend: `npm test` — Jest unit and e2e coverage from `backend/test/`
-- Frontend: `vitest` — 83 tests (14 service, 53 component, 15 integration)
-- All PRD acceptance criteria have corresponding test cases (see docs/IMPLEMENTATION.md section 4.4)
-- Tests should be written BEFORE implementation (ATDD approach)
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/`
+- Frontend: `vitest` — 83 tests (14 de servicio, 53 de componente, 15 de integración)
+- Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
+- Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
-## Business Rules (Critical)
+## Reglas de Negocio (Críticas)
 
-These rules are enforced by the algorithm and verified by tests:
-1. AC and AP have **separate doctor pools** — a doctor belongs to one pool only, rotas generated independently
-2. A doctor on call on day D is **off on D+1** within the same rota type (rest day — soft constraint for small pools)
-3. Minimum hours: **1,620h/year AC** (135h/month × 12), **425h/year AP** per doctor — **hard constraint** (raises error if not met)
-4. `doctors_per_day` is **auto-computed**: `ceil(pool_size × min_hours / total_yearly_hours)`
-5. Holiday > Saturday > Weekday for day-type classification
-6. Assignments should have maximum group variation and be equitable (sliding round-robin pointer prevents cohort lock-in)
+Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
+1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente
+2. Un médico de guardia el día D está **libre el D+1** dentro del mismo tipo de rota (día de descanso — restricción blanda para grupos pequeños)
+3. Horas mínimas: **1.620h/año AC** (135h/mes × 12), **425h/año AP** por médico — **restricción dura** (genera error si no se cumple)
+4. `doctors_per_day` se **calcula automáticamente**: `ceil(tamaño_grupo × horas_min / total_horas_anuales)`
+5. Festivo > Sábado > Laborable para la clasificación de tipo de día
+6. Las asignaciones deben tener máxima variación de grupo y ser equitativas (el puntero round-robin deslizante evita el bloqueo de grupo)
 
-## Documentation
+## Documentación
 
-- `docs/PRD.md` — Product requirements with all acceptance criteria
-- `docs/TECHNICAL_DESIGN.md` — API contracts, DB schema, algorithm design
-- `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — NestJS module and persistence layout
-- `docs/IMPLEMENTATION.md` — Developer guide, component hierarchy, testing strategy
-- `docs/ALGORITHM.md` — Assignment algorithm design, constraints, and trade-offs
+- `docs/PRD.md` — Requisitos de producto con todos los criterios de aceptación
+- `docs/TECHNICAL_DESIGN.md` — Contratos de API, esquema de BD, diseño del algoritmo
+- `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — Módulos NestJS y estructura de persistencia
+- `docs/IMPLEMENTATION.md` — Guía para desarrolladores, jerarquía de componentes, estrategia de pruebas
+- `docs/ALGORITHM.md` — Diseño del algoritmo de asignación, restricciones y compromisos
 
-## PoC Scope Exclusions
+## Exclusiones del Alcance PoC
 
-No auth, no multi-city, no undo, no mobile layout, no CI/CD, no production deployment. See docs/PRD.md section 4 for the full list.
+Sin autenticación, sin multi-ciudad, sin deshacer, sin diseño móvil, sin CI/CD, sin despliegue en producción. Ver docs/PRD.md sección 4 para la lista completa.

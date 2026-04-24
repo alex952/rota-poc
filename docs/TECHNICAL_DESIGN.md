@@ -1,82 +1,82 @@
-# Technical Design
+# Diseño Técnico
 
-## Overview
+## Visión General
 
-The system is a small monorepo with:
+El sistema es un monorepo pequeño con:
 
-- `backend/`: NestJS API, scheduling engine, holiday resolution, and PostgreSQL persistence
-- `frontend/`: Angular UI for doctor pools, rota generation, calendar display, and replacement flows
-- `docker-compose.yml`: local PostgreSQL plus backend and frontend containers
+- `backend/`: API NestJS, motor de planificación, resolución de festivos y persistencia en PostgreSQL
+- `frontend/`: Interfaz Angular para grupos de médicos, generación de rota, visualización de calendario y flujos de sustitución
+- `docker-compose.yml`: PostgreSQL local más contenedores de backend y frontend
 
-## Runtime Architecture
+## Arquitectura en Tiempo de Ejecución
 
 ```text
-Angular frontend  <->  NestJS API (/api/v1)  <->  PostgreSQL
+Frontend Angular  <->  API NestJS (/api/v1)  <->  PostgreSQL
                                 |
-                                +-> Holiday API (date.nager.at)
+                                +-> API de Festivos (date.nager.at)
 ```
 
-## Backend Design
+## Diseño del Backend
 
-### Framework choices
+### Elecciones de Framework
 
-- NestJS 11 on Fastify for a lightweight HTTP layer
-- TypeORM for entities and migrations
-- `class-validator` and `class-transformer` for request validation
-- Plain TypeScript services for scheduling and stats logic
+- NestJS 11 sobre Fastify para una capa HTTP ligera
+- TypeORM para entidades y migraciones
+- `class-validator` y `class-transformer` para validación de solicitudes
+- Servicios TypeScript puros para la lógica de planificación y estadísticas
 
-### Module boundaries
+### Límites de Módulos
 
-- `config`: serves runtime config to the frontend
-- `holidays`: resolves and caches holiday data by city
-- `rota`: generate, read, list, and replace rota assignments
-- `scheduling`: pure scheduling rules and statistics
-- `database`: TypeORM options and migrations
-- `health`: liveness endpoint
+- `config`: sirve configuración en tiempo de ejecución al frontend
+- `holidays`: resuelve y cachea datos de festivos por ciudad
+- `rota`: generar, leer, listar y reemplazar asignaciones de rota
+- `scheduling`: reglas de planificación puras y estadísticas
+- `database`: opciones de TypeORM y migraciones
+- `health`: endpoint de liveness
 
-### API contract
+### Contrato de API
 
-- `GET /health` returns `{ status: "ok" }`
-- `GET /api/v1/config` returns the configured city
-- `GET /api/v1/holidays/:year` returns cached or fetched holidays for the configured city
-- `POST /api/v1/rota/generate` generates and persists one rota type
-- `GET /api/v1/rota/:year/:rotaType` returns a stored rota, optionally filtered by `doctor_id`
-- `GET /api/v1/rota/:year` returns all rotas for a year
-- `PATCH /api/v1/rota/:year/:rotaType/replace` swaps a single assignment
+- `GET /health` devuelve `{ status: "ok" }`
+- `GET /api/v1/config` devuelve la ciudad configurada
+- `GET /api/v1/holidays/:year` devuelve los festivos cacheados u obtenidos para la ciudad configurada
+- `POST /api/v1/rota/generate` genera y persiste un tipo de rota
+- `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
+- `GET /api/v1/rota/:year` devuelve todas las rotas de un año
+- `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación
 
-## Persistence Design
+## Diseño de Persistencia
 
-The backend stores four tables:
+El backend almacena cuatro tablas:
 
 - `rotas`
 - `rota_doctors`
 - `rota_assignments`
 - `holidays`
 
-Migrations live in `backend/src/database/migrations/` and are run through the TypeORM CLI.
+Las migraciones residen en `backend/src/database/migrations/` y se ejecutan mediante la CLI de TypeORM.
 
-## Scheduling Design
+## Diseño del Algoritmo de Planificación
 
-The rota algorithm is intentionally kept outside NestJS decorators and transport concerns.
+El algoritmo de rota se mantiene deliberadamente fuera de los decoradores NestJS y las preocupaciones de transporte.
 
-- Day classification is derived from Sundays plus the holiday cache
-- `doctorsPerDay` is computed automatically
-- AC and AP are generated independently
-- Reduced-hours AC doctors generate linked `refuerzo` assignments
-- Statistics are recomputed from persisted assignments for response consistency
+- La clasificación de días se deriva de los domingos más la caché de festivos
+- `doctorsPerDay` se calcula automáticamente
+- AC y AP se generan de forma independiente
+- Los médicos de AC con horas reducidas generan asignaciones de `refuerzo` vinculadas
+- Las estadísticas se recalculan a partir de las asignaciones persistidas para garantizar la consistencia de la respuesta
 
-See [ALGORITHM.md](./ALGORITHM.md) for the detailed rule set.
+Consulta [ALGORITHM.md](./ALGORITHM.md) para el conjunto de reglas detallado.
 
-## Frontend Integration
+## Integración con el Frontend
 
-The Angular frontend calls the backend through `/api/v1/*` and expects:
+El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 
-- stable snake_case response fields
-- separate AC and AP rota payloads
-- replace flows for both `primary` and `refuerzo` assignments
-- the configured city via `/api/v1/config`
+- campos de respuesta estables en snake_case
+- cargas de rota AC y AP separadas
+- flujos de sustitución para asignaciones `primary` y `refuerzo`
+- la ciudad configurada a través de `/api/v1/config`
 
-## Local Development
+## Desarrollo Local
 
 ### Backend
 
@@ -101,8 +101,8 @@ npx ng serve --port 4200 --proxy-config src/proxy.conf.json
 docker compose up --build
 ```
 
-## Testing Strategy
+## Estrategia de Pruebas
 
-- `backend`: Jest unit and e2e tests
-- `frontend`: Angular CLI component and service tests
-- The backend e2e suite uses `sql.js` and mocked holiday API responses to validate the public HTTP contract
+- `backend`: pruebas unitarias y e2e con Jest
+- `frontend`: pruebas de componentes y servicios con Angular CLI
+- La suite e2e del backend usa `sql.js` y respuestas simuladas de la API de festivos para validar el contrato HTTP público
