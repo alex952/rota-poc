@@ -39,7 +39,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 
 - `rotas`: una rota persistida por `(año, tipo_rota)` más la instantánea del grupo original.
 - `rota_doctors`: miembros del grupo normalizados para una rota, incluyendo `hours_reduced_per_day`.
-- `rota_assignments`: una fila por asignación y tipo de asignación (`primary` o `refuerzo`).
+- `rota_assignments`: una fila por asignación y tipo de asignación (`primary` o `refuerzo`). En AP festivos hay dos filas `primary` por fecha (cobertura doble). En AC con horario reducido hay una fila `refuerzo` adicional vinculada al primary mediante `linked_primary_doctor_id`. La columna `duration_hours` puede diferir entre rotas para la misma fecha (AC usa la duración del día calendario; AP usa 7h o 12h).
 - `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`.
 
 Restricciones importantes:
@@ -58,5 +58,5 @@ Restricciones importantes:
 ## Notas Operativas
 
 - Producción y Docker usan migraciones PostgreSQL mediante `npm run migration:run` o `npm run migration:run:dist`.
-- La respuesta de la API preserva el formato de turno nocturno con `+1`, mientras que PostgreSQL almacena solo valores `TIME` válidos.
+- La respuesta de la API preserva el formato de turno nocturno con `+1` sólo cuando el turno realmente cruza medianoche (`formatShiftEnd`). Los turnos AP (15:00–22:00 y 10:00–22:00) se devuelven sin sufijo `+1`.
 - El backend no expone Swagger actualmente; el contrato estable está documentado en código y pruebas.

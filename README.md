@@ -1,29 +1,29 @@
-# Doctor Rota Assignment App
+# Aplicación de Asignación de Guardias Médicas
 
-A full-stack application for automated on-call duty scheduling for doctors in Spanish hospitals. The system generates yearly rota assignments ensuring fairness, minimum hour compliance, and proper rest-day enforcement.
+Aplicación full-stack para la planificación automática de guardias médicas en hospitales españoles. El sistema genera asignaciones anuales garantizando equidad, cumplimiento de los mínimos de horas y la regla del día de descanso.
 
-**Status:** Proof of Concept
+**Estado:** Prueba de Concepto (PoC).
 
-## Quick Start
+## Arranque rápido
 
-### Docker (recommended)
+### Docker (recomendado)
 
 ```bash
 docker compose up --build
 ```
 
 - Frontend: http://localhost:4200
-- Backend API: http://localhost:8000
+- API del backend: http://localhost:8000
 
-### Local Development
+### Desarrollo local
 
-**Prerequisites:** Node 22+, PostgreSQL 16+
+**Requisitos previos:** Node 22+, PostgreSQL 16+.
 
 **Backend (NestJS):**
 ```bash
 cd backend
 npm install
-# Start PostgreSQL (or use: docker compose up db)
+# Levanta PostgreSQL (o usa: docker compose up db)
 npm run migration:run
 npm run start:dev
 ```
@@ -35,19 +35,19 @@ npm install
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json
 ```
 
-The proxy config routes `/api/*` requests to the backend at `localhost:8000`.
+La configuración del proxy redirige las peticiones `/api/*` al backend en `localhost:8000`.
 
-## Configuration
+## Configuración
 
-The hospital city is configured via the `CITY` environment variable on the backend (defaults to `Madrid`). This controls holiday resolution and is displayed in the UI.
+La ciudad del hospital se configura mediante la variable de entorno `CITY` del backend (por defecto `Madrid`). Determina la resolución de festivos y se muestra en la interfaz.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgresql://rota_user:rota_pass@localhost:5432/rota` | PostgreSQL connection string |
-| `HOLIDAY_API_URL` | `https://date.nager.at/api/v3` | Spanish holiday API |
-| `CITY` | `Madrid` | Hospital city for holiday resolution |
+| Variable | Valor por defecto | Descripción |
+|----------|-------------------|-------------|
+| `DATABASE_URL` | `postgresql://rota_user:rota_pass@localhost:5432/rota` | Cadena de conexión a PostgreSQL |
+| `HOLIDAY_API_URL` | `https://date.nager.at/api/v3` | API de festivos españoles |
+| `CITY` | `Madrid` | Ciudad del hospital para la resolución de festivos |
 
-## Running Tests
+## Ejecutar los tests
 
 **Backend (NestJS):**
 ```bash
@@ -55,43 +55,43 @@ cd backend
 npm test
 ```
 
-**Frontend (71 tests):**
+**Frontend:**
 ```bash
 cd frontend
 npx ng test --watch=false
 ```
 
-## Project Structure
+## Estructura del proyecto
 
 ```
 rota-poc/
-├── backend/           # NestJS backend API and scheduling engine
-├── frontend/          # Angular 19+ schedule UI
-├── docs/              # Product and technical documentation
-│   ├── PRD.md         # Product requirements & acceptance criteria
-│   ├── TECHNICAL_DESIGN.md  # Architecture & API design
-│   └── IMPLEMENTATION.md    # Implementation details & developer guide
+├── backend/           # Backend NestJS y motor de planificación
+├── frontend/          # UI Angular 19+ del calendario
+├── docs/              # Documentación de producto y técnica
+│   ├── PRD.md         # Requisitos de producto y criterios de aceptación
+│   ├── TECHNICAL_DESIGN.md  # Arquitectura y diseño de API
+│   └── IMPLEMENTATION.md    # Detalles de implementación y guía para desarrolladores
 ├── docker-compose.yml
-└── REQUIREMENTS.md    # Original product definition
+└── REQUIREMENTS.md    # Definición funcional del producto
 ```
 
-## Documentation
+## Documentación
 
-| Document | Description |
-|----------|-------------|
-| [REQUIREMENTS.md](REQUIREMENTS.md) | Original product definition |
-| [docs/PRD.md](docs/PRD.md) | Product requirements with acceptance criteria for all features |
-| [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Architecture, API contracts, database schema, algorithm design |
-| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Implementation details, developer guide, testing strategy |
-| [docs/BACKEND_ARCHITECTURE_REFERENCE.md](docs/BACKEND_ARCHITECTURE_REFERENCE.md) | NestJS backend module and request-flow reference |
-| [docs/ALGORITHM.md](docs/ALGORITHM.md) | Assignment algorithm design, constraints, and trade-offs |
+| Documento | Descripción |
+|-----------|-------------|
+| [REQUIREMENTS.md](REQUIREMENTS.md) | Definición funcional del producto |
+| [docs/PRD.md](docs/PRD.md) | Requisitos de producto con criterios de aceptación |
+| [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Arquitectura, contratos de API, esquema de BD y diseño del algoritmo |
+| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Detalles de implementación, guía para desarrolladores y estrategia de pruebas |
+| [docs/BACKEND_ARCHITECTURE_REFERENCE.md](docs/BACKEND_ARCHITECTURE_REFERENCE.md) | Referencia de módulos NestJS y flujos de petición |
+| [docs/ALGORITHM.md](docs/ALGORITHM.md) | Diseño del algoritmo de asignación, restricciones y compromisos |
 
-## Tech Stack
+## Stack tecnológico
 
-| Layer | Technology |
-|-------|-----------|
+| Capa | Tecnología |
+|------|-----------|
 | Backend | NestJS 11, TypeScript, TypeORM |
 | Frontend | Angular 19+, TypeScript, Angular CDK (drag-and-drop) |
-| Database | PostgreSQL 16 |
-| Testing | Jest (backend), Angular CLI test runner (frontend) |
-| Infrastructure | Docker Compose, Nginx |
+| Base de datos | PostgreSQL 16 |
+| Tests | Jest (backend), vitest (frontend) |
+| Infraestructura | Docker Compose, Nginx |

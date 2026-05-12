@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { MergedDayAssignment, DoctorRef, RefuerzoAssignment } from '../../core/models/rota.model';
 import { Doctor } from '../../core/models/doctor.model';
@@ -9,6 +9,12 @@ export interface ReplacementEvent {
   acDoctors: DoctorRef[];
   acRefuerzos: RefuerzoAssignment[];
   apDoctors: DoctorRef[];
+}
+
+interface AcRenderItem {
+  doctor_id: string;
+  doctor_name: string;
+  reduced: boolean;
 }
 
 @Component({
@@ -31,29 +37,23 @@ export interface ReplacementEvent {
       <span class="day-number">{{ day() }}</span>
       @if (assignment()) {
         <div class="assignments" data-testid="day-assignments">
-          @if (assignment()!.acDoctors.length > 0) {
+          @if (acRenderItems().length > 0) {
             <div class="ac-section" title="Atencion Continuada">
               <span class="section-header">AC</span>
-              @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
-                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
-              }
-            </div>
-          }
-          @if ((assignment()!.acRefuerzos ?? []).length > 0) {
-            <div class="refuerzo-section" title="Refuerzo">
-              <span class="section-header">REF</span>
-              @for (refuerzo of assignment()!.acRefuerzos ?? []; track refuerzo.doctor_id + '-' + refuerzo.linked_primary_doctor_id) {
-                <span class="doctor-pill clickable" (click)="onDoctorClick($event, { doctor_id: refuerzo.doctor_id, doctor_name: refuerzo.doctor_name })">
-                  {{ refuerzo.doctor_name }} ({{ refuerzo.duration_hours }}h)
-                </span>
+              @for (item of acRenderItems(); track item.doctor_id) {
+                <span
+                  class="doctor-pill clickable"
+                  [class.reduced-hours]="item.reduced"
+                  (click)="onDoctorClick($event, { doctor_id: item.doctor_id, doctor_name: item.doctor_name })"
+                >{{ item.doctor_name }}</span>
               }
             </div>
           }
           @if (assignment()!.apDoctors.length > 0) {
-            <div class="ap-section" title="Atencion Primaria">
+            <div class="ap-section" title="Atencion Primaria (refuerzo del dia)">
               <span class="section-header">AP</span>
               @for (doc of assignment()!.apDoctors; track doc.doctor_id) {
-                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+                <span class="doctor-pill ap-refuerzo clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
               }
             </div>
           }
@@ -129,8 +129,7 @@ export interface ReplacementEvent {
     }
 
     .ac-section,
-    .ap-section,
-    .refuerzo-section {
+    .ap-section {
       display: flex;
       flex-direction: column;
       gap: 1px;
@@ -161,14 +160,6 @@ export interface ReplacementEvent {
       color: #2e7d32;
     }
 
-    .refuerzo-section {
-      background: #fff3e0;
-    }
-
-    .refuerzo-section .section-header {
-      color: #ef6c00;
-    }
-
     .doctor-pill {
       display: inline-block;
       font-size: 0.6rem;
@@ -187,14 +178,19 @@ export interface ReplacementEvent {
       color: #0d47a1;
     }
 
+    .ac-section .doctor-pill.reduced-hours {
+      font-style: italic;
+    }
+
     .ap-section .doctor-pill {
       background: #c8e6c9;
       color: #1b5e20;
     }
 
-    .refuerzo-section .doctor-pill {
-      background: #ffe0b2;
-      color: #e65100;
+    .ap-section .doctor-pill.ap-refuerzo::before {
+      content: 'R: ';
+      font-weight: 700;
+      opacity: 0.75;
     }
 
     .doctor-pill.clickable {
@@ -214,10 +210,70 @@ export class DayCellComponent {
   readonly dayType = input<string>('weekday');
   readonly date = input<string>('');
   readonly zoomable = input<boolean>(true);
+  readonly reducedDoctorIds = input<ReadonlySet<string>>(new Set<string>());
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
   readonly daySelected = output<string>();
+
+  readonly acRenderItems = computed<AcRenderItem[]>(() => {
+    const current = this.assignment();
+    if (!current) {
+      return [];
+    }
+
+    const refuerzos = current.acRefuerzos ?? [];
+    const inferredReduced = new Set(
+      refuerzos
+        .map((refuerzo) => refuerzo.linked_primary_doctor_id)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const externalReduced = this.reducedDoctorIds();
+
+    const reducedPrimaries: AcRenderItem[] = [];
+    const otherPrimaries: AcRenderItem[] = [];
+    for (const doctor of current.acDoctors) {
+      const reduced = inferredReduced.has(doctor.doctor_id) || externalReduced.has(doctor.doctor_id);
+      const item: AcRenderItem = {
+        doctor_id: doctor.doctor_id,
+        doctor_name: doctor.doctor_name,
+        reduced,
+      };
+      if (reduced) {
+        reducedPrimaries.push(item);
+      } else {
+        otherPrimaries.push(item);
+      }
+    }
+
+    const items: AcRenderItem[] = [];
+    const refuerzosByPrimary = new Map<string, RefuerzoAssignment[]>();
+    for (const refuerzo of refuerzos) {
+      const key = refuerzo.linked_primary_doctor_id;
+      if (!refuerzosByPrimary.has(key)) {
+        refuerzosByPrimary.set(key, []);
+      }
+      refuerzosByPrimary.get(key)?.push(refuerzo);
+    }
+
+    for (const primary of reducedPrimaries) {
+      items.push(primary);
+      const linkedRefuerzos = refuerzosByPrimary.get(primary.doctor_id) ?? [];
+      for (const refuerzo of linkedRefuerzos) {
+        items.push({
+          doctor_id: refuerzo.doctor_id,
+          doctor_name: refuerzo.doctor_name,
+          reduced: false,
+        });
+      }
+    }
+
+    for (const primary of otherPrimaries) {
+      items.push(primary);
+    }
+
+    return items;
+  });
 
   canDrop = (): boolean => {
     return this.assignment() !== null;

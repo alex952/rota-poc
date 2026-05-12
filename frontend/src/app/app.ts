@@ -390,8 +390,12 @@ export class App implements OnInit {
   }
 
   private extractErrorMessage(err: HttpErrorResponse | any, fallback: string): string {
-    if (err?.error?.detail) {
-      return `${fallback}: ${err.error.detail}`;
+    const backendMessage = err?.error?.message ?? err?.error?.detail;
+    if (typeof backendMessage === 'string' && backendMessage.length > 0) {
+      return `${fallback}: ${backendMessage}`;
+    }
+    if (Array.isArray(backendMessage) && backendMessage.length > 0) {
+      return `${fallback}: ${backendMessage.join(', ')}`;
     }
     if (err?.message) {
       return `${fallback}: ${err.message}`;

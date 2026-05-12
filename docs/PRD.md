@@ -19,12 +19,14 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 | Término | Definición |
 |---------|-----------|
-| **Atención Continuada (AC)** | Uno de los dos tipos de servicio de guardia. Grupo de médicos separado. Mínimo 1.620 horas/año (135h/mes de media) por médico. |
-| **Atención Primaria (AP)** | Uno de los dos tipos de servicio de guardia. Grupo de médicos separado. Mínimo 425 horas/año por médico. |
+| **Atención Continuada (AC)** | Guardia principal del día. Grupo de médicos separado. Mínimo 1.620 horas/año (135h/mes de media) por médico. |
+| **Atención Primaria (AP)** | Refuerzo diario de la guardia AC. Grupo de médicos separado. Mínimo 425 horas/año por médico. |
+| **Refuerzo AC** | Segundo médico AC que cubre el día junto a un AC con horario reducido. Se asigna automáticamente y nunca es un AC reducido. |
 | **Rota** | El calendario de guardias del año, generado de forma independiente por tipo de servicio. |
 | **Pool** | El conjunto de médicos disponibles para la asignación de guardias en un año determinado. AC y AP tienen grupos **separados** — un médico pertenece a un solo grupo. |
 | **Festivo** | Un día festivo público (nacional, autonómico o local) para la ciudad del hospital en España. |
-| **doctors_per_day** | El número de médicos asignados por día por tipo de rota, calculado automáticamente por el algoritmo a partir del tamaño del grupo y las restricciones de horas mínimas. |
+| **doctors_per_day** | El número base de médicos asignados por día por tipo de rota, calculado automáticamente por el algoritmo. En AP se dobla en festivos. |
+| **hours_reduced_per_day** | Horas diarias que un AC tiene reducidas sobre la jornada estándar. Sólo aplica a AC; AP nunca puede tener reducción. |
 
 ---
 
@@ -38,19 +40,23 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 - RN-1: Cada médico de AC debe tener asignadas **al menos 1.620 horas/año** (135h/mes de media durante 12 meses) de Atención Continuada. Es una **restricción dura** — el algoritmo genera un error si no se cumple.
 - RN-2: Cada médico de AP debe tener asignadas **al menos 425 horas/año** de Atención Primaria. Es una **restricción dura** — el algoritmo genera un error si no se cumple.
-- RN-3: La duración de los turnos de guardia es fija según el tipo de día:
-  | Tipo de Día | Turno | Duración |
-  |-------------|-------|----------|
-  | Lunes–Viernes | 15:00 → 08:00+1 | 17 horas |
-  | Sábado | 15:00 → 09:00+1 | 18 horas |
-  | Domingo / Festivo | 09:00 → 08:00+1 | 23 horas |
+- RN-3: La duración de los turnos depende de la rota y del tipo de día:
+  | Rota / rol | Lunes–Viernes | Sábado | Domingo / Festivo |
+  |------------|---------------|--------|--------------------|
+  | AC (primary) | 17 h (15:00 → 08:00+1) | 18 h (15:00 → 09:00+1) | 23 h (09:00 → 08:00+1) |
+  | Refuerzo AC | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h (10:00 → 22:00) |
+  | AP (refuerzo del día) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h × 2 médicos (10:00 → 22:00) |
 - RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
 - RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
-- RN-7: El número de médicos asignados por día por tipo de rota (`doctors_per_day`) es **calculado automáticamente** por el algoritmo en función del tamaño del grupo y las restricciones de horas mínimas. Fórmula: `ceil(tamaño_grupo × horas_min / total_horas_anuales)`.
+- RN-7: La cobertura primary base es **siempre 1 médico por día**, tanto para AC como para AP. La cobertura adicional sólo aparece como refuerzo AC para reducidos o como segundo AP en festivos. Si el pool es demasiado grande para que todos los médicos alcancen su target con esa cobertura, el algoritmo rechaza la generación con `InfeasiblePoolError` ("Pool too large").
 - RN-8: **Día de descanso post-guardia** — un médico que está de guardia el día D **no está disponible** para asignación el día D+1. Los días de descanso aplican **por tipo de rota únicamente** (los descansos de AC no afectan a AP y viceversa, ya que los grupos son separados). Restricción blanda para grupos con menos de 4 médicos.
 - RN-9: Las asignaciones de guardia deben tener **máxima variación de grupo** — el algoritmo usa un puntero round-robin deslizante para evitar que el mismo subconjunto de médicos sea asignado siempre junto.
-- RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h), no como sábado (turno de 18h). La clasificación de festivo siempre tiene prioridad.
+- RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h para AC, 12h para AP), no como sábado. La clasificación de festivo siempre tiene prioridad.
+- RN-11: **AP en festivos**: el algoritmo asigna **2 médicos AP primary** en cada festivo, cada uno con turno de 12 h (10:00 → 22:00). Ambos cuentan como asignación primaria a efectos de equidad y horas mínimas. **En el resto de días, AP asigna exactamente 1 médico** con turno de 7 h, independientemente del tamaño del pool. Si el pool es demasiado grande para que todos los médicos cumplan 425 h con esa cobertura, el algoritmo rechaza la generación con `InfeasiblePoolError`.
+- RN-12: **Refuerzo AC por horario reducido**: si el AC primary asignado un día tiene `hours_reduced_per_day > 0`, el algoritmo añade automáticamente un **refuerzo AC** (otro médico AC del pool) para ese día. El refuerzo se persiste con `assignment_kind = "refuerzo"` y `linked_primary_doctor_id` apuntando al primary reducido.
+- RN-13: **Exclusión de reducidos como refuerzos**: un AC con `hours_reduced_per_day > 0` **nunca** puede actuar como refuerzo de otro AC, ni en la generación inicial ni en reemplazos manuales (el endpoint de reemplazo rechaza la operación con 400).
+- RN-14: **Reducción horaria sólo en AC**: el campo `hours_reduced_per_day` se ignora para médicos AP. AP no tiene refuerzos vinculados.
 
 #### Criterios de Aceptación
 
@@ -68,7 +74,12 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.1.10 | **Dado** que un médico está de guardia el día D, **entonces** ese médico no tiene asignación el día D+1 dentro del mismo tipo de rota (día de descanso solo por tipo). |
 | CA-3.1.11 | **Dada** una rota generada, **cuando** se examinan qué médicos son asignados juntos en diferentes días, **entonces** el algoritmo varía las agrupaciones (ningún grupo fijo de médicos es siempre asignado junto). |
 | CA-3.1.12 | **Dado** un festivo que cae en sábado, **entonces** ese día se clasifica como festivo (turno de 23h), no como sábado (18h). |
-| CA-3.1.13 | **Dado** un grupo de médicos, **cuando** el algoritmo se ejecuta, **entonces** `doctors_per_day` se calcula automáticamente como `ceil(tamaño_grupo × horas_min / total_horas_anuales)`. |
+| CA-3.1.13 | **Dado** un grupo de médicos, **cuando** el algoritmo se ejecuta, **entonces** la cobertura primary base es exactamente 1 médico/día. Si el pool excede la capacidad anual de cobertura, se lanza `InfeasiblePoolError`. |
+| CA-3.1.14 | **Dada** una rota AP generada, **cuando** se inspeccionan los festivos, **entonces** cada festivo tiene **2 médicos AP primary asignados** con turnos de 12 h (10:00→22:00). |
+| CA-3.1.15 | **Dada** una rota AP generada, **cuando** se inspeccionan los laborables y sábados, **entonces** cada día tiene 1 médico AP asignado con turno de 7 h (15:00→22:00). |
+| CA-3.1.16 | **Dada** una rota AC con un primary que tiene `hours_reduced_per_day > 0`, **entonces** ese día contiene exactamente un refuerzo AC vinculado, con duración 7h (laborable/sábado) o 12h (festivo). |
+| CA-3.1.17 | **Dada** una rota AC con médicos reducidos en el pool, **cuando** se inspecciona cada refuerzo generado, **entonces** ningún refuerzo está asignado a un médico con `hours_reduced_per_day > 0`. |
+| CA-3.1.18 | **Dada** una rota AP, **entonces** ningún campo `hours_reduced_per_day` afecta a la generación (el valor se ignora para AP). |
 
 ---
 
@@ -97,6 +108,8 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 |----|---------|
 | CA-3.3.1 | **Dada** una rota almacenada y una solicitud de sustitución válida (fecha, médico antiguo, médico nuevo), **cuando** se realiza la sustitución, **entonces** la asignación para esa fecha refleja el nuevo médico. |
 | CA-3.3.2 | **Dada** una sustitución, **cuando** se recalculan las estadísticas de la rota, **entonces** los totales de horas reflejan el cambio. |
+| CA-3.3.3 | **Dada** una rota AP con festivo y 2 médicos AP, **cuando** se reemplaza uno de los dos, **entonces** el otro permanece y el nuevo aparece en el día. |
+| CA-3.3.4 | **Dada** una solicitud de reemplazar un refuerzo AC con un médico que tiene `hours_reduced_per_day > 0`, **entonces** el endpoint devuelve 400 con el mensaje "Reduced-hours doctors cannot cover refuerzo assignments." |
 
 ---
 
@@ -143,6 +156,9 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.6.5 | **Dada** la interfaz, **entonces** hay un selector de año visible que por defecto muestra el año actual. |
 | CA-3.6.6 | **Dado** que el usuario cambia el año, **entonces** el calendario recarga los datos del año seleccionado. |
 | CA-3.6.7 | **Dada** la carga de la interfaz, **entonces** el nombre de la ciudad configurada se muestra en la interfaz. |
+| CA-3.6.8 | **Dado** un día con un AC primary cuyo `hours_reduced_per_day > 0`, **entonces** la celda del calendario muestra **dos pills dentro de la sección AC**: el AC reducido aparece **primero, en cursiva**, y debajo el AC de refuerzo en estilo normal. No se renderiza una etiqueta "Refuerzo" para este caso. |
+| CA-3.6.9 | **Dada** una celda de calendario con AP asignados, **entonces** cada médico AP se muestra con el prefijo `R:` para indicar su rol de refuerzo del día. |
+| CA-3.6.10 | **Dado** un festivo con 2 médicos AP asignados, **entonces** la celda del calendario muestra ambos médicos AP, cada uno con prefijo `R:`. |
 
 ---
 

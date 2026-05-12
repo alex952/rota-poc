@@ -21,7 +21,7 @@ import { RotaType } from '../../core/models/doctor.model';
         </div>
         @if (hasImbalance()) {
           <div class="equity-warning">
-            Imbalance detected: {{ hoursDifference() }}h difference between max and min total hours ({{ imbalancePercent() }}%).
+            Imbalance detected: {{ hoursDifference() }}h spread ({{ imbalancePercent() }}%) {{ imbalanceBasisLabel() }}.
           </div>
         }
         <div class="stats-summary">
@@ -180,20 +180,43 @@ export class StatsPanelComponent {
     return Math.min(...s.map(d => d.total_hours));
   });
 
-  readonly hoursDifference = computed(() => this.maxHours() - this.minHours());
+  private readonly imbalanceMetric = computed(() => {
+    const s = this.stats();
+    if (s.length < 2) {
+      return { spread: 0, denominator: 0, basis: 'none' as const };
+    }
 
-  readonly imbalancePercent = computed(() => {
+    const targets = s.map(d => d.target_hours ?? 0);
+    if (targets.every(t => t > 0)) {
+      const deltas = s.map(d => d.hours_vs_target ?? 0);
+      const spread = Math.max(...deltas) - Math.min(...deltas);
+      const avgTarget = targets.reduce((sum, t) => sum + t, 0) / s.length;
+      return { spread, denominator: avgTarget, basis: 'delta' as const };
+    }
+
     const max = this.maxHours();
-    if (max === 0) return 0;
-    return Math.round((this.hoursDifference() / max) * 100);
+    const min = this.minHours();
+    return { spread: max - min, denominator: max, basis: 'total' as const };
   });
 
+  readonly hoursDifference = computed(() => this.imbalanceMetric().spread);
+
+  readonly imbalancePercent = computed(() => {
+    const { spread, denominator } = this.imbalanceMetric();
+    if (denominator === 0) return 0;
+    return Math.round((spread / denominator) * 100);
+  });
+
+  readonly imbalanceBasisLabel = computed(() =>
+    this.imbalanceMetric().basis === 'delta'
+      ? 'in delta vs target'
+      : 'between max and min total hours',
+  );
+
   readonly hasImbalance = computed(() => {
-    const s = this.stats();
-    if (s.length < 2) return false;
-    const max = this.maxHours();
-    if (max === 0) return false;
-    return (this.hoursDifference() / max) > 0.10;
+    const { spread, denominator } = this.imbalanceMetric();
+    if (denominator === 0) return false;
+    return (spread / denominator) > 0.10;
   });
 
   readonly totalHours = computed(() =>

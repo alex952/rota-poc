@@ -38,6 +38,13 @@ export const AP_POOL_5: DoctorInput[] = [
   { id: 'doc-015', name: 'Dr. Ramos', department: 'Medicina General' },
 ];
 
+export const AP_POOL_8: DoctorInput[] = [
+  ...AP_POOL_5,
+  { id: 'doc-016', name: 'Dr. Iglesias', department: 'Medicina General' },
+  { id: 'doc-017', name: 'Dr. Marin', department: 'Medicina General' },
+  { id: 'doc-018', name: 'Dr. Castro', department: 'Medicina General' },
+];
+
 export const REDUCED_AC_POOL_4: DoctorInput[] = [
   { ...AC_POOL_4[0], hours_reduced_per_day: 2 },
   ...AC_POOL_4.slice(1),
