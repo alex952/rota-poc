@@ -1,6 +1,7 @@
 import {
   AC_POOL_4,
   AP_POOL_5,
+  AP_POOL_8,
   HOLIDAYS_2026,
   REDUCED_AC_POOL_4,
   YEAR_2026,
@@ -86,5 +87,83 @@ describe('Assignment domain', () => {
         return day.durationHours === 17 && day.shiftStart === '15:00' && day.shiftEnd === '08:00+1';
       }),
     ).toBe(true);
+  });
+});
+
+describe('AP rota — refuerzo diario y festivos doblados', () => {
+  const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
+
+  it('asigna turnos AP de 7h en laborables y sábados (15:00–22:00)', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+    const nonHolidayDays = rota.schedule.filter((day) => day.dayType !== 'holiday');
+
+    expect(nonHolidayDays.length).toBeGreaterThan(0);
+    expect(
+      nonHolidayDays.every(
+        (day) =>
+          day.durationHours === 7 && day.shiftStart === '15:00' && day.shiftEnd === '22:00',
+      ),
+    ).toBe(true);
+  });
+
+  it('asigna dos primarios AP en cada festivo, ambos con turnos de 12h (10:00–22:00)', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+    const holidayDays = rota.schedule.filter((day) => day.dayType === 'holiday');
+
+    expect(holidayDays.length).toBeGreaterThan(0);
+    for (const day of holidayDays) {
+      expect(day.doctors).toHaveLength(2);
+      expect(day.durationHours).toBe(12);
+      expect(day.shiftStart).toBe('10:00');
+      expect(day.shiftEnd).toBe('22:00');
+      const doctorIds = new Set(day.doctors.map((doctor) => doctor.doctorId));
+      expect(doctorIds.size).toBe(2);
+      expect(day.refuerzos).toHaveLength(0);
+    }
+  });
+
+  it('los AP cumplen las 425h anuales mínimas con la nueva aritmética', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+
+    for (const doctor of rota.stats.doctors) {
+      expect(doctor.totalHours).toBeGreaterThanOrEqual(425);
+    }
+  });
+
+  it('asigna sólo 1 AP en laborables y sábados aunque el pool sea grande', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications);
+
+    for (const day of rota.schedule) {
+      if (day.dayType === 'holiday') {
+        expect(day.doctors).toHaveLength(2);
+      } else {
+        expect(day.doctors).toHaveLength(1);
+      }
+    }
+    expect(rota.doctorsPerDay).toBe(1);
+  });
+});
+
+describe('AC refuerzo — exclusión de médicos con horario reducido', () => {
+  const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
+
+  it('nunca asigna a un médico reducido como refuerzo en la generación inicial', () => {
+    const doubleReducedPool = [
+      { ...REDUCED_AC_POOL_4[0] },
+      { ...REDUCED_AC_POOL_4[1], hours_reduced_per_day: 2 },
+      ...REDUCED_AC_POOL_4.slice(2),
+    ];
+    const rota = generateRota(YEAR_2026, 'AC', doubleReducedPool, dayClassifications);
+    const reducedIds = new Set(
+      doubleReducedPool
+        .filter((doctor) => (doctor.hours_reduced_per_day ?? 0) > 0)
+        .map((doctor) => doctor.id),
+    );
+
+    for (const day of rota.schedule) {
+      for (const refuerzo of day.refuerzos) {
+        expect(reducedIds.has(refuerzo.doctorId)).toBe(false);
+      }
+    }
   });
 });

@@ -3,6 +3,7 @@ import { calculateStats } from './stats.service';
 import {
   DayAssignment,
   DayInfo,
+  DayType,
   DoctorInput,
   RotaSchedule,
   RotaType,
@@ -15,7 +16,54 @@ export const AP_MIN_HOURS_YEAR = 425;
 export const REFUERZO_WEEKDAY_SATURDAY_HOURS = 7;
 export const REFUERZO_HOLIDAY_HOURS = 12;
 
+export const AP_WEEKDAY_SATURDAY_HOURS = 7;
+export const AP_HOLIDAY_HOURS = 12;
+
 export class InfeasiblePoolError extends Error {}
+
+export function apShiftDetails(dayType: DayType): {
+  durationHours: number;
+  shiftStart: string;
+  shiftEnd: string;
+} {
+  if (dayType === 'holiday') {
+    return {
+      durationHours: AP_HOLIDAY_HOURS,
+      shiftStart: '10:00',
+      shiftEnd: '22:00',
+    };
+  }
+
+  return {
+    durationHours: AP_WEEKDAY_SATURDAY_HOURS,
+    shiftStart: '15:00',
+    shiftEnd: '22:00',
+  };
+}
+
+function effectiveDayInfo(rotaType: RotaType, dayInfo: DayInfo): DayInfo {
+  if (rotaType !== 'AP') {
+    return dayInfo;
+  }
+  const details = apShiftDetails(dayInfo.dayType);
+  return {
+    ...dayInfo,
+    durationHours: details.durationHours,
+    shiftStart: details.shiftStart,
+    shiftEnd: details.shiftEnd,
+  };
+}
+
+export function doctorsForDay(
+  rotaType: RotaType,
+  baseDoctorsPerDay: number,
+  dayType: DayType,
+): number {
+  if (rotaType === 'AP' && dayType === 'holiday') {
+    return Math.max(baseDoctorsPerDay, 2);
+  }
+  return baseDoctorsPerDay;
+}
 
 export function computeDoctorsPerDay(
   rotaType: RotaType,
@@ -93,12 +141,13 @@ export function generateRota(
   pool: DoctorInput[],
   dayClassifications: DayInfo[],
 ): RotaSchedule {
-  const totalYearlyHours = dayClassifications.reduce((sum, day) => sum + day.durationHours, 0);
+  const effectiveDays = dayClassifications.map((day) => effectiveDayInfo(rotaType, day));
+  const totalYearlyHours = effectiveDays.reduce((sum, day) => sum + day.durationHours, 0);
   const normalizedPool = pool.map((doctor) => ({
     ...doctor,
     hours_reduced_per_day: doctor.hours_reduced_per_day ?? 0,
   }));
-  const targetHours = buildTargetHours(rotaType, normalizedPool, dayClassifications);
+  const targetHours = buildTargetHours(rotaType, normalizedPool, effectiveDays);
 
   if (normalizedPool.length < 1) {
     throw new InfeasiblePoolError(
@@ -106,16 +155,32 @@ export function generateRota(
     );
   }
 
-  const doctorsPerDay = computeDoctorsPerDay(
-    rotaType,
-    normalizedPool.length,
-    totalYearlyHours,
-    targetHours,
-  );
-  const minPool = doctorsPerDay * 2;
+  const doctorsPerDay =
+    rotaType === 'AP'
+      ? 1
+      : computeDoctorsPerDay(rotaType, normalizedPool.length, totalYearlyHours, targetHours);
+
+  let peakDoctorsPerDay = doctorsPerDay;
+  let totalCapacityHours = 0;
+  for (const day of effectiveDays) {
+    const required = doctorsForDay(rotaType, doctorsPerDay, day.dayType);
+    if (required > peakDoctorsPerDay) {
+      peakDoctorsPerDay = required;
+    }
+    totalCapacityHours += day.durationHours * required;
+  }
+
+  const minPool = peakDoctorsPerDay * 2;
   if (normalizedPool.length < minPool) {
     throw new InfeasiblePoolError(
-      `Pool of ${normalizedPool.length} is too small for ${rotaType}. Need at least ${minPool} doctors (${doctorsPerDay} per day × 2 for rest-day rotation).`,
+      `Pool of ${normalizedPool.length} is too small for ${rotaType}. Need at least ${minPool} doctors (${peakDoctorsPerDay} per day × 2 for rest-day rotation).`,
+    );
+  }
+
+  const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
+  if (totalCapacityHours < totalTargetHours) {
+    throw new InfeasiblePoolError(
+      `Pool of ${normalizedPool.length} is too large for ${rotaType}: target ${totalTargetHours}h exceeds yearly coverage capacity ${totalCapacityHours}h.`,
     );
   }
 
@@ -152,9 +217,10 @@ export function generateRota(
   let roundRobinPointer = 0;
   const schedule: DayAssignment[] = [];
 
-  for (const dayInfo of dayClassifications) {
+  for (const dayInfo of effectiveDays) {
     const currentDate = toIsoDate(dayInfo.date);
     const previousDay = addDays(currentDate, -1);
+    const required = doctorsForDay(rotaType, doctorsPerDay, dayInfo.dayType);
 
     const rested: string[] = [];
     const unrested: string[] = [];
@@ -167,8 +233,8 @@ export function generateRota(
     }
 
     const availableToday =
-      rested.length >= doctorsPerDay ? rested : [...rested, ...unrested];
-    if (availableToday.length < doctorsPerDay) {
+      rested.length >= required ? rested : [...rested, ...unrested];
+    if (availableToday.length < required) {
       throw new InfeasiblePoolError(
         `Not enough eligible doctors on ${currentDate}. Pool is too small.`,
       );
@@ -189,7 +255,7 @@ export function generateRota(
 
         return comparisons.find((comparison) => comparison !== 0) ?? 0;
       })
-      .slice(0, doctorsPerDay);
+      .slice(0, required);
 
     roundRobinPointer = (roundRobinPointer + 1) % normalizedPool.length;
 
@@ -276,6 +342,9 @@ export function generateRota(
           if (sameDayTaken.has(doctorId)) {
             continue;
           }
+          if ((doctorMap.get(doctorId)?.hours_reduced_per_day ?? 0) > 0) {
+            continue;
+          }
           if (previousDayAssigned.has(doctorId)) {
             unrested.push(doctorId);
           } else {
@@ -289,7 +358,7 @@ export function generateRota(
         }
         if (available.length === 0) {
           throw new InfeasiblePoolError(
-            `Not enough eligible doctors to cover refuerzo on ${dayKey}.`,
+            `Not enough non-reduced AC doctors to cover refuerzo on ${dayKey}.`,
           );
         }
 

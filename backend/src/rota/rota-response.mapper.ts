@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import {
   formatClockTime,
-  formatOvernightShiftEnd,
+  formatShiftEnd,
   fromIsoDate,
   toIsoDate,
 } from '../common/date.utils';
@@ -90,7 +90,7 @@ export class RotaResponseMapper {
           date: fromIsoDate(date),
           dayType: first.dayType as DomainDayAssignment['dayType'],
           shiftStart: formatClockTime(first.shiftStart),
-          shiftEnd: formatOvernightShiftEnd(first.shiftEnd),
+          shiftEnd: formatShiftEnd(first.shiftStart, first.shiftEnd),
           durationHours: first.durationHours,
           doctors: primaryAssignments.map((assignment) => ({
             doctorId: assignment.doctorId,

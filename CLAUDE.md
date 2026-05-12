@@ -32,7 +32,7 @@ npm run migration:run
 
 ```bash
 cd frontend
-npx ng test --watch=false       # ejecutar los 83 tests del frontend
+npx ng test --watch=false       # ejecutar los 95 tests del frontend
 npx ng build                    # build de producción
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desarrollo
 ```
@@ -49,7 +49,7 @@ docker compose up db            # solo PostgreSQL (para desarrollo local del bac
 - **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health
 - **Base de datos**: PostgreSQL con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Componentes standalone de Angular con estado basado en signals
-- **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` calculado automáticamente, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`
+- **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` calculado automáticamente, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y cobertura doble en festivos (`doctorsForDay`).
 
 ## Configuración Principal
 
@@ -77,20 +77,27 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/`
-- Frontend: `vitest` — 83 tests (14 de servicio, 53 de componente, 15 de integración)
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (27 tests actualmente)
+- Frontend: `vitest` — 95 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
 ## Reglas de Negocio (Críticas)
 
 Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
-1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente
+1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente. Funcionalmente, AC son guardias principales y **AP son refuerzos del día**.
 2. Un médico de guardia el día D está **libre el D+1** dentro del mismo tipo de rota (día de descanso — restricción blanda para grupos pequeños)
 3. Horas mínimas: **1.620h/año AC** (135h/mes × 12), **425h/año AP** por médico — **restricción dura** (genera error si no se cumple)
-4. `doctors_per_day` se **calcula automáticamente**: `ceil(tamaño_grupo × horas_min / total_horas_anuales)`
-5. Festivo > Sábado > Laborable para la clasificación de tipo de día
-6. Las asignaciones deben tener máxima variación de grupo y ser equitativas (el puntero round-robin deslizante evita el bloqueo de grupo)
+4. **`doctors_per_day`**: para AC se calcula automáticamente (`ceil(tamaño_grupo × 1620 / total_horas_anuales)`). Para **AP es siempre 1 en días normales y 2 en festivos**, sin depender del tamaño del pool. Si el pool AP es demasiado grande para que todos cumplan 425 h con esa cobertura, el algoritmo lanza `InfeasiblePoolError` (cap superior).
+5. **Duraciones por rota**:
+   - AC: 17h laborable, 18h sábado, 23h festivo (15:00 → 08:00+1 / 09:00+1, festivo 09:00 → 08:00+1).
+   - AP: 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).
+   - Refuerzo AC: 7h L-Sábado, 12h festivo.
+6. Festivo > Sábado > Laborable para la clasificación de tipo de día.
+7. Las asignaciones deben tener máxima variación de grupo y ser equitativas (el puntero round-robin deslizante evita el bloqueo de grupo)
+8. **AC con horario reducido** (`hours_reduced_per_day > 0`) genera automáticamente un refuerzo AC ese día. El refuerzo es otro AC del pool y **nunca puede tener horario reducido** (validado en generación inicial y reemplazo manual).
+9. **Reducción horaria sólo aplica a AC**. El campo `hours_reduced_per_day` se ignora para AP.
+10. **UI**: cuando un día tiene AC reducido + refuerzo AC, se muestran ambos como pills dentro de la sección AC (el reducido primero, en cursiva). Los AP se muestran prefijados con `R:` para reflejar su rol de refuerzo del día. La etiqueta "REF" ya no se renderiza.
 
 ## Documentación
 

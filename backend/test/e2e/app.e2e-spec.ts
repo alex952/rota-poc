@@ -343,6 +343,70 @@ describe('HTTP contract', () => {
     );
   });
 
+  it('asigna dos primarios AP en festivos y permite reemplazar uno sin tocar al otro', async () => {
+    const generation = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+    });
+    expect(generation.statusCode).toBe(201);
+
+    const holidayDay = generation
+      .json()
+      .schedule.find((day: { day_type: string }) => day.day_type === 'holiday');
+    expect(holidayDay).toBeDefined();
+    expect(holidayDay.doctors).toHaveLength(2);
+    expect(holidayDay.duration_hours).toBe(12);
+    expect(holidayDay.shift_start).toBe('10:00');
+    expect(holidayDay.shift_end).toBe('22:00');
+
+    const [firstAp, secondAp] = holidayDay.doctors;
+    const replacementCandidate = AP_POOL_5.find(
+      (doctor) => doctor.id !== firstAp.doctor_id && doctor.id !== secondAp.doctor_id,
+    );
+    expect(replacementCandidate).toBeDefined();
+
+    const replacement = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/rota/2026/AP/replace',
+      payload: {
+        date: holidayDay.date,
+        old_doctor_id: firstAp.doctor_id,
+        new_doctor_id: replacementCandidate!.id,
+      },
+    });
+    expect(replacement.statusCode).toBe(200);
+
+    const replacedDay = replacement
+      .json()
+      .schedule.find((day: { date: string }) => day.date === holidayDay.date);
+    const updatedDoctorIds = replacedDay.doctors.map(
+      (doctor: { doctor_id: string }) => doctor.doctor_id,
+    );
+    expect(updatedDoctorIds).toContain(replacementCandidate!.id);
+    expect(updatedDoctorIds).toContain(secondAp.doctor_id);
+    expect(updatedDoctorIds).not.toContain(firstAp.doctor_id);
+  });
+
+  it('aplica turnos AP de 7h en laborables y sábados (15:00–22:00)', async () => {
+    const generation = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+    });
+    expect(generation.statusCode).toBe(201);
+
+    const nonHoliday = generation
+      .json()
+      .schedule.find(
+        (day: { day_type: string }) => day.day_type === 'weekday' || day.day_type === 'saturday',
+      );
+    expect(nonHoliday).toBeDefined();
+    expect(nonHoliday.duration_hours).toBe(7);
+    expect(nonHoliday.shift_start).toBe('15:00');
+    expect(nonHoliday.shift_end).toBe('22:00');
+  });
+
   it('returns holidays for the configured city', async () => {
     const response = await app.inject({
       method: 'GET',

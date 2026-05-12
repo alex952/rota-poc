@@ -36,3 +36,17 @@ export function formatClockTime(value: string): string {
 export function formatOvernightShiftEnd(value: string): string {
   return `${formatClockTime(value)}+1`;
 }
+
+export function formatShiftEnd(start: string, end: string): string {
+  const startMinutes = toMinutes(start);
+  const endMinutes = toMinutes(end);
+  if (endMinutes <= startMinutes) {
+    return formatOvernightShiftEnd(end);
+  }
+  return formatClockTime(end);
+}
+
+function toMinutes(value: string): number {
+  const [hours, minutes] = stripNextDaySuffix(value).slice(0, 5).split(':');
+  return Number(hours) * 60 + Number(minutes);
+}
