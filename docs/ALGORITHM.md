@@ -46,14 +46,9 @@ Esto significa que los médicos de AC sin reducción siguen con el objetivo de `
 
 ### 2. Calcular doctors_per_day
 
-Para **AC**, el algoritmo calcula la cobertura base automáticamente para garantizar que se puedan cumplir las horas mínimas:
+La cobertura base de primary es **siempre 1 médico por día** para ambas rotas. La regla de negocio es: un AC primary + (opcional) un refuerzo AC para reducidos; un AP refuerzo del día, dos en festivos. La cobertura no se incrementa automáticamente con el tamaño del pool.
 
-```python
-total_horas_anuales = sum(d.duration_hours for d in clasificaciones_días)  # duración del día calendario
-doctors_per_day_base = ceil(len(grupo) * 1620 / total_horas_anuales)
-```
-
-Para **AP**, la cobertura base es **siempre 1** (regla de negocio: 1 médico AP por día normal, 2 en festivos). Si el pool es demasiado grande para que cada médico llegue a 425h con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("Pool too large for AP: target Xh exceeds yearly coverage capacity Yh").
+Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("Pool too large for AC|AP: target Xh exceeds yearly coverage capacity Yh"). Esto sustituye el cálculo automático anterior, que sobrecubría los días con médicos extras y generaba excedentes de >1.000 h sobre el mínimo.
 
 #### Cobertura variable por día
 
@@ -77,9 +72,10 @@ assert total_capacity >= total_target
 Si no, lanza `InfeasiblePoolError`. Esto detecta pools AP excesivos (>= ~8 médicos con la aritmética actual) antes de iterar.
 
 Ejemplos:
-- Grupo AC de 4 → ceil(4 × 1620 / 6635) = **1 médico/día base**.
-- Grupo AC de 8 → ceil(8 × 1620 / 6635) = **2 médicos/día base**.
-- Grupo AP de 5 → capacidad ≈ 303×7 + 62×24 ≈ 3.609h; target = 5×425 = 2.125h → OK, **1 médico/día base** (festivos: 2).
+- Grupo AC de 4 (sin reducidos) → capacidad ≈ 6.627h; target = 4×1620 = 6.480h → OK, 1 médico/día.
+- Grupo AC de 5 (sin reducidos) → target = 8.100h > 6.627h → **`InfeasiblePoolError`**.
+- Grupo AC de 4 con 1 reducido (hours_reduced_per_day=2) → target ≈ 1.116 + 3×1.620 = 5.976h → OK, 1 médico/día + refuerzos AC para el reducido.
+- Grupo AP de 5 → capacidad ≈ 303×7 + 62×24 ≈ 3.609h; target = 5×425 = 2.125h → OK, 1 médico/día (festivos: 2).
 - Grupo AP de 9 → capacidad ≈ 3.609h; target = 9×425 = 3.825h → **`InfeasiblePoolError`** (pool demasiado grande).
 
 ### 3. Construir el grupo elegible

@@ -93,6 +93,24 @@ describe('HTTP contract', () => {
       },
     });
     expect(response.statusCode).toBe(400);
+    expect(typeof response.json().message).toBe('string');
+    expect(response.json().message).toMatch(/pool/i);
+  });
+
+  it('returns 400 with a descriptive message when the AC pool is too large', async () => {
+    const oversizedPool = Array.from({ length: 8 }, (_, index) => ({
+      id: `doc-overflow-${index}`,
+      name: `Doctor ${index}`,
+      department: 'Medicina General',
+    }));
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AC', pool: oversizedPool },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().message).toMatch(/too large/i);
   });
 
   it('supports GET rota queries and doctor filtering', async () => {
@@ -405,6 +423,53 @@ describe('HTTP contract', () => {
     expect(nonHoliday.duration_hours).toBe(7);
     expect(nonHoliday.shift_start).toBe('15:00');
     expect(nonHoliday.shift_end).toBe('22:00');
+  });
+
+  it('regenera una rota AC con horario reducido conservando los refuerzos vinculados', async () => {
+    const firstGeneration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
+    });
+    expect(firstGeneration.statusCode).toBe(201);
+    const firstRefuerzos = firstGeneration
+      .json()
+      .schedule.flatMap((day: { refuerzos: unknown[] }) => day.refuerzos);
+    expect(firstRefuerzos.length).toBeGreaterThan(0);
+
+    const secondGeneration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
+    });
+    expect(secondGeneration.statusCode).toBe(201);
+
+    const regeneratedSchedule = secondGeneration.json().schedule;
+    const regeneratedRefuerzos = regeneratedSchedule.flatMap(
+      (day: { refuerzos: unknown[] }) => day.refuerzos,
+    );
+    expect(regeneratedRefuerzos.length).toBeGreaterThan(0);
+
+    const reducedDoctorId = REDUCED_AC_POOL_4[0].id;
+    const daysWithReducedPrimary = regeneratedSchedule.filter(
+      (day: { doctors: Array<{ doctor_id: string }> }) =>
+        day.doctors.some((doctor) => doctor.doctor_id === reducedDoctorId),
+    );
+    expect(daysWithReducedPrimary.length).toBeGreaterThan(0);
+    for (const day of daysWithReducedPrimary) {
+      expect(day.refuerzos).toHaveLength(1);
+      expect(day.refuerzos[0].linked_primary_doctor_id).toBe(reducedDoctorId);
+    }
+
+    const queriedAfterRegen = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rota/2026/AC',
+    });
+    expect(queriedAfterRegen.statusCode).toBe(200);
+    const queriedRefuerzos = queriedAfterRegen
+      .json()
+      .schedule.flatMap((day: { refuerzos: unknown[] }) => day.refuerzos);
+    expect(queriedRefuerzos.length).toBe(regeneratedRefuerzos.length);
   });
 
   it('returns holidays for the configured city', async () => {

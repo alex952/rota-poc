@@ -49,7 +49,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 - RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
 - RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
-- RN-7: El número de médicos asignados por día por tipo de rota (`doctors_per_day`) es **calculado automáticamente** por el algoritmo en función del tamaño del grupo y las restricciones de horas mínimas. Fórmula: `ceil(tamaño_grupo × horas_min / total_horas_anuales)`.
+- RN-7: La cobertura primary base es **siempre 1 médico por día**, tanto para AC como para AP. La cobertura adicional sólo aparece como refuerzo AC para reducidos o como segundo AP en festivos. Si el pool es demasiado grande para que todos los médicos alcancen su target con esa cobertura, el algoritmo rechaza la generación con `InfeasiblePoolError` ("Pool too large").
 - RN-8: **Día de descanso post-guardia** — un médico que está de guardia el día D **no está disponible** para asignación el día D+1. Los días de descanso aplican **por tipo de rota únicamente** (los descansos de AC no afectan a AP y viceversa, ya que los grupos son separados). Restricción blanda para grupos con menos de 4 médicos.
 - RN-9: Las asignaciones de guardia deben tener **máxima variación de grupo** — el algoritmo usa un puntero round-robin deslizante para evitar que el mismo subconjunto de médicos sea asignado siempre junto.
 - RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h para AC, 12h para AP), no como sábado. La clasificación de festivo siempre tiene prioridad.
@@ -74,7 +74,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.1.10 | **Dado** que un médico está de guardia el día D, **entonces** ese médico no tiene asignación el día D+1 dentro del mismo tipo de rota (día de descanso solo por tipo). |
 | CA-3.1.11 | **Dada** una rota generada, **cuando** se examinan qué médicos son asignados juntos en diferentes días, **entonces** el algoritmo varía las agrupaciones (ningún grupo fijo de médicos es siempre asignado junto). |
 | CA-3.1.12 | **Dado** un festivo que cae en sábado, **entonces** ese día se clasifica como festivo (turno de 23h), no como sábado (18h). |
-| CA-3.1.13 | **Dado** un grupo de médicos, **cuando** el algoritmo se ejecuta, **entonces** `doctors_per_day` se calcula automáticamente como `ceil(tamaño_grupo × horas_min / total_horas_anuales)`. |
+| CA-3.1.13 | **Dado** un grupo de médicos, **cuando** el algoritmo se ejecuta, **entonces** la cobertura primary base es exactamente 1 médico/día. Si el pool excede la capacidad anual de cobertura, se lanza `InfeasiblePoolError`. |
 | CA-3.1.14 | **Dada** una rota AP generada, **cuando** se inspeccionan los festivos, **entonces** cada festivo tiene **2 médicos AP primary asignados** con turnos de 12 h (10:00→22:00). |
 | CA-3.1.15 | **Dada** una rota AP generada, **cuando** se inspeccionan los laborables y sábados, **entonces** cada día tiene 1 médico AP asignado con turno de 7 h (15:00→22:00). |
 | CA-3.1.16 | **Dada** una rota AC con un primary que tiene `hours_reduced_per_day > 0`, **entonces** ese día contiene exactamente un refuerzo AC vinculado, con duración 7h (laborable/sábado) o 12h (festivo). |

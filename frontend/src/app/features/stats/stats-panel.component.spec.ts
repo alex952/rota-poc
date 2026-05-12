@@ -194,4 +194,81 @@ describe('StatsPanelComponent', () => {
     const rows = fixture.nativeElement.querySelectorAll('app-doctor-stats-row');
     expect(rows.length).toBe(2);
   });
+
+  it('no marca imbalance cuando un AC reducido cumple su target personalizado al mismo nivel que un AC con jornada completa', () => {
+    const mixedStats: DoctorStats[] = [
+      {
+        doctor_id: 'doc-001',
+        doctor_name: 'Dr. Reducido',
+        total_hours: 1200,
+        target_hours: 1180,
+        hours_vs_target: 20,
+        primary_hours: 1200,
+        refuerzo_hours: 0,
+        monthly_hours: { 1: 100 },
+        shifts_weekday: 15,
+        shifts_saturday: 4,
+        shifts_sunday_holiday: 3,
+      },
+      {
+        doctor_id: 'doc-002',
+        doctor_name: 'Dr. Completo',
+        total_hours: 1655,
+        target_hours: 1620,
+        hours_vs_target: 35,
+        primary_hours: 1655,
+        refuerzo_hours: 0,
+        monthly_hours: { 1: 138 },
+        shifts_weekday: 19,
+        shifts_saturday: 5,
+        shifts_sunday_holiday: 5,
+      },
+    ];
+
+    fixture.componentRef.setInput('visible', true);
+    fixture.componentRef.setInput('stats', mixedStats);
+    fixture.detectChanges();
+
+    const warningEl = fixture.nativeElement.querySelector('.equity-warning');
+    expect(warningEl).toBeFalsy();
+  });
+
+  it('marca imbalance cuando los deltas vs target divergen entre médicos', () => {
+    const skewedStats: DoctorStats[] = [
+      {
+        doctor_id: 'doc-001',
+        doctor_name: 'Dr. Sobrecargado',
+        total_hours: 1850,
+        target_hours: 1620,
+        hours_vs_target: 230,
+        primary_hours: 1850,
+        refuerzo_hours: 0,
+        monthly_hours: { 1: 160 },
+        shifts_weekday: 22,
+        shifts_saturday: 6,
+        shifts_sunday_holiday: 5,
+      },
+      {
+        doctor_id: 'doc-002',
+        doctor_name: 'Dr. Aliviado',
+        total_hours: 1625,
+        target_hours: 1620,
+        hours_vs_target: 5,
+        primary_hours: 1625,
+        refuerzo_hours: 0,
+        monthly_hours: { 1: 135 },
+        shifts_weekday: 19,
+        shifts_saturday: 5,
+        shifts_sunday_holiday: 4,
+      },
+    ];
+
+    fixture.componentRef.setInput('visible', true);
+    fixture.componentRef.setInput('stats', skewedStats);
+    fixture.detectChanges();
+
+    const warningEl = fixture.nativeElement.querySelector('.equity-warning');
+    expect(warningEl).toBeTruthy();
+    expect(warningEl.textContent.toLowerCase()).toContain('imbalance');
+  });
 });

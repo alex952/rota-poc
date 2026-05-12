@@ -144,6 +144,33 @@ describe('AP rota — refuerzo diario y festivos doblados', () => {
   });
 });
 
+describe('AC rota — cobertura fija y validación de pool', () => {
+  const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
+
+  it('asigna exactamente 1 AC primary por día independientemente del tamaño del pool', () => {
+    const largePool = [
+      ...AC_POOL_4,
+      { id: 'doc-005', name: 'Dr. Romero', department: 'Cardio' },
+      { id: 'doc-006', name: 'Dr. Diaz', department: 'Cardio' },
+      { id: 'doc-007', name: 'Dr. Iglesias', department: 'Cardio' },
+      { id: 'doc-008', name: 'Dr. Marin', department: 'Cardio' },
+    ];
+
+    expect(() => generateRota(YEAR_2026, 'AC', largePool, dayClassifications)).toThrow(
+      /too large/i,
+    );
+  });
+
+  it('mantiene 1 AC primary por día con pool factible', () => {
+    const rota = generateRota(YEAR_2026, 'AC', AC_POOL_4, dayClassifications);
+
+    for (const day of rota.schedule) {
+      expect(day.doctors).toHaveLength(1);
+    }
+    expect(rota.doctorsPerDay).toBe(1);
+  });
+});
+
 describe('AC refuerzo — exclusión de médicos con horario reducido', () => {
   const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
 

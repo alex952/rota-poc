@@ -41,6 +41,7 @@ Un médico pertenece a un único grupo (AC o AP) y nunca participa en la rota de
 3. **Reducción horaria es exclusiva de AC**. Médicos AP nunca tienen reducción horaria.
 4. **Un AC con horario reducido nunca puede asignarse como refuerzo** de otro AC.
 5. **AC y AP se generan de forma independiente**: un mismo médico no puede aparecer en ambas rotas.
+6. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día (salvo festivos AP, que llevan 2). La cobertura adicional sólo aparece como refuerzo AC vinculado a un reducido. Pools que exceden la capacidad de cobertura anual con esa regla son rechazados con `InfeasiblePoolError`.
 
 ## 6. Equidad
 

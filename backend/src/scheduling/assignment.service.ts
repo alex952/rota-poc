@@ -155,10 +155,7 @@ export function generateRota(
     );
   }
 
-  const doctorsPerDay =
-    rotaType === 'AP'
-      ? 1
-      : computeDoctorsPerDay(rotaType, normalizedPool.length, totalYearlyHours, targetHours);
+  const doctorsPerDay = 1;
 
   let peakDoctorsPerDay = doctorsPerDay;
   let totalCapacityHours = 0;

@@ -261,7 +261,11 @@ describe('App', () => {
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     genReq.flush(
-      { detail: 'Pool too small' },
+      {
+        statusCode: 400,
+        message: 'Pool of 8 is too large for AC: target 12960h exceeds yearly coverage capacity 6627h.',
+        error: 'Bad Request',
+      },
       { status: 400, statusText: 'Bad Request' }
     );
     fixture.detectChanges();
@@ -271,6 +275,8 @@ describe('App', () => {
     const errorNotif = notifications.find((n) => n.type === 'error');
     expect(errorNotif).toBeTruthy();
     expect(errorNotif!.message).toContain('Failed to generate AC rota');
+    expect(errorNotif!.message).toContain('too large');
+    expect(errorNotif!.message).toContain('12960h');
   });
 
   it('should show success notification after generation', () => {
