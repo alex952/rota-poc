@@ -308,20 +308,20 @@ describe('App', () => {
     expect(successNotif!.message).toContain('AC rota generated successfully');
   });
 
-  it('should show empty state when no rota exists', () => {
+  it('should show empty calendar with warning when no rota exists', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 404 });
     fixture.detectChanges();
 
-    const emptyState = fixture.nativeElement.querySelector('.empty-state');
-    expect(emptyState).toBeTruthy();
+    // El calendario debería mostrarse incluso sin rota
+    const monthView = fixture.nativeElement.querySelector('app-month-view');
+    expect(monthView).toBeTruthy();
 
-    const message = fixture.nativeElement.querySelector('.empty-state-message');
-    expect(message.textContent).toContain('No rota generated');
-
-    const hint = fixture.nativeElement.querySelector('.empty-state-hint');
-    expect(hint.textContent).toContain('Add doctors to the pool and click Generate Rota');
+    // Debería haber un warning visible
+    const warning = fixture.nativeElement.querySelector('.no-rota-warning');
+    expect(warning).toBeTruthy();
+    expect(warning.textContent).toContain('No hay rota generada');
   });
 
   it('should show pool tabs for AC and AP', () => {
