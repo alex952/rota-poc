@@ -33,9 +33,11 @@
       [year]="selectedYear()"
       [schedule]="mergedSchedule()"
       [hasData]="hasData()"
+      [manualHolidayDates]="manualHolidayDates()"
       (yearChange)="onYearChange($event)"
       (monthChange)="onMonthChange($event)"
       (doctorDropped)="onDoctorDropped($event)"
+      (dayContextMenu)="onDayContextMenu($event)"
     />
   </div>
   <app-stats-panel [visible]="showStats()" [stats]="activeStats()" [activeTab]="activePoolTab()" [currentMonth]="currentMonth()" (closed)="toggleStats()" />
@@ -58,5 +60,16 @@
     [doctors]="getReplaceableDoctors(activePoolTab(), pendingReplacement()!)"
     (selected)="onReplaceDoctorSelected($event)"
     (cancelled)="onCancelReplacement()"
+  />
+}
+
+@if (contextMenuOpen()) {
+  <app-day-context-menu
+    [x]="contextMenuPosition().x"
+    [y]="contextMenuPosition().y"
+    [date]="contextMenuDate()"
+    [dayType]="contextMenuDayType()"
+    (actionSelected)="onContextMenuAction($event)"
+    (dismissed)="onCloseContextMenu()"
   />
 }

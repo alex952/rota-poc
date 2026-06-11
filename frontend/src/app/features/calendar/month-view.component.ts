@@ -2,6 +2,13 @@ import { Component, input, output, computed } from '@angular/core';
 import { DayCellComponent, ReplacementEvent } from './day-cell.component';
 import { MergedDayAssignment } from '../../core/models/rota.model';
 
+export interface DayContextMenuEvent {
+  date: string;
+  dayType: string;
+  x: number;
+  y: number;
+}
+
 @Component({
   selector: 'app-month-view',
   standalone: true,
@@ -26,9 +33,11 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
               [assignment]="cell.assignment"
               [dayType]="cell.dayType"
               [date]="cell.date"
+              [isManualHoliday]="cell.isManualHoliday"
               (doctorDropped)="doctorDropped.emit($event)"
               (doctorClicked)="doctorClicked.emit($event)"
               (daySelected)="daySelected.emit($event)"
+              (dayContextMenu)="dayContextMenu.emit($event)"
             />
           }
         }
@@ -88,10 +97,12 @@ export class MonthViewComponent {
   readonly month = input.required<number>();
   readonly year = input.required<number>();
   readonly assignments = input<MergedDayAssignment[]>([]);
+  readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
   readonly daySelected = output<string>();
+  readonly dayContextMenu = output<DayContextMenuEvent>();
 
   private static readonly MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -121,20 +132,38 @@ export class MonthViewComponent {
   });
 
   readonly gridCells = computed(() => {
-    const cells: Array<{ key: string; day: number; assignment: MergedDayAssignment | null; dayType: string; date: string }> = [];
+    const cells: Array<{
+      key: string;
+      day: number;
+      assignment: MergedDayAssignment | null;
+      dayType: string;
+      date: string;
+      isManualHoliday: boolean;
+    }> = [];
     const offset = this.firstDayOffset();
     const total = this.daysInMonth();
     const assignMap = this.assignmentsByDay();
+    const manualHolidays = this.manualHolidayDates();
 
     for (let i = 0; i < offset; i++) {
-      cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '' });
+      cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '', isManualHoliday: false });
     }
 
     for (let d = 1; d <= total; d++) {
       const assignment = assignMap.get(d) ?? null;
-      const dayType = assignment ? assignment.day_type : this.getDefaultDayType(d);
       const dateStr = assignment ? assignment.date : this.formatDate(d);
-      cells.push({ key: `day-${d}`, day: d, assignment, dayType, date: dateStr });
+      const isManualHoliday = manualHolidays.has(dateStr);
+      const defaultDayType = this.getDefaultDayType(d);
+      const dayType = assignment ? assignment.day_type : defaultDayType;
+
+      cells.push({
+        key: `day-${d}`,
+        day: d,
+        assignment,
+        dayType,
+        date: dateStr,
+        isManualHoliday,
+      });
     }
 
     return cells;

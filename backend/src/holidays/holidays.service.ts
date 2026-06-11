@@ -19,6 +19,7 @@ export interface HolidayRecord {
   city: string;
   date: string;
   name: string;
+  source?: 'api' | 'manual';
 }
 
 export interface HolidayRepositoryPort {
@@ -198,6 +199,51 @@ export class HolidaysService {
     );
   }
 
+  async createCustomHoliday(year: number, city: string, date: string, name: string) {
+    const existing = await this.holidaysRepository.findOne({
+      where: { year, city, date },
+    });
+    if (existing) {
+      throw new Error(`Holiday already exists for ${date}`);
+    }
+
+    const dayOfWeek = new Date(date + 'T00:00:00').getDay();
+    if (dayOfWeek === 0) {
+      throw new Error('Sunday is always a holiday and cannot be marked manually');
+    }
+
+    const entity = this.holidaysRepository.create({
+      year,
+      city,
+      date,
+      name,
+      source: 'manual',
+    });
+    await this.holidaysRepository.save(entity);
+    return this.holidaysRepository.find({
+      where: { year, city },
+      order: { date: 'ASC' },
+    });
+  }
+
+  async deleteCustomHoliday(year: number, city: string, date: string) {
+    const existing = await this.holidaysRepository.findOne({
+      where: { year, city, date },
+    });
+    if (!existing) {
+      throw new Error(`Holiday not found for ${date}`);
+    }
+    if (existing.source !== 'manual') {
+      throw new Error('Only manually created holidays can be deleted');
+    }
+
+    await this.holidaysRepository.remove(existing);
+    return this.holidaysRepository.find({
+      where: { year, city },
+      order: { date: 'ASC' },
+    });
+  }
+
   private readonly repositoryPort: HolidayRepositoryPort = {
     findCached: async (year, city) =>
       this.holidaysRepository.find({
@@ -217,7 +263,9 @@ export class HolidaysService {
           continue;
         }
 
-        await this.holidaysRepository.save(this.holidaysRepository.create(item));
+        await this.holidaysRepository.save(
+          this.holidaysRepository.create({ ...item, source: 'api' }),
+        );
       }
     },
   };

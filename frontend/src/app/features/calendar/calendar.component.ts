@@ -48,9 +48,11 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
               [month]="currentMonth()"
               [year]="year()"
               [assignments]="currentAssignments()"
+              [manualHolidayDates]="manualHolidayDates()"
               (doctorDropped)="doctorDropped.emit($event)"
               (doctorClicked)="onDoctorClicked($event)"
               (daySelected)="showDayView($event)"
+              (dayContextMenu)="onDayContextMenu($event)"
             />
           } @else {
             <div class="day-view">
@@ -335,10 +337,12 @@ export class CalendarComponent {
   readonly year = input.required<number>();
   readonly schedule = input<MergedDayAssignment[]>([]);
   readonly hasData = input<boolean>(true);
+  readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
   readonly yearChange = output<number>();
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorFilterChanged = output<string | null>();
   readonly monthChange = output<number>();
+  readonly dayContextMenu = output<{ date: string; dayType: string; x: number; y: number }>();
 
   readonly filteredDoctor = signal<{ doctor_id: string; doctor_name: string } | null>(null);
   readonly currentMonth = signal(new Date().getMonth() + 1);
@@ -455,6 +459,10 @@ export class CalendarComponent {
 
   showMonthView(): void {
     this.viewMode.set('month');
+  }
+
+  onDayContextMenu(event: { date: string; dayType: string; x: number; y: number }): void {
+    this.dayContextMenu.emit(event);
   }
 
   clearFilter(): void {

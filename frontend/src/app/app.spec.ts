@@ -94,6 +94,9 @@ describe('App', () => {
     } else {
       rotaReq.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
     }
+
+    const holidaysReq = httpTesting.expectOne(`/api/v1/holidays/${currentYear}`);
+    holidaysReq.flush({ year: currentYear, city, holidays: [] });
   }
 
   it('should create the app', () => {
@@ -214,6 +217,9 @@ describe('App', () => {
     const rotaReq = httpTesting.expectOne('/api/v1/rota/2025');
     expect(rotaReq.request.method).toBe('GET');
     rotaReq.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
+
+    const holidaysReq = httpTesting.expectOne('/api/v1/holidays/2025');
+    holidaysReq.flush({ year: 2025, city: 'Madrid', holidays: [] });
     fixture.detectChanges();
 
     expect(fixture.componentInstance['hasAcRota']()).toBe(false);

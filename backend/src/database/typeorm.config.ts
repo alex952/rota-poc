@@ -7,12 +7,14 @@ import { RotaEntity } from '../rota/entities/rota.entity';
 import { InitialSchema0011763395001001 } from './migrations/1763395001001-001-initial-schema';
 import { SeparateAcApPools0021763395002002 } from './migrations/1763395002002-002-separate-ac-ap-pools';
 import { AcReducedHoursRefuerzo0031763395003003 } from './migrations/1763395003003-003-ac-reduced-hours-refuerzo';
+import { HolidaySource0041781177697 } from './migrations/1781177697-004-holiday-source';
 
 const entities = [HolidayEntity, RotaEntity, RotaDoctorEntity, RotaAssignmentEntity];
 const migrations = [
   InitialSchema0011763395001001,
   SeparateAcApPools0021763395002002,
   AcReducedHoursRefuerzo0031763395003003,
+  HolidaySource0041781177697,
 ];
 
 export function createTypeOrmOptions(): TypeOrmModuleOptions {

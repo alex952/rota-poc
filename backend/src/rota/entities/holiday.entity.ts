@@ -18,4 +18,7 @@ export class HolidayEntity {
 
   @Column({ type: 'varchar', length: 200 })
   name!: string;
+
+  @Column({ type: 'varchar', length: 10, default: 'api' })
+  source!: 'api' | 'manual';
 }
