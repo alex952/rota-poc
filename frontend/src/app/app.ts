@@ -59,6 +59,7 @@ export class App implements OnInit {
   protected readonly contextMenuDayType = signal('');
 
   readonly manualHolidayDates = computed(() => this.holidaysService.manualHolidayDates());
+  readonly allHolidayDates = computed(() => this.holidaysService.allHolidayDates());
 
   // Dual rota state
   protected readonly acSchedule = signal<DayAssignment[]>([]);
@@ -137,7 +138,7 @@ export class App implements OnInit {
     this.configService.getConfig().subscribe({
       next: (config) => {
         this.city.set(config.city);
-        this.holidaysService.loadManualHolidays(this.selectedYear());
+        this.holidaysService.loadHolidays(this.selectedYear());
       },
       error: (err) => {
         console.error('Failed to load config', err);
@@ -213,7 +214,7 @@ export class App implements OnInit {
 
   onYearChange(year: number): void {
     this.selectedYear.set(year);
-    this.holidaysService.loadManualHolidays(year);
+    this.holidaysService.loadHolidays(year);
     this.loadRotas(year);
   }
 

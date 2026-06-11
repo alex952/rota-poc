@@ -20,6 +20,7 @@ export interface HolidaysResponse {
 @Injectable({ providedIn: 'root' })
 export class HolidaysService {
   private readonly http = inject(HttpClient);
+  readonly allHolidayDates = signal<ReadonlySet<string>>(new Set<string>());
   readonly manualHolidayDates = signal<ReadonlySet<string>>(new Set<string>());
 
   getHolidays(year: number): Observable<HolidaysResponse> {
@@ -28,26 +29,28 @@ export class HolidaysService {
 
   markHoliday(year: number, date: string, name: string): Observable<HolidaysResponse> {
     return this.http.post<HolidaysResponse>(`/api/v1/holidays/${year}`, { date, name }).pipe(
-      tap((response) => this.updateManualDates(response.holidays)),
+      tap((response) => this.updateHolidayDates(response.holidays)),
     );
   }
 
   unmarkHoliday(year: number, date: string): Observable<HolidaysResponse> {
     return this.http.delete<HolidaysResponse>(`/api/v1/holidays/${year}/${date}`).pipe(
-      tap((response) => this.updateManualDates(response.holidays)),
+      tap((response) => this.updateHolidayDates(response.holidays)),
     );
   }
 
-  loadManualHolidays(year: number): void {
+  loadHolidays(year: number): void {
     this.getHolidays(year).subscribe({
-      next: (response) => this.updateManualDates(response.holidays),
+      next: (response) => this.updateHolidayDates(response.holidays),
     });
   }
 
-  private updateManualDates(holidays: HolidayRecord[]): void {
+  private updateHolidayDates(holidays: HolidayRecord[]): void {
+    const allDates = new Set<string>(holidays.map((h) => h.date));
     const manualDates = new Set<string>(
       holidays.filter((h) => h.source === 'manual').map((h) => h.date),
     );
+    this.allHolidayDates.set(allDates);
     this.manualHolidayDates.set(manualDates);
   }
 }

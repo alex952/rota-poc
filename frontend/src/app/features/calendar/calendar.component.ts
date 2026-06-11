@@ -54,6 +54,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
             [year]="year()"
             [assignments]="currentAssignments()"
             [manualHolidayDates]="manualHolidayDates()"
+            [allHolidayDates]="allHolidayDates()"
             (doctorDropped)="doctorDropped.emit($event)"
             (doctorClicked)="onDoctorClicked($event)"
             (daySelected)="showDayView($event)"
@@ -355,6 +356,7 @@ export class CalendarComponent {
   readonly schedule = input<MergedDayAssignment[]>([]);
   readonly hasData = input<boolean>(true);
   readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
+  readonly allHolidayDates = input<ReadonlySet<string>>(new Set<string>());
   readonly yearChange = output<number>();
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorFilterChanged = output<string | null>();

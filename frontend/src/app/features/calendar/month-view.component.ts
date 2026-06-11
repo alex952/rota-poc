@@ -98,6 +98,7 @@ export class MonthViewComponent {
   readonly year = input.required<number>();
   readonly assignments = input<MergedDayAssignment[]>([]);
   readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
+  readonly allHolidayDates = input<ReadonlySet<string>>(new Set<string>());
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
@@ -144,6 +145,7 @@ export class MonthViewComponent {
     const total = this.daysInMonth();
     const assignMap = this.assignmentsByDay();
     const manualHolidays = this.manualHolidayDates();
+    const allHolidays = this.allHolidayDates();
 
     for (let i = 0; i < offset; i++) {
       cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '', isManualHoliday: false });
@@ -153,7 +155,8 @@ export class MonthViewComponent {
       const assignment = assignMap.get(d) ?? null;
       const dateStr = assignment ? assignment.date : this.formatDate(d);
       const isManualHoliday = manualHolidays.has(dateStr);
-      const defaultDayType = this.getDefaultDayType(d);
+      const isHoliday = allHolidays.has(dateStr) || this.isSunday(d);
+      const defaultDayType = isHoliday ? 'holiday' : this.getDefaultDayType(d);
       const dayType = assignment ? assignment.day_type : defaultDayType;
 
       cells.push({
@@ -168,6 +171,11 @@ export class MonthViewComponent {
 
     return cells;
   });
+
+  private isSunday(day: number): boolean {
+    const date = new Date(this.year(), this.month() - 1, day);
+    return date.getDay() === 0;
+  }
 
   private getDefaultDayType(day: number): string {
     const date = new Date(this.year(), this.month() - 1, day);
