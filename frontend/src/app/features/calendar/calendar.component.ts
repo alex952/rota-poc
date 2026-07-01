@@ -12,13 +12,13 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       <div class="calendar-header">
         <div class="nav-group">
           @if (viewMode() === 'month') {
-            <button class="nav-btn" (click)="prevMonth()" [disabled]="!hasData() || currentMonth() === 1" title="Previous month">&lsaquo;</button>
+            <button class="nav-btn" (click)="prevMonth()" [disabled]="currentMonth() === 1" title="Previous month">&lsaquo;</button>
           } @else {
             <button class="back-btn" (click)="showMonthView()" title="Back to month view">Month view</button>
           }
           <span class="month-label" [class.disabled]="!hasData()" (click)="hasData() && goToCurrentMonth()" [title]="hasData() ? 'Go to current month' : ''">{{ currentMonthName() }} {{ year() }}</span>
           @if (viewMode() === 'month') {
-            <button class="nav-btn" (click)="nextMonth()" [disabled]="!hasData() || currentMonth() === 12" title="Next month">&rsaquo;</button>
+            <button class="nav-btn" (click)="nextMonth()" [disabled]="currentMonth() === 12" title="Next month">&rsaquo;</button>
           } @else {
             <span class="day-view-label">{{ selectedDateLabel() }}</span>
           }
@@ -42,41 +42,42 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
         </div>
       </div>
       <div class="calendar-body">
-        @if (hasData()) {
-          @if (viewMode() === 'month') {
-            <app-month-view
-              [month]="currentMonth()"
-              [year]="year()"
-              [assignments]="currentAssignments()"
-              (doctorDropped)="doctorDropped.emit($event)"
-              (doctorClicked)="onDoctorClicked($event)"
-              (daySelected)="showDayView($event)"
-            />
-          } @else {
-            <div class="day-view">
-              <div class="day-view-header">
-                <h3 class="day-view-title">{{ selectedDateLabel() }}</h3>
-                <p class="day-view-subtitle">Detailed assignments for the selected day.</p>
-              </div>
-              <div class="day-view-content">
-                <app-day-cell
-                  class="day-view-cell"
-                  [day]="selectedDayNumber()"
-                  [assignment]="selectedAssignment()"
-                  [dayType]="selectedDayType()"
-                  [date]="selectedDate()"
-                  [zoomable]="false"
-                  (doctorDropped)="doctorDropped.emit($event)"
-                  (doctorClicked)="onDoctorClicked($event)"
-                />
-              </div>
-            </div>
-          }
+        @if (!hasData() && viewMode() === 'month') {
+          <div class="no-rota-warning">
+            <span class="warning-icon">&#9888;</span>
+            <span class="warning-text">No hay rota generada para {{ year() }}. Añade médicos al grupo y haz clic en "Generar Rota".</span>
+          </div>
+        }
+        @if (viewMode() === 'month') {
+          <app-month-view
+            [month]="currentMonth()"
+            [year]="year()"
+            [assignments]="currentAssignments()"
+            [manualHolidayDates]="manualHolidayDates()"
+            [allHolidayDates]="allHolidayDates()"
+            (doctorDropped)="doctorDropped.emit($event)"
+            (doctorClicked)="onDoctorClicked($event)"
+            (daySelected)="showDayView($event)"
+            (dayContextMenu)="onDayContextMenu($event)"
+          />
         } @else {
-          <div class="empty-state">
-            <div class="empty-state-icon">&#128197;</div>
-            <p class="empty-state-message">No rota generated for {{ year() }}.</p>
-            <p class="empty-state-hint">Add doctors to the pool and click Generate Rota.</p>
+          <div class="day-view">
+            <div class="day-view-header">
+              <h3 class="day-view-title">{{ selectedDateLabel() }}</h3>
+              <p class="day-view-subtitle">Detailed assignments for the selected day.</p>
+            </div>
+            <div class="day-view-content">
+              <app-day-cell
+                class="day-view-cell"
+                [day]="selectedDayNumber()"
+                [assignment]="selectedAssignment()"
+                [dayType]="selectedDayType()"
+                [date]="selectedDate()"
+                [zoomable]="false"
+                (doctorDropped)="doctorDropped.emit($event)"
+                (doctorClicked)="onDoctorClicked($event)"
+              />
+            </div>
           </div>
         }
       </div>
@@ -294,6 +295,25 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       min-height: 0;
     }
 
+    .no-rota-warning {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+      background: #fff3e0;
+      border: 1px solid #ffcc80;
+      border-radius: 6px;
+      color: #e65100;
+      font-size: 0.8rem;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .warning-icon {
+      font-size: 1rem;
+    }
+
     .empty-state {
       flex: 1;
       display: flex;
@@ -335,10 +355,13 @@ export class CalendarComponent {
   readonly year = input.required<number>();
   readonly schedule = input<MergedDayAssignment[]>([]);
   readonly hasData = input<boolean>(true);
+  readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
+  readonly allHolidayDates = input<ReadonlySet<string>>(new Set<string>());
   readonly yearChange = output<number>();
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorFilterChanged = output<string | null>();
   readonly monthChange = output<number>();
+  readonly dayContextMenu = output<{ date: string; dayType: string; x: number; y: number }>();
 
   readonly filteredDoctor = signal<{ doctor_id: string; doctor_name: string } | null>(null);
   readonly currentMonth = signal(new Date().getMonth() + 1);
@@ -455,6 +478,10 @@ export class CalendarComponent {
 
   showMonthView(): void {
     this.viewMode.set('month');
+  }
+
+  onDayContextMenu(event: { date: string; dayType: string; x: number; y: number }): void {
+    this.dayContextMenu.emit(event);
   }
 
   clearFilter(): void {

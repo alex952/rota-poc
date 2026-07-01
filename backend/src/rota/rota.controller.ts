@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   Controller,
   Get,
   Param,
@@ -12,10 +13,16 @@ import {
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
 import { RotaService } from './rota.service';
+import { HolidaysService } from '../holidays/holidays.service';
+import { AppConfigService } from '../config/app-config.service';
 
 @Controller('rota')
 export class RotaController {
-  constructor(private readonly rotaService: RotaService) {}
+  constructor(
+    private readonly rotaService: RotaService,
+    private readonly holidaysService: HolidaysService,
+    private readonly appConfigService: AppConfigService,
+  ) {}
 
   @Post('generate')
   async generate(@Body() request: GenerateRotaDto) {
@@ -28,11 +35,13 @@ export class RotaController {
     @Param('rotaType') rotaType: string,
     @Query('doctor_id') doctorId?: string,
   ) {
+    await this.ensureHolidaysLoaded(year);
     return this.rotaService.getByType(year, rotaType, doctorId);
   }
 
   @Get(':year')
   async getByYear(@Param('year', ParseIntPipe) year: number) {
+    await this.ensureHolidaysLoaded(year);
     return this.rotaService.getByYear(year);
   }
 
@@ -43,5 +52,17 @@ export class RotaController {
     @Body() request: ReplaceDoctorDto,
   ) {
     return this.rotaService.replaceDoctor(year, rotaType, request);
+  }
+
+  private async ensureHolidaysLoaded(year: number): Promise<void> {
+    try {
+      await this.holidaysService.getHolidays(
+        year,
+        this.appConfigService.city,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new BadGatewayException(`Holiday API error: ${message}`);
+    }
   }
 }

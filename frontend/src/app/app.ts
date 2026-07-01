@@ -4,9 +4,11 @@ import { CalendarComponent } from './features/calendar/calendar.component';
 import { StatsPanelComponent } from './features/stats/stats-panel.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
 import { ReplaceDoctorDialogComponent, ReplaceDoctorChoice } from './shared/replace-doctor-dialog.component';
+import { DayContextMenuComponent } from './shared/day-context-menu.component';
 import { NotificationComponent } from './shared/notification.component';
 import { ConfigService } from './core/services/config.service';
 import { RotaService } from './core/services/rota.service';
+import { HolidaysService } from './core/services/holidays.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
 import { Doctor, RotaType } from './core/models/doctor.model';
@@ -28,6 +30,7 @@ type ReplaceableAssignment = DoctorRef & {
     StatsPanelComponent,
     ConfirmDialogComponent,
     ReplaceDoctorDialogComponent,
+    DayContextMenuComponent,
     NotificationComponent,
     CdkDropListGroup,
   ],
@@ -37,6 +40,7 @@ type ReplaceableAssignment = DoctorRef & {
 export class App implements OnInit {
   private readonly configService = inject(ConfigService);
   private readonly rotaService = inject(RotaService);
+  private readonly holidaysService = inject(HolidaysService);
   private readonly doctorPoolService = inject(DoctorPoolService);
   private readonly notificationService = inject(NotificationService);
 
@@ -48,6 +52,14 @@ export class App implements OnInit {
   protected readonly loading = signal(false);
   protected readonly isGenerating = signal(false);
   protected readonly currentMonth = signal(new Date().getMonth() + 1);
+
+  protected readonly contextMenuOpen = signal(false);
+  protected readonly contextMenuPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
+  protected readonly contextMenuDate = signal('');
+  protected readonly contextMenuDayType = signal('');
+
+  readonly manualHolidayDates = computed(() => this.holidaysService.manualHolidayDates());
+  readonly allHolidayDates = computed(() => this.holidaysService.allHolidayDates());
 
   // Dual rota state
   protected readonly acSchedule = signal<DayAssignment[]>([]);
@@ -124,7 +136,10 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.doctorPoolService.loadDoctors();
     this.configService.getConfig().subscribe({
-      next: (config) => this.city.set(config.city),
+      next: (config) => {
+        this.city.set(config.city);
+        this.holidaysService.loadHolidays(this.selectedYear());
+      },
       error: (err) => {
         console.error('Failed to load config', err);
         this.notificationService.show(
@@ -144,12 +159,62 @@ export class App implements OnInit {
     this.currentMonth.set(month);
   }
 
+  onDayContextMenu(event: { date: string; dayType: string; x: number; y: number }): void {
+    this.contextMenuDate.set(event.date);
+    this.contextMenuDayType.set(event.dayType);
+    this.contextMenuPosition.set({ x: event.x, y: event.y });
+    this.contextMenuOpen.set(true);
+  }
+
+  onCloseContextMenu(): void {
+    this.contextMenuOpen.set(false);
+  }
+
+  onContextMenuAction(event: { action: 'mark' | 'unmark'; date: string }): void {
+    const date = event.date;
+    const year = this.selectedYear();
+    this.contextMenuOpen.set(false);
+
+    if (event.action === 'mark') {
+      this.holidaysService.markHoliday(year, date, 'Festivo Manual').subscribe({
+        next: () => {
+          this.notificationService.show(
+            `El día ${date} se ha marcado como festivo manual. Las rotas existentes pueden no reflejar este cambio. Regenera la rota para actualizar las asignaciones.`,
+            'warning'
+          );
+        },
+        error: (err) => {
+          this.notificationService.show(
+            this.extractErrorMessage(err, 'Error al marcar festivo manual'),
+            'error'
+          );
+        },
+      });
+    } else {
+      this.holidaysService.unmarkHoliday(year, date).subscribe({
+        next: () => {
+          this.notificationService.show(
+            `El día ${date} ya no es festivo manual. Las rotas existentes pueden no reflejar este cambio. Regenera la rota para actualizar las asignaciones.`,
+            'warning'
+          );
+        },
+        error: (err) => {
+          this.notificationService.show(
+            this.extractErrorMessage(err, 'Error al desmarcar festivo manual'),
+            'error'
+          );
+        },
+      });
+    }
+  }
+
   onPoolTabChange(tab: RotaType): void {
     this.activePoolTab.set(tab);
   }
 
   onYearChange(year: number): void {
     this.selectedYear.set(year);
+    this.holidaysService.loadHolidays(year);
     this.loadRotas(year);
   }
 

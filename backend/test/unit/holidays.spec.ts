@@ -67,6 +67,69 @@ describe('Holiday service', () => {
 
     await expect(fetchHolidays(2026, CITY, mockDb.repository, fetcher)).rejects.toThrow('Server Error');
   });
+
+  describe('createCustomHoliday', () => {
+    it('creates a manual holiday and returns updated holiday list', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock();
+      const service = new HolidaysService(mockRepo as any);
+
+      const result = await service.createCustomHoliday(2026, CITY, '2026-03-16', 'Festivo Manual');
+
+      expect(result).toEqual(expect.arrayContaining([
+        expect.objectContaining({ date: '2026-03-16', name: 'Festivo Manual', source: 'manual' }),
+      ]));
+    });
+
+    it('rejects creating a holiday that already exists', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock([{ year: 2026, city: CITY, date: '2026-03-15', name: 'Existing', source: 'api' }]);
+      const service = new HolidaysService(mockRepo as any);
+
+      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('already exists');
+    });
+
+    it('rejects creating a manual holiday on Sunday', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock();
+      const service = new HolidaysService(mockRepo as any);
+
+      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('Sunday');
+    });
+  });
+
+  describe('deleteCustomHoliday', () => {
+    it('deletes a manual holiday and returns updated holiday list', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock([
+        { year: 2026, city: CITY, date: '2026-03-15', name: 'Festivo Manual', source: 'manual' },
+      ]);
+      const service = new HolidaysService(mockRepo as any);
+
+      const result = await service.deleteCustomHoliday(2026, CITY, '2026-03-15');
+
+      expect(result).toHaveLength(0);
+      expect(mockRepo.remove).toHaveBeenCalled();
+    });
+
+    it('rejects deleting a non-existent holiday', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock();
+      const service = new HolidaysService(mockRepo as any);
+
+      await expect(service.deleteCustomHoliday(2026, CITY, '2026-03-15')).rejects.toThrow('not found');
+    });
+
+    it('rejects deleting an API holiday', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock([
+        { year: 2026, city: CITY, date: '2026-01-01', name: 'Ano Nuevo', source: 'api' },
+      ]);
+      const service = new HolidaysService(mockRepo as any);
+
+      await expect(service.deleteCustomHoliday(2026, CITY, '2026-01-01')).rejects.toThrow('Only manually created holidays');
+    });
+  });
 });
 
 function createHolidayDbMock() {
@@ -90,6 +153,33 @@ function createHolidayDbMock() {
         }
       }),
     },
+  };
+}
+
+function createHolidayRepositoryMock(initialRecords: Array<any> = []) {
+  const records = [...initialRecords];
+  return {
+    find: jest.fn(async (opts: any) => {
+      const year = opts.where?.year;
+      const city = opts.where?.city;
+      return records.filter((r) => r.year === year && r.city === city);
+    }),
+    findOne: jest.fn(async (opts: any) => {
+      const year = opts.where?.year;
+      const city = opts.where?.city;
+      const date = opts.where?.date;
+      return records.find((r) => r.year === year && r.city === city && r.date === date) || null;
+    }),
+    create: jest.fn((data: any) => ({ ...data })),
+    save: jest.fn(async (entity: any) => {
+      records.push(entity);
+      return entity;
+    }),
+    remove: jest.fn(async (entity: any) => {
+      const index = records.findIndex((r) => r.year === entity.year && r.city === entity.city && r.date === entity.date);
+      if (index >= 0) records.splice(index, 1);
+      return entity;
+    }),
   };
 }
 

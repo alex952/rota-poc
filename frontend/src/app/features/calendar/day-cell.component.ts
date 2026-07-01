@@ -11,6 +11,13 @@ export interface ReplacementEvent {
   apDoctors: DoctorRef[];
 }
 
+export interface DayContextMenuEvent {
+  date: string;
+  dayType: string;
+  x: number;
+  y: number;
+}
+
 interface AcRenderItem {
   doctor_id: string;
   doctor_name: string;
@@ -24,13 +31,15 @@ interface AcRenderItem {
   template: `
     <div
       class="day-cell"
-      [class.day-weekday]="dayType() === 'weekday'"
-      [class.day-saturday]="dayType() === 'saturday'"
-      [class.day-holiday]="dayType() === 'holiday'"
+      [class.day-weekday]="effectiveDayType() === 'weekday'"
+      [class.day-saturday]="effectiveDayType() === 'saturday'"
+      [class.day-holiday]="effectiveDayType() === 'holiday'"
+      [class.day-holiday-manual]="effectiveDayType() === 'holiday-manual'"
       [class.drop-target]="assignment() !== null"
       [class.zoomable]="zoomable()"
       cdkDropList
       (click)="onDayClick()"
+      (contextmenu)="onDayRightClick($event)"
       (cdkDropListDropped)="onDrop($event)"
       [cdkDropListEnterPredicate]="canDrop"
     >
@@ -79,6 +88,7 @@ interface AcRenderItem {
       transition: background-color 0.15s ease;
       overflow: hidden;
       min-height: 0;
+      position: relative;
     }
 
     .day-cell:hover {
@@ -109,12 +119,28 @@ interface AcRenderItem {
       background: #fce4ec;
     }
 
+    .day-holiday-manual {
+      background: #f8bbd0;
+    }
+
+    .day-holiday-manual .day-number::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      background: #c62828;
+      border-radius: 50%;
+    }
+
     .day-number {
       display: block;
       font-weight: 600;
       font-size: 0.8rem;
       color: #333;
       margin-bottom: 2px;
+      position: relative;
     }
 
     .assignments {
@@ -211,10 +237,19 @@ export class DayCellComponent {
   readonly date = input<string>('');
   readonly zoomable = input<boolean>(true);
   readonly reducedDoctorIds = input<ReadonlySet<string>>(new Set<string>());
+  readonly isManualHoliday = input<boolean>(false);
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
   readonly daySelected = output<string>();
+  readonly dayContextMenu = output<DayContextMenuEvent>();
+
+  readonly effectiveDayType = computed<string>(() => {
+    if (this.isManualHoliday()) {
+      return 'holiday-manual';
+    }
+    return this.dayType();
+  });
 
   readonly acRenderItems = computed<AcRenderItem[]>(() => {
     const current = this.assignment();
@@ -287,6 +322,18 @@ export class DayCellComponent {
   onDayClick(): void {
     if (!this.zoomable() || !this.date()) return;
     this.daySelected.emit(this.date());
+  }
+
+  onDayRightClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.date()) return;
+    this.dayContextMenu.emit({
+      date: this.date(),
+      dayType: this.effectiveDayType(),
+      x: event.clientX,
+      y: event.clientY,
+    });
   }
 
   onDrop(event: CdkDragDrop<any>): void {

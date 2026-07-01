@@ -29,7 +29,9 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 
 - `GET /health`
 - `GET /api/v1/config`
-- `GET /api/v1/holidays/:year`
+- `GET /api/v1/holidays/:year` — lista todos los festivos del año (API + manuales)
+- `POST /api/v1/holidays/:year` — marca una fecha como festivo manual
+- `DELETE /api/v1/holidays/:year/:date` — desmarca un festivo manual (solo si `source = 'manual'`)
 - `POST /api/v1/rota/generate`
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
@@ -40,7 +42,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `rotas`: una rota persistida por `(año, tipo_rota)` más la instantánea del grupo original.
 - `rota_doctors`: miembros del grupo normalizados para una rota, incluyendo `hours_reduced_per_day`.
 - `rota_assignments`: una fila por asignación y tipo de asignación (`primary` o `refuerzo`). En AP festivos hay dos filas `primary` por fecha (cobertura doble). En AC con horario reducido hay una fila `refuerzo` adicional vinculada al primary mediante `linked_primary_doctor_id`. La columna `duration_hours` puede diferir entre rotas para la misma fecha (AC usa la duración del día calendario; AP usa 7h o 12h).
-- `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`.
+- `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`. Contiene una columna `source ('api' | 'manual')` para distinguir los festivos obtenidos de la API externa de los creados por el usuario.
 
 Restricciones importantes:
 
