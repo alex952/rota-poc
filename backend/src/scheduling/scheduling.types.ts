@@ -5,22 +5,11 @@ export interface DoctorInput {
   id: string;
   name: string;
   department: string;
-  hours_reduced_per_day?: number;
 }
 
 export interface DoctorRef {
   doctorId: string;
   doctorName: string;
-}
-
-export interface RefuerzoAssignment {
-  doctorId: string;
-  doctorName: string;
-  linkedPrimaryDoctorId: string;
-  linkedPrimaryDoctorName: string;
-  shiftStart: string;
-  shiftEnd: string;
-  durationHours: number;
 }
 
 export interface DayInfo {
@@ -33,7 +22,6 @@ export interface DayInfo {
 
 export interface DayAssignment extends DayInfo {
   doctors: DoctorRef[];
-  refuerzos: RefuerzoAssignment[];
 }
 
 export interface DoctorStats {
@@ -42,8 +30,6 @@ export interface DoctorStats {
   totalHours: number;
   targetHours: number;
   hoursVsTarget: number;
-  primaryHours: number;
-  refuerzoHours: number;
   monthlyHours: Record<string, number>;
   shiftsWeekday: number;
   shiftsSaturday: number;

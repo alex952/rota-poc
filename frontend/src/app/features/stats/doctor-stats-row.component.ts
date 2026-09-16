@@ -28,14 +28,6 @@ import { DoctorStats } from '../../core/models/rota.model';
             {{ (stats().hours_vs_target ?? 0) >= 0 ? '+' : '' }}{{ stats().hours_vs_target ?? 0 }}h
           </span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Primary</span>
-          <span class="stat-value">{{ stats().primary_hours ?? 0 }}h</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Refuerzo</span>
-          <span class="stat-value">{{ stats().refuerzo_hours ?? 0 }}h</span>
-        </div>
       </div>
       <div class="hours-bar">
         <div class="hours-bar-fill" [style.width.%]="barWidth()"></div>

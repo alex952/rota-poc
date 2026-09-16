@@ -3,33 +3,17 @@ export enum RotaType {
   AP = 'AP',
 }
 
-export enum AssignmentKind {
-  Primary = 'primary',
-  Refuerzo = 'refuerzo',
-}
-
 export type DayType = 'weekday' | 'saturday' | 'holiday';
 
 export interface DoctorIn {
   id: string;
   name: string;
   department: string;
-  hours_reduced_per_day: number;
 }
 
 export interface DoctorRef {
   doctor_id: string;
   doctor_name: string;
-}
-
-export interface RefuerzoAssignment {
-  doctor_id: string;
-  doctor_name: string;
-  linked_primary_doctor_id: string;
-  linked_primary_doctor_name: string;
-  shift_start: string;
-  shift_end: string;
-  duration_hours: number;
 }
 
 export interface DayInfo {
@@ -47,7 +31,6 @@ export interface DayAssignment {
   shift_end: string;
   duration_hours: number;
   doctors: DoctorRef[];
-  refuerzos: RefuerzoAssignment[];
 }
 
 export interface DoctorStats {
@@ -56,8 +39,6 @@ export interface DoctorStats {
   total_hours: number;
   target_hours: number;
   hours_vs_target: number;
-  primary_hours: number;
-  refuerzo_hours: number;
   monthly_hours: Record<string, number>;
   shifts_weekday: number;
   shifts_saturday: number;

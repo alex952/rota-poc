@@ -13,7 +13,7 @@ import { RotaEntity } from './rota.entity';
 const isSqlJs = (process.env.DB_TYPE ?? '') === 'sqljs';
 
 @Entity({ name: 'rota_assignments' })
-@Unique(['rotaId', 'date', 'doctorId', 'assignmentKind'])
+@Unique(['rotaId', 'date', 'doctorId'])
 @Index('ix_rota_assignments_doctor', ['rotaId', 'doctorId'])
 export class RotaAssignmentEntity {
   @PrimaryGeneratedColumn()
@@ -39,12 +39,6 @@ export class RotaAssignmentEntity {
 
   @Column({ name: 'doctor_id', type: 'varchar', length: 50 })
   doctorId!: string;
-
-  @Column({ name: 'assignment_kind', type: 'varchar', length: 20, default: 'primary' })
-  assignmentKind!: string;
-
-  @Column({ name: 'linked_primary_doctor_id', type: 'varchar', length: 50, nullable: true })
-  linkedPrimaryDoctorId!: string | null;
 
   @ManyToOne(() => RotaEntity, (rota) => rota.assignments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rota_id' })

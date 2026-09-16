@@ -1,13 +1,12 @@
 import { Component, computed, input, output } from '@angular/core';
 import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
-import { MergedDayAssignment, DoctorRef, RefuerzoAssignment } from '../../core/models/rota.model';
+import { MergedDayAssignment, DoctorRef } from '../../core/models/rota.model';
 import { Doctor } from '../../core/models/doctor.model';
 
 export interface ReplacementEvent {
   date: string;
   newDoctor: Doctor;
   acDoctors: DoctorRef[];
-  acRefuerzos: RefuerzoAssignment[];
   apDoctors: DoctorRef[];
 }
 
@@ -16,12 +15,6 @@ export interface DayContextMenuEvent {
   dayType: string;
   x: number;
   y: number;
-}
-
-interface AcRenderItem {
-  doctor_id: string;
-  doctor_name: string;
-  reduced: boolean;
 }
 
 @Component({
@@ -46,15 +39,11 @@ interface AcRenderItem {
       <span class="day-number">{{ day() }}</span>
       @if (assignment()) {
         <div class="assignments" data-testid="day-assignments">
-          @if (acRenderItems().length > 0) {
+          @if (assignment()!.acDoctors.length > 0) {
             <div class="ac-section" title="Atencion Continuada">
               <span class="section-header">AC</span>
-              @for (item of acRenderItems(); track item.doctor_id) {
-                <span
-                  class="doctor-pill clickable"
-                  [class.reduced-hours]="item.reduced"
-                  (click)="onDoctorClick($event, { doctor_id: item.doctor_id, doctor_name: item.doctor_name })"
-                >{{ item.doctor_name }}</span>
+              @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
+                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
               }
             </div>
           }
@@ -204,10 +193,6 @@ interface AcRenderItem {
       color: #0d47a1;
     }
 
-    .ac-section .doctor-pill.reduced-hours {
-      font-style: italic;
-    }
-
     .ap-section .doctor-pill {
       background: #c8e6c9;
       color: #1b5e20;
@@ -236,7 +221,6 @@ export class DayCellComponent {
   readonly dayType = input<string>('weekday');
   readonly date = input<string>('');
   readonly zoomable = input<boolean>(true);
-  readonly reducedDoctorIds = input<ReadonlySet<string>>(new Set<string>());
   readonly isManualHoliday = input<boolean>(false);
 
   readonly doctorDropped = output<ReplacementEvent>();
@@ -249,65 +233,6 @@ export class DayCellComponent {
       return 'holiday-manual';
     }
     return this.dayType();
-  });
-
-  readonly acRenderItems = computed<AcRenderItem[]>(() => {
-    const current = this.assignment();
-    if (!current) {
-      return [];
-    }
-
-    const refuerzos = current.acRefuerzos ?? [];
-    const inferredReduced = new Set(
-      refuerzos
-        .map((refuerzo) => refuerzo.linked_primary_doctor_id)
-        .filter((id): id is string => Boolean(id)),
-    );
-    const externalReduced = this.reducedDoctorIds();
-
-    const reducedPrimaries: AcRenderItem[] = [];
-    const otherPrimaries: AcRenderItem[] = [];
-    for (const doctor of current.acDoctors) {
-      const reduced = inferredReduced.has(doctor.doctor_id) || externalReduced.has(doctor.doctor_id);
-      const item: AcRenderItem = {
-        doctor_id: doctor.doctor_id,
-        doctor_name: doctor.doctor_name,
-        reduced,
-      };
-      if (reduced) {
-        reducedPrimaries.push(item);
-      } else {
-        otherPrimaries.push(item);
-      }
-    }
-
-    const items: AcRenderItem[] = [];
-    const refuerzosByPrimary = new Map<string, RefuerzoAssignment[]>();
-    for (const refuerzo of refuerzos) {
-      const key = refuerzo.linked_primary_doctor_id;
-      if (!refuerzosByPrimary.has(key)) {
-        refuerzosByPrimary.set(key, []);
-      }
-      refuerzosByPrimary.get(key)?.push(refuerzo);
-    }
-
-    for (const primary of reducedPrimaries) {
-      items.push(primary);
-      const linkedRefuerzos = refuerzosByPrimary.get(primary.doctor_id) ?? [];
-      for (const refuerzo of linkedRefuerzos) {
-        items.push({
-          doctor_id: refuerzo.doctor_id,
-          doctor_name: refuerzo.doctor_name,
-          reduced: false,
-        });
-      }
-    }
-
-    for (const primary of otherPrimaries) {
-      items.push(primary);
-    }
-
-    return items;
   });
 
   canDrop = (): boolean => {
@@ -347,7 +272,6 @@ export class DayCellComponent {
       date: currentAssignment.date,
       newDoctor: droppedDoctor,
       acDoctors: currentAssignment.acDoctors,
-      acRefuerzos: currentAssignment.acRefuerzos ?? [],
       apDoctors: currentAssignment.apDoctors,
     });
   }

@@ -12,15 +12,10 @@ import { HolidaysService } from './core/services/holidays.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
 import { Doctor, RotaType } from './core/models/doctor.model';
-import { DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, RefuerzoAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
+import { DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
-
-type ReplaceableAssignment = DoctorRef & {
-  assignment_kind: 'primary' | 'refuerzo';
-  linked_primary_doctor_id?: string;
-};
 
 @Component({
   selector: 'app-root',
@@ -72,8 +67,6 @@ export class App implements OnInit {
   // Drag-and-drop replacement state
   protected readonly pendingReplacement = signal<ReplacementEvent | null>(null);
 
-  protected readonly doctors = computed(() => this.doctorPoolService.doctors());
-
   protected readonly activePoolDoctors = computed(() => {
     const tab = this.activePoolTab();
     return tab === 'AC'
@@ -117,7 +110,6 @@ export class App implements OnInit {
         shift_end: ref.shift_end,
         duration_hours: ref.duration_hours,
         acDoctors: ac?.doctors ?? [],
-        acRefuerzos: ac?.refuerzos ?? [],
         apDoctors: ap?.doctors ?? [],
       });
     }
@@ -244,21 +236,14 @@ export class App implements OnInit {
     const replaceableDoctors = this.getReplaceableDoctors(tab, event);
     if (replaceableDoctors.length === 0) {
       this.notificationService.show(
-        'No valid replacement or refuerzo assignment is available for that doctor on this day.',
+        'No hay ninguna sustitución disponible para ese médico en este día.',
         'warning'
       );
       return;
     }
     if (replaceableDoctors.length === 1) {
-      this.doReplace(
-        tab,
-        event.date,
-        replaceableDoctors[0].doctor_id,
-        event.newDoctor.id,
-        replaceableDoctors[0].assignment_kind,
-        replaceableDoctors[0].linked_primary_doctor_id,
-      );
-    } else if (replaceableDoctors.length > 1) {
+      this.doReplace(tab, event.date, replaceableDoctors[0].doctor_id, event.newDoctor.id);
+    } else {
       this.pendingReplacement.set(event);
     }
   }
@@ -267,14 +252,7 @@ export class App implements OnInit {
     const replacement = this.pendingReplacement();
     if (!replacement) return;
     this.pendingReplacement.set(null);
-    this.doReplace(
-      this.activePoolTab(),
-      replacement.date,
-      choice.doctor_id,
-      replacement.newDoctor.id,
-      choice.assignment_kind,
-      choice.linked_primary_doctor_id,
-    );
+    this.doReplace(this.activePoolTab(), replacement.date, choice.doctor_id, replacement.newDoctor.id);
   }
 
   onCancelReplacement(): void {
@@ -286,15 +264,11 @@ export class App implements OnInit {
     dateStr: string,
     oldDoctorId: string,
     newDoctorId: string,
-    assignmentKind: 'primary' | 'refuerzo' = 'primary',
-    linkedPrimaryDoctorId?: string,
   ): void {
     const request: ReplaceRequest = {
       date: dateStr,
       old_doctor_id: oldDoctorId,
       new_doctor_id: newDoctorId,
-      assignment_kind: assignmentKind,
-      linked_primary_doctor_id: linkedPrimaryDoctorId,
     };
 
     this.loading.set(true);
@@ -367,56 +341,8 @@ export class App implements OnInit {
   protected getReplaceableDoctors(
     rotaType: RotaType,
     event: ReplacementEvent,
-  ): ReplaceableAssignment[] {
-    if (rotaType === 'AP') {
-      return event.apDoctors.map((doctor) => ({ ...doctor, assignment_kind: 'primary' as const }));
-    }
-
-    const canCoverRefuerzo = (event.newDoctor.hours_reduced_per_day ?? 0) === 0;
-    const primaryAssignments = event.acDoctors.map((doctor) => ({
-      ...doctor,
-      assignment_kind: 'primary' as const,
-    }));
-    const refuerzoAssignments = canCoverRefuerzo
-      ? (event.acRefuerzos ?? []).map((refuerzo: RefuerzoAssignment) => ({
-          doctor_id: refuerzo.doctor_id,
-          doctor_name: `${refuerzo.doctor_name} (refuerzo)`,
-          assignment_kind: 'refuerzo' as const,
-          linked_primary_doctor_id: refuerzo.linked_primary_doctor_id,
-        }))
-      : [];
-    const missingRefuerzoAssignment = this.getMissingRefuerzoAssignment(event, canCoverRefuerzo);
-
-    return [
-      ...primaryAssignments,
-      ...refuerzoAssignments,
-      ...(missingRefuerzoAssignment ? [missingRefuerzoAssignment] : []),
-    ];
-  }
-
-  private getMissingRefuerzoAssignment(
-    event: ReplacementEvent,
-    canCoverRefuerzo: boolean,
-  ): ReplaceableAssignment | null {
-    if (!canCoverRefuerzo || (event.acRefuerzos ?? []).length > 0 || event.acDoctors.length !== 1) {
-      return null;
-    }
-
-    const primaryDoctor = event.acDoctors[0];
-    if (!this.isReducedHoursDoctor(primaryDoctor.doctor_id) || event.newDoctor.id === primaryDoctor.doctor_id) {
-      return null;
-    }
-
-    return {
-      doctor_id: primaryDoctor.doctor_id,
-      doctor_name: `Assign refuerzo for ${primaryDoctor.doctor_name}`,
-      assignment_kind: 'refuerzo',
-      linked_primary_doctor_id: primaryDoctor.doctor_id,
-    };
-  }
-
-  private isReducedHoursDoctor(doctorId: string): boolean {
-    return (this.doctors().find((doctor) => doctor.id === doctorId)?.hours_reduced_per_day ?? 0) > 0;
+  ): DoctorRef[] {
+    return rotaType === 'AP' ? event.apDoctors : event.acDoctors;
   }
 
   private doGenerateRota(): void {

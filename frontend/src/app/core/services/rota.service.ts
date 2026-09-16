@@ -24,7 +24,6 @@ export class RotaService {
         id: doctor.id,
         name: doctor.name,
         department: doctor.department,
-        hours_reduced_per_day: doctor.hours_reduced_per_day ?? 0,
       })),
     };
     return this.http.post<RotaResponse>('/api/v1/rota/generate', request);

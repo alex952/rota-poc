@@ -60,10 +60,9 @@ Las migraciones residen en `backend/src/database/migrations/` y se ejecutan medi
 El algoritmo de rota se mantiene deliberadamente fuera de los decoradores NestJS y las preocupaciones de transporte.
 
 - La clasificación de días se deriva de los domingos más la caché de festivos. El `DayInfo` resultante representa la duración del **día calendario** (la usada por AC).
-- `doctorsPerDay` se calcula automáticamente (valor base) y se complementa con `doctorsForDay(rotaType, base, dayType)` para los casos donde la cobertura del día varía. AP dobla en festivos.
+- `doctorsPerDay` es una **constante fija de 1 médico/día** (valor base) y se complementa con `doctorsForDay(rotaType, base, dayType)` para los casos donde la cobertura del día varía. AP dobla a 2 en festivos.
 - AC y AP se generan de forma independiente. Las **duraciones de turno AP** son distintas de las del día calendario: 7 h en laborable/sábado, 12 h en festivo. Se aplican vía `apShiftDetails(dayType)` y se persisten en `RotaAssignmentEntity.durationHours`.
-- Los médicos de AC con horas reducidas generan asignaciones de `refuerzo` vinculadas (`assignment_kind='refuerzo'`, `linked_primary_doctor_id`). Los médicos con `hours_reduced_per_day > 0` están excluidos como candidatos a refuerzo.
-- En festivos AP se persisten **dos filas con `assignment_kind='primary'`** para la misma fecha, con distinto `doctor_id`.
+- En festivos AP se persisten **dos filas** para la misma fecha, con distinto `doctor_id`.
 - Las estadísticas se recalculan a partir de las asignaciones persistidas para garantizar la consistencia de la respuesta.
 
 Consulta [ALGORITHM.md](./ALGORITHM.md) para el conjunto de reglas detallado.
@@ -74,12 +73,12 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 
 - campos de respuesta estables en snake_case
 - cargas de rota AC y AP separadas
-- flujos de sustitución para asignaciones `primary` y `refuerzo`
+- un único flujo de sustitución de asignaciones
 - la ciudad configurada a través de `/api/v1/config`
 
 ### Renderizado del calendario
 
-- **Sección AC** muestra los médicos AC del día. Cuando un AC tiene horario reducido, su pill aparece primero y en cursiva, seguido del pill del refuerzo AC en estilo normal. La etiqueta "REF" se ha eliminado para evitar confusión semántica.
+- **Sección AC** muestra el médico AC del día.
 - **Sección AP** muestra los médicos AP del día con prefijo visual `R:` (vía pseudo-elemento `::before`). En festivos aparecen los dos médicos AP, ambos con `R:`.
 
 ## Desarrollo Local

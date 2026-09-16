@@ -3,14 +3,11 @@ import {
   AP_POOL_5,
   AP_POOL_8,
   HOLIDAYS_2026,
-  REDUCED_AC_POOL_4,
   YEAR_2026,
-  reducedPool,
   toHolidaySet,
 } from '../helpers/fixtures';
 
 import {
-  buildTargetHours,
   computeDoctorsPerDay,
   generateRota,
 } from '../../src/scheduling/assignment.service';
@@ -24,14 +21,6 @@ describe('Assignment domain', () => {
     expect(computeDoctorsPerDay('AC', AC_POOL_4.length, totalYearlyHours)).toBe(1);
     expect(computeDoctorsPerDay('AC', 5, totalYearlyHours)).toBe(2);
     expect(computeDoctorsPerDay('AP', 10, totalYearlyHours)).toBe(1);
-  });
-
-  it('builds personalized AC targets for reduced-hours doctors', () => {
-    const targets = buildTargetHours('AC', REDUCED_AC_POOL_4, dayClassifications);
-    const standardTargets = buildTargetHours('AC', AC_POOL_4, dayClassifications);
-
-    expect(targets[REDUCED_AC_POOL_4[0].id]).toBeLessThan(standardTargets[REDUCED_AC_POOL_4[0].id]);
-    expect(targets[REDUCED_AC_POOL_4[1].id]).toBeGreaterThan(0);
   });
 
   it('keeps AC and AP generation independent', () => {
@@ -68,14 +57,9 @@ describe('Assignment domain', () => {
     }
   });
 
-  it('adds linked refuerzos only for reduced-hours primary assignments', () => {
-    const rota = generateRota(YEAR_2026, 'AC', reducedPool(), dayClassifications);
-    const reducedDays = rota.schedule.filter((day) =>
-      day.doctors.some((doctor) => doctor.doctorId === REDUCED_AC_POOL_4[0].id),
-    );
+  it('applies AC shift durations and times per day type', () => {
+    const rota = generateRota(YEAR_2026, 'AC', AC_POOL_4, dayClassifications);
 
-    expect(reducedDays.length).toBeGreaterThan(0);
-    expect(reducedDays.every((day) => day.refuerzos.length === 1)).toBe(true);
     expect(
       rota.schedule.every((day) => {
         if (day.dayType === 'holiday') {
@@ -118,7 +102,6 @@ describe('AP rota — refuerzo diario y festivos doblados', () => {
       expect(day.shiftEnd).toBe('22:00');
       const doctorIds = new Set(day.doctors.map((doctor) => doctor.doctorId));
       expect(doctorIds.size).toBe(2);
-      expect(day.refuerzos).toHaveLength(0);
     }
   });
 
@@ -168,29 +151,5 @@ describe('AC rota — cobertura fija y validación de pool', () => {
       expect(day.doctors).toHaveLength(1);
     }
     expect(rota.doctorsPerDay).toBe(1);
-  });
-});
-
-describe('AC refuerzo — exclusión de médicos con horario reducido', () => {
-  const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
-
-  it('nunca asigna a un médico reducido como refuerzo en la generación inicial', () => {
-    const doubleReducedPool = [
-      { ...REDUCED_AC_POOL_4[0] },
-      { ...REDUCED_AC_POOL_4[1], hours_reduced_per_day: 2 },
-      ...REDUCED_AC_POOL_4.slice(2),
-    ];
-    const rota = generateRota(YEAR_2026, 'AC', doubleReducedPool, dayClassifications);
-    const reducedIds = new Set(
-      doubleReducedPool
-        .filter((doctor) => (doctor.hours_reduced_per_day ?? 0) > 0)
-        .map((doctor) => doctor.id),
-    );
-
-    for (const day of rota.schedule) {
-      for (const refuerzo of day.refuerzos) {
-        expect(reducedIds.has(refuerzo.doctorId)).toBe(false);
-      }
-    }
   });
 });

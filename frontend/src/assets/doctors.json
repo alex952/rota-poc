@@ -1,14 +1,14 @@
 [
-  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General", "rota_type": "AC", "hours_reduced_per_day": 0 },
-  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria", "rota_type": "AC", "hours_reduced_per_day": 2 },
-  { "id": "doc-003", "name": "Dr. Martinez", "department": "Cardiologia", "rota_type": "AC", "hours_reduced_per_day": 0 },
-  { "id": "doc-004", "name": "Dr. Fernandez", "department": "Traumatologia", "rota_type": "AC", "hours_reduced_per_day": 1 },
-  { "id": "doc-021", "name": "Dr. Navarro", "department": "Urgencias", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-022", "name": "Dr. Torres", "department": "Medicina General", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-023", "name": "Dr. Dominguez", "department": "Pediatria", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-024", "name": "Dr. Vazquez", "department": "Cardiologia", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-025", "name": "Dr. Ramos", "department": "Traumatologia", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-026", "name": "Dr. Gil", "department": "Neurologia", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-027", "name": "Dr. Serrano", "department": "Medicina Interna", "rota_type": "AP", "hours_reduced_per_day": 0 },
-  { "id": "doc-028", "name": "Dr. Blanco", "department": "Cirugia General", "rota_type": "AP", "hours_reduced_per_day": 0 }
+  { "id": "doc-001", "name": "Dr. Garcia", "department": "Medicina General", "rota_type": "AC" },
+  { "id": "doc-002", "name": "Dr. Lopez", "department": "Pediatria", "rota_type": "AC" },
+  { "id": "doc-003", "name": "Dr. Martinez", "department": "Cardiologia", "rota_type": "AC" },
+  { "id": "doc-004", "name": "Dr. Fernandez", "department": "Traumatologia", "rota_type": "AC" },
+  { "id": "doc-021", "name": "Dr. Navarro", "department": "Urgencias", "rota_type": "AP" },
+  { "id": "doc-022", "name": "Dr. Torres", "department": "Medicina General", "rota_type": "AP" },
+  { "id": "doc-023", "name": "Dr. Dominguez", "department": "Pediatria", "rota_type": "AP" },
+  { "id": "doc-024", "name": "Dr. Vazquez", "department": "Cardiologia", "rota_type": "AP" },
+  { "id": "doc-025", "name": "Dr. Ramos", "department": "Traumatologia", "rota_type": "AP" },
+  { "id": "doc-026", "name": "Dr. Gil", "department": "Neurologia", "rota_type": "AP" },
+  { "id": "doc-027", "name": "Dr. Serrano", "department": "Medicina Interna", "rota_type": "AP" },
+  { "id": "doc-028", "name": "Dr. Blanco", "department": "Cirugia General", "rota_type": "AP" }
 ]
