@@ -42,9 +42,8 @@
     />
   </div>
   <app-stats-panel [visible]="showStats()" [stats]="activeStats()" [activeTab]="activePoolTab()" [currentMonth]="currentMonth()" (closed)="toggleStats()" />
+  <app-notifications />
 </div>
-
-<app-notifications />
 
 @if (showConfirmDialog()) {
   <app-confirm-dialog

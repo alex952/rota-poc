@@ -28,11 +28,14 @@ import { NotificationService } from '../core/services/notification.service';
     </div>
   `,
   styles: [`
-    .notification-container {
-      position: fixed;
+    :host {
+      position: absolute;
       top: 1rem;
       right: 1rem;
       z-index: 2000;
+    }
+
+    .notification-container {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;

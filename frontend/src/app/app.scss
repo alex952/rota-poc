@@ -58,6 +58,8 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  // Ancla las notificaciones bajo la cabecera sin fijar su altura
+  position: relative;
 }
 
 // Calendar wrapper with relative positioning for overlays
