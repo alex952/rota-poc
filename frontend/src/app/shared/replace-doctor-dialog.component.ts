@@ -12,9 +12,9 @@ export interface ReplaceDoctorChoice {
   template: `
     <div class="replace-doctor-backdrop">
       <div class="replace-doctor-dialog">
-        <p class="dialog-title">Assign {{ doctorName() }} on {{ date() }}</p>
+        <p class="dialog-title">Asignar a {{ doctorName() }} el {{ date() }}</p>
         <p class="dialog-subtitle">
-          Choose the assignment to update
+          Elija la asignación que desea actualizar
         </p>
         <div class="doctor-buttons">
           @for (doc of doctors(); track doc.doctor_id) {
@@ -24,7 +24,7 @@ export interface ReplaceDoctorChoice {
           }
         </div>
         <div class="dialog-actions">
-          <button class="btn-cancel" (click)="cancelled.emit()">Cancel</button>
+          <button class="btn-cancel" (click)="cancelled.emit()">Cancelar</button>
         </div>
       </div>
     </div>

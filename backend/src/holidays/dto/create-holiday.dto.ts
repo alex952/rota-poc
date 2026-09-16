@@ -4,7 +4,7 @@ export class CreateHolidayDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'date must be in YYYY-MM-DD format',
+    message: 'la fecha debe tener el formato AAAA-MM-DD',
   })
   readonly date!: string;
 

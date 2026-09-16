@@ -123,7 +123,7 @@ describe('StatsPanelComponent', () => {
 
     const warningEl = fixture.nativeElement.querySelector('.equity-warning');
     expect(warningEl).toBeTruthy();
-    expect(warningEl.textContent.toLowerCase()).toContain('imbalance');
+    expect(warningEl.textContent.toLowerCase()).toContain('desequilibrio');
   });
 
   it('should not show equity warning when distribution is balanced', () => {
@@ -158,7 +158,7 @@ describe('StatsPanelComponent', () => {
 
     const title = fixture.nativeElement.querySelector('.stats-title');
     expect(title).toBeTruthy();
-    expect(title.textContent).toContain('AC Statistics');
+    expect(title.textContent).toContain('Estadísticas AC');
   });
 
   it('should emit close event when close button is clicked', () => {
@@ -183,7 +183,7 @@ describe('StatsPanelComponent', () => {
 
     const noStatsEl = fixture.nativeElement.querySelector('.no-stats');
     expect(noStatsEl).toBeTruthy();
-    expect(noStatsEl.textContent.toLowerCase()).toContain('no statistics');
+    expect(noStatsEl.textContent.toLowerCase()).toContain('no hay estadísticas');
   });
 
   it('should render doctor-stats-row components for each doctor', () => {
@@ -261,6 +261,6 @@ describe('StatsPanelComponent', () => {
 
     const warningEl = fixture.nativeElement.querySelector('.equity-warning');
     expect(warningEl).toBeTruthy();
-    expect(warningEl.textContent.toLowerCase()).toContain('imbalance');
+    expect(warningEl.textContent.toLowerCase()).toContain('desequilibrio');
   });
 });

@@ -96,7 +96,7 @@ export function generateRota(
   const targetHours = buildTargetHours(rotaType, pool);
 
   if (pool.length < 1) {
-    throw new InfeasiblePoolError(`Pool must have at least 1 doctor (got ${pool.length}).`);
+    throw new InfeasiblePoolError(`El grupo debe tener al menos 1 médico (tiene ${pool.length}).`);
   }
 
   const doctorsPerDay = 1;
@@ -114,14 +114,14 @@ export function generateRota(
   const minPool = peakDoctorsPerDay * 2;
   if (pool.length < minPool) {
     throw new InfeasiblePoolError(
-      `Pool of ${pool.length} is too small for ${rotaType}. Need at least ${minPool} doctors (${peakDoctorsPerDay} per day × 2 for rest-day rotation).`,
+      `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}. Se necesitan al menos ${minPool} médicos (${peakDoctorsPerDay} por día × 2 por la rotación del día de descanso).`,
     );
   }
 
   const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
   if (totalCapacityHours < totalTargetHours) {
     throw new InfeasiblePoolError(
-      `Pool of ${pool.length} is too large for ${rotaType}: target ${totalTargetHours}h exceeds yearly coverage capacity ${totalCapacityHours}h.`,
+      `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h.`,
     );
   }
 
@@ -177,7 +177,7 @@ export function generateRota(
       rested.length >= required ? rested : [...rested, ...unrested];
     if (availableToday.length < required) {
       throw new InfeasiblePoolError(
-        `Not enough eligible doctors on ${currentDate}. Pool is too small.`,
+        `No hay suficientes médicos elegibles el ${currentDate}. El grupo es demasiado pequeño.`,
       );
     }
 
@@ -223,7 +223,7 @@ export function generateRota(
   for (const doctor of stats) {
     if (doctor.totalHours < doctor.targetHours) {
       throw new InfeasiblePoolError(
-        `${doctor.doctorName} has ${doctor.totalHours}h, below the ${doctor.targetHours}h minimum for ${rotaType}.`,
+        `${doctor.doctorName} tiene ${doctor.totalHours}h, por debajo del mínimo de ${doctor.targetHours}h para ${rotaType}.`,
       );
     }
   }

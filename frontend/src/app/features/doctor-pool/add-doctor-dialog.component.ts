@@ -8,19 +8,19 @@ import { Doctor, RotaType } from '../../core/models/doctor.model';
   imports: [ReactiveFormsModule],
   template: `
     <div class="add-doctor-dialog">
-      <h4 class="dialog-title">Add New Doctor ({{ defaultRotaType() }})</h4>
+      <h4 class="dialog-title">Añadir nuevo médico ({{ defaultRotaType() }})</h4>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-field">
-          <label for="name">Name</label>
-          <input id="name" formControlName="name" type="text" placeholder="Dr. Name" />
+          <label for="name">Nombre</label>
+          <input id="name" formControlName="name" type="text" placeholder="Dr. Nombre" />
         </div>
         <div class="form-field">
-          <label for="department">Department</label>
-          <input id="department" formControlName="department" type="text" placeholder="Department" />
+          <label for="department">Departamento</label>
+          <input id="department" formControlName="department" type="text" placeholder="Departamento" />
         </div>
         <div class="dialog-actions">
-          <button type="button" class="btn-cancel" (click)="cancelled.emit()">Cancel</button>
-          <button type="submit" class="btn-submit">Add</button>
+          <button type="button" class="btn-cancel" (click)="cancelled.emit()">Cancelar</button>
+          <button type="submit" class="btn-submit">Añadir</button>
         </div>
       </form>
     </div>

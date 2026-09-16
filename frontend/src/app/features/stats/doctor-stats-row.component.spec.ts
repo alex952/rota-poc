@@ -62,7 +62,7 @@ describe('DoctorStatsRowComponent', () => {
     expect(monthHours.textContent).toContain('140h');
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Jan');
+    expect(text).toContain('Ene');
   });
 
   it('should show 0h for month with no data', () => {

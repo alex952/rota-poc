@@ -140,7 +140,7 @@ describe('AC rota — cobertura fija y validación de pool', () => {
     ];
 
     expect(() => generateRota(YEAR_2026, 'AC', largePool, dayClassifications)).toThrow(
-      /too large/i,
+      /demasiado grande/i,
     );
   });
 

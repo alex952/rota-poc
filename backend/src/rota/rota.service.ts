@@ -116,7 +116,7 @@ export class RotaService {
         throw error;
       }
       const message = error instanceof Error ? error.message : String(error);
-      throw new BadGatewayException(`Could not resolve holidays for ${request.year}: ${message}`);
+      throw new BadGatewayException(`No se han podido obtener los festivos de ${request.year}: ${message}`);
     }
   }
 
@@ -126,7 +126,7 @@ export class RotaService {
       relations: { assignments: true, doctors: true },
     });
     if (!rota) {
-      throw new NotFoundException(`No ${rotaType} rota found for year ${year}`);
+      throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
     }
 
     return this.responseMapper.toResponse(rota, doctorId);
@@ -139,7 +139,7 @@ export class RotaService {
       order: { rotaType: 'ASC' },
     });
     if (rotas.length === 0) {
-      throw new NotFoundException(`No rotas found for year ${year}`);
+      throw new NotFoundException(`No se ha encontrado ningún cuadrante para el año ${year}`);
     }
 
     return Promise.all(rotas.map((rota) => this.responseMapper.toResponse(rota)));
@@ -155,13 +155,13 @@ export class RotaService {
         relations: { assignments: true, doctors: true },
       });
       if (!rota) {
-        throw new NotFoundException(`No ${rotaType} rota found for year ${year}`);
+        throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
       }
 
       const poolDoctorIds = new Set((rota.pool as DoctorInput[]).map((doctor) => doctor.id));
       if (!poolDoctorIds.has(request.new_doctor_id)) {
         throw new BadRequestException(
-          `Doctor ${request.new_doctor_id} is not in the original pool.`,
+          `El médico ${request.new_doctor_id} no pertenece al grupo original.`,
         );
       }
 
@@ -174,7 +174,7 @@ export class RotaService {
       });
       if (!assignment) {
         throw new NotFoundException(
-          `Doctor ${request.old_doctor_id} is not assigned on ${request.date}.`,
+          `El médico ${request.old_doctor_id} no está asignado el ${request.date}.`,
         );
       }
 
@@ -186,7 +186,7 @@ export class RotaService {
       );
       if (hasConflict) {
         throw new BadRequestException(
-          `Doctor ${request.new_doctor_id} already has an assignment on ${request.date}.`,
+          `El médico ${request.new_doctor_id} ya tiene una asignación el ${request.date}.`,
         );
       }
 

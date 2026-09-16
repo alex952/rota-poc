@@ -40,7 +40,7 @@ export interface DayContextMenuEvent {
       @if (assignment()) {
         <div class="assignments" data-testid="day-assignments">
           @if (assignment()!.acDoctors.length > 0) {
-            <div class="ac-section" title="Atencion Continuada">
+            <div class="ac-section" title="Atención Continuada">
               <span class="section-header">AC</span>
               @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
                 <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
@@ -48,7 +48,7 @@ export interface DayContextMenuEvent {
             </div>
           }
           @if (assignment()!.apDoctors.length > 0) {
-            <div class="ap-section" title="Atencion Primaria (refuerzo del dia)">
+            <div class="ap-section" title="Atención Primaria (refuerzo del día)">
               <span class="section-header">AP</span>
               @for (doc of assignment()!.apDoctors; track doc.doctor_id) {
                 <span class="doctor-pill ap-refuerzo clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>

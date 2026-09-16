@@ -83,15 +83,15 @@ describe('CalendarComponent', () => {
     component.currentMonth.set(3);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('March');
+    expect(fixture.nativeElement.textContent).toContain('Marzo');
 
     component.nextMonth();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('April');
+    expect(fixture.nativeElement.textContent).toContain('Abril');
 
     component.prevMonth();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('March');
+    expect(fixture.nativeElement.textContent).toContain('Marzo');
   });
 
   it('should have year selector defaulting to current year', () => {
@@ -132,7 +132,7 @@ describe('CalendarComponent', () => {
     fixture.detectChanges();
 
     expect(component.viewMode()).toBe('day');
-    expect(fixture.nativeElement.textContent).toContain('Detailed assignments for the selected day.');
+    expect(fixture.nativeElement.textContent).toContain('Asignaciones detalladas del día seleccionado.');
 
     const backButton = fixture.nativeElement.querySelector('.back-btn') as HTMLButtonElement;
     backButton.click();

@@ -17,13 +17,13 @@ export interface DayContextMenuEvent {
     <div class="month-view">
       <h3 class="month-header">{{ monthName() }} {{ year() }}</h3>
       <div class="calendar-grid">
-        <div class="day-header">Mon</div>
-        <div class="day-header">Tue</div>
-        <div class="day-header">Wed</div>
-        <div class="day-header">Thu</div>
-        <div class="day-header">Fri</div>
-        <div class="day-header">Sat</div>
-        <div class="day-header">Sun</div>
+        <div class="day-header">Lun</div>
+        <div class="day-header">Mar</div>
+        <div class="day-header">Mié</div>
+        <div class="day-header">Jue</div>
+        <div class="day-header">Vie</div>
+        <div class="day-header">Sáb</div>
+        <div class="day-header">Dom</div>
         @for (cell of gridCells(); track cell.key) {
           @if (cell.day === 0) {
             <div class="empty-cell"></div>
@@ -106,8 +106,8 @@ export class MonthViewComponent {
   readonly dayContextMenu = output<DayContextMenuEvent>();
 
   private static readonly MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ];
 
   readonly monthName = computed(() => MonthViewComponent.MONTH_NAMES[this.month() - 1]);

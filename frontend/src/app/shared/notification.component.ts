@@ -19,7 +19,7 @@ import { NotificationService } from '../core/services/notification.service';
           <button
             class="notification-close"
             (click)="notificationService.dismiss(notification.id)"
-            aria-label="Close notification"
+            aria-label="Cerrar notificación"
           >
             &times;
           </button>

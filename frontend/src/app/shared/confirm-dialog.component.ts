@@ -6,11 +6,11 @@ import { Component, ElementRef, HostListener, input, output, AfterViewInit, View
   template: `
     <div class="confirm-dialog-backdrop" (click)="onBackdropClick($event)">
       <div class="confirm-dialog" role="dialog" aria-modal="true">
-        <h3 class="confirm-title">Confirm Re-generation</h3>
+        <h3 class="confirm-title">Confirmar regeneración</h3>
         <p class="confirm-message">{{ message() }}</p>
         <div class="confirm-actions">
-          <button class="btn-cancel" (click)="cancelled.emit()">Cancel</button>
-          <button class="btn-confirm" #confirmBtn (click)="confirmed.emit()">Confirm</button>
+          <button class="btn-cancel" (click)="cancelled.emit()">Cancelar</button>
+          <button class="btn-confirm" #confirmBtn (click)="confirmed.emit()">Confirmar</button>
         </div>
       </div>
     </div>
@@ -116,7 +116,7 @@ import { Component, ElementRef, HostListener, input, output, AfterViewInit, View
 })
 export class ConfirmDialogComponent implements AfterViewInit {
   readonly message = input<string>(
-    'The current rota will be replaced with a new one. This action cannot be undone. Continue?'
+    'El cuadrante actual se sustituirá por uno nuevo. Esta acción no se puede deshacer. ¿Desea continuar?'
   );
 
   readonly confirmed = output<void>();

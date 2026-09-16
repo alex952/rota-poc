@@ -204,12 +204,12 @@ export class HolidaysService {
       where: { year, city, date },
     });
     if (existing) {
-      throw new Error(`Holiday already exists for ${date}`);
+      throw new Error(`Ya existe un festivo para el ${date}`);
     }
 
     const dayOfWeek = new Date(date + 'T00:00:00').getDay();
     if (dayOfWeek === 0) {
-      throw new Error('Sunday is always a holiday and cannot be marked manually');
+      throw new Error('El domingo siempre es festivo y no se puede marcar manualmente');
     }
 
     const entity = this.holidaysRepository.create({
@@ -231,10 +231,10 @@ export class HolidaysService {
       where: { year, city, date },
     });
     if (!existing) {
-      throw new Error(`Holiday not found for ${date}`);
+      throw new Error(`No se ha encontrado ningún festivo para el ${date}`);
     }
     if (existing.source !== 'manual') {
-      throw new Error('Only manually created holidays can be deleted');
+      throw new Error('Solo se pueden eliminar los festivos creados manualmente');
     }
 
     await this.holidaysRepository.remove(existing);

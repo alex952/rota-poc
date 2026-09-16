@@ -86,7 +86,7 @@ describe('Holiday service', () => {
       const mockRepo = createHolidayRepositoryMock([{ year: 2026, city: CITY, date: '2026-03-15', name: 'Existing', source: 'api' }]);
       const service = new HolidaysService(mockRepo as any);
 
-      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('already exists');
+      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('Ya existe');
     });
 
     it('rejects creating a manual holiday on Sunday', async () => {
@@ -94,7 +94,7 @@ describe('Holiday service', () => {
       const mockRepo = createHolidayRepositoryMock();
       const service = new HolidaysService(mockRepo as any);
 
-      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('Sunday');
+      await expect(service.createCustomHoliday(2026, CITY, '2026-03-15', 'Festivo Manual')).rejects.toThrow('domingo');
     });
   });
 
@@ -117,7 +117,7 @@ describe('Holiday service', () => {
       const mockRepo = createHolidayRepositoryMock();
       const service = new HolidaysService(mockRepo as any);
 
-      await expect(service.deleteCustomHoliday(2026, CITY, '2026-03-15')).rejects.toThrow('not found');
+      await expect(service.deleteCustomHoliday(2026, CITY, '2026-03-15')).rejects.toThrow('No se ha encontrado');
     });
 
     it('rejects deleting an API holiday', async () => {
@@ -127,7 +127,7 @@ describe('Holiday service', () => {
       ]);
       const service = new HolidaysService(mockRepo as any);
 
-      await expect(service.deleteCustomHoliday(2026, CITY, '2026-01-01')).rejects.toThrow('Only manually created holidays');
+      await expect(service.deleteCustomHoliday(2026, CITY, '2026-01-01')).rejects.toThrow('Solo se pueden eliminar');
     });
   });
 });
