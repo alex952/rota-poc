@@ -32,7 +32,7 @@ export class HolidaysController {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new BadRequestException(`Holiday API error: ${message}`);
+      throw new BadRequestException(`Could not resolve holidays for ${year}: ${message}`);
     }
   }
 

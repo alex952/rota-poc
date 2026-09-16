@@ -255,18 +255,17 @@ export class HolidaysService {
         return;
       }
 
-      for (const item of items) {
-        const existing = await this.holidaysRepository.findOne({
-          where: { year: item.year, city: item.city, date: item.date },
-        });
-        if (existing) {
-          continue;
-        }
-
-        await this.holidaysRepository.save(
-          this.holidaysRepository.create({ ...item, source: 'api' }),
-        );
-      }
+      // Insert único e idempotente: dos peticiones concurrentes con la caché vacía
+      // llegan aquí a la vez, y el ON CONFLICT DO NOTHING evita que la segunda viole
+      // la constraint única (year, city, date). Al no pisar la fila existente, un
+      // festivo 'manual' sobrevive a un refresco desde la API.
+      await this.holidaysRepository
+        .createQueryBuilder()
+        .insert()
+        .into(HolidayEntity)
+        .values(items.map((item) => ({ ...item, source: 'api' as const })))
+        .orIgnore()
+        .execute();
     },
   };
 

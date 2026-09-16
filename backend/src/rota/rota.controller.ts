@@ -62,7 +62,7 @@ export class RotaController {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new BadGatewayException(`Holiday API error: ${message}`);
+      throw new BadGatewayException(`Could not resolve holidays for ${year}: ${message}`);
     }
   }
 }
