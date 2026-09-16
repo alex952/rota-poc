@@ -27,9 +27,6 @@ export class RotaDoctorEntity {
   @Column({ type: 'varchar', length: 200 })
   department!: string;
 
-  @Column({ name: 'hours_reduced_per_day', type: 'int', default: 0 })
-  hoursReducedPerDay!: number;
-
   @ManyToOne(() => RotaEntity, (rota) => rota.doctors, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rota_id' })
   rota!: RotaEntity;

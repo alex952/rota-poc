@@ -103,8 +103,8 @@ describe('RotaService', () => {
     expect(req.request.method).toBe('POST');
     expect(req.request.body.rota_type).toBe('AC');
     expect(req.request.body.pool).toEqual([
-      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', hours_reduced_per_day: 0 },
-      { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', hours_reduced_per_day: 0 },
+      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
+      { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
     ]);
     req.flush(mockRotaResponse);
   });

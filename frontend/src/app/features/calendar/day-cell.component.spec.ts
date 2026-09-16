@@ -144,44 +144,6 @@ describe('DayCellComponent', () => {
     expect(assignments).toBeTruthy();
   });
 
-  it('muestra el AC con horario reducido en cursiva y su refuerzo dentro de la misma sección AC', () => {
-    const reducedWithRefuerzo: MergedDayAssignment = {
-      date: '2026-01-15',
-      day_type: 'weekday',
-      shift_start: '15:00',
-      shift_end: '08:00+1',
-      duration_hours: 17,
-      acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
-      acRefuerzos: [
-        {
-          doctor_id: 'doc-002',
-          doctor_name: 'Dr. Lopez',
-          linked_primary_doctor_id: 'doc-001',
-          linked_primary_doctor_name: 'Dr. Garcia',
-          shift_start: '15:00',
-          shift_end: '22:00',
-          duration_hours: 7,
-        },
-      ],
-      apDoctors: [{ doctor_id: 'doc-011', doctor_name: 'Dr. Navarro' }],
-    };
-
-    fixture.componentRef.setInput('day', 15);
-    fixture.componentRef.setInput('assignment', reducedWithRefuerzo);
-    fixture.componentRef.setInput('dayType', 'weekday');
-    fixture.detectChanges();
-
-    const refuerzoHeader = fixture.nativeElement.querySelector('.refuerzo-section');
-    expect(refuerzoHeader).toBeFalsy();
-
-    const acPills = fixture.nativeElement.querySelectorAll('.ac-section .doctor-pill');
-    expect(acPills.length).toBe(2);
-    expect(acPills[0].textContent).toContain('Dr. Garcia');
-    expect(acPills[0].classList.contains('reduced-hours')).toBe(true);
-    expect(acPills[1].textContent).toContain('Dr. Lopez');
-    expect(acPills[1].classList.contains('reduced-hours')).toBe(false);
-  });
-
   it('renderiza los AP como refuerzos del día con prefijo "R: "', () => {
     const holidayAssignment: MergedDayAssignment = {
       date: '2026-01-01',
@@ -208,28 +170,5 @@ describe('DayCellComponent', () => {
     }
     expect(apPills[0].textContent).toContain('Dr. Navarro');
     expect(apPills[1].textContent).toContain('Dr. Torres');
-  });
-
-  it('mantiene la cursiva del primary reducido aunque no exista refuerzo (caso degradado)', () => {
-    const reducedWithoutRefuerzo: MergedDayAssignment = {
-      date: '2026-02-10',
-      day_type: 'weekday',
-      shift_start: '15:00',
-      shift_end: '08:00+1',
-      duration_hours: 17,
-      acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
-      acRefuerzos: [],
-      apDoctors: [{ doctor_id: 'doc-011', doctor_name: 'Dr. Navarro' }],
-    };
-
-    fixture.componentRef.setInput('day', 10);
-    fixture.componentRef.setInput('assignment', reducedWithoutRefuerzo);
-    fixture.componentRef.setInput('dayType', 'weekday');
-    fixture.componentRef.setInput('reducedDoctorIds', new Set(['doc-001']));
-    fixture.detectChanges();
-
-    const acPills = fixture.nativeElement.querySelectorAll('.ac-section .doctor-pill');
-    expect(acPills.length).toBe(1);
-    expect(acPills[0].classList.contains('reduced-hours')).toBe(true);
   });
 });

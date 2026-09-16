@@ -5,5 +5,4 @@ export interface Doctor {
   name: string;
   department: string;
   rota_type: RotaType;
-  hours_reduced_per_day?: number;
 }

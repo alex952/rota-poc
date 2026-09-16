@@ -5,7 +5,6 @@ import {
   AP_POOL_5,
   CITY,
   HOLIDAY_API_RESPONSE,
-  REDUCED_AC_POOL_4,
   YEAR_2026,
 } from '../helpers/fixtures';
 import { createTestApp } from '../helpers/test-app';
@@ -139,32 +138,31 @@ describe('HTTP contract', () => {
     const generation = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
+      payload: { year: YEAR_2026, rota_type: 'AC', pool: AC_POOL_4 },
     });
     expect(generation.statusCode).toBe(201);
 
-    const dayWithRefuerzo = generation
-      .json()
-      .schedule.find((day: { refuerzos: unknown[] }) => day.refuerzos.length > 0);
-    expect(dayWithRefuerzo).toBeDefined();
+    const targetDay = generation.json().schedule[0];
+    const assignedDoctorId = targetDay.doctors[0].doctor_id;
+    const replacementDoctor = AC_POOL_4.find((doctor) => doctor.id !== assignedDoctorId);
+    expect(replacementDoctor).toBeDefined();
 
     const replacement = await app.inject({
       method: 'PATCH',
       url: '/api/v1/rota/2026/AC/replace',
       payload: {
-        date: dayWithRefuerzo.date,
-        old_doctor_id: dayWithRefuerzo.refuerzos[0].doctor_id,
-        new_doctor_id: 'doc-002',
-        assignment_kind: 'refuerzo',
+        date: targetDay.date,
+        old_doctor_id: assignedDoctorId,
+        new_doctor_id: replacementDoctor!.id,
       },
     });
     expect(replacement.statusCode).toBe(200);
 
     const replacedDay = replacement
       .json()
-      .schedule.find((day: { date: string }) => day.date === dayWithRefuerzo.date);
-    expect(replacedDay.refuerzos[0].doctor_id).toBe('doc-002');
-    expect(replacedDay.refuerzos[0].shift_end).toMatch(/^\d{2}:\d{2}$/);
+      .schedule.find((day: { date: string }) => day.date === targetDay.date);
+    expect(replacedDay.doctors).toHaveLength(1);
+    expect(replacedDay.doctors[0].doctor_id).toBe(replacementDoctor!.id);
 
     const allRotas = await app.inject({
       method: 'GET',
@@ -173,166 +171,6 @@ describe('HTTP contract', () => {
     expect(allRotas.statusCode).toBe(200);
     expect(allRotas.json()).toHaveLength(1);
     expect(allRotas.json()[0].rota_type).toBe('AC');
-  });
-
-  it('automatically assigns a refuerzo after replacing in a reduced-hours primary', async () => {
-    const generation = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
-    });
-    expect(generation.statusCode).toBe(201);
-
-    const targetDay = generation
-      .json()
-      .schedule.find(
-        (day: {
-          doctors: Array<{ doctor_id: string }>;
-          refuerzos: unknown[];
-        }) => day.refuerzos.length === 0 && day.doctors[0].doctor_id !== 'doc-001',
-      );
-    expect(targetDay).toBeDefined();
-
-    const replacePrimary = await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/rota/2026/AC/replace',
-      payload: {
-        date: targetDay.date,
-        old_doctor_id: targetDay.doctors[0].doctor_id,
-        new_doctor_id: 'doc-001',
-      },
-    });
-    expect(replacePrimary.statusCode).toBe(200);
-
-    const replacedDay = replacePrimary
-      .json()
-      .schedule.find((day: { date: string }) => day.date === targetDay.date);
-    expect(replacedDay.doctors[0].doctor_id).toBe('doc-001');
-    expect(replacedDay.refuerzos).toHaveLength(1);
-    expect(replacedDay.refuerzos[0].linked_primary_doctor_id).toBe('doc-001');
-    expect(replacedDay.refuerzos[0].doctor_id).not.toBe('doc-001');
-    expect(replacePrimary.json().warnings).toHaveLength(0);
-  });
-
-  it('removes linked refuerzo when replacing a reduced-hours primary with a full-time doctor', async () => {
-    const generation = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
-    });
-    expect(generation.statusCode).toBe(201);
-
-    const dayWithRefuerzo = generation
-      .json()
-      .schedule.find((day: { refuerzos: unknown[] }) => day.refuerzos.length > 0);
-    expect(dayWithRefuerzo).toBeDefined();
-
-    const usedIds = new Set([
-      ...dayWithRefuerzo.doctors.map((doctor: { doctor_id: string }) => doctor.doctor_id),
-      ...dayWithRefuerzo.refuerzos.map((refuerzo: { doctor_id: string }) => refuerzo.doctor_id),
-    ]);
-    const replacementDoctor = REDUCED_AC_POOL_4.find(
-      (doctor) =>
-        (doctor.hours_reduced_per_day ?? 0) === 0 && !usedIds.has(doctor.id),
-    );
-    expect(replacementDoctor).toBeDefined();
-    const replacementDoctorId = replacementDoctor!.id;
-
-    const replacement = await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/rota/2026/AC/replace',
-      payload: {
-        date: dayWithRefuerzo.date,
-        old_doctor_id: dayWithRefuerzo.doctors[0].doctor_id,
-        new_doctor_id: replacementDoctorId,
-      },
-    });
-    expect(replacement.statusCode).toBe(200);
-
-    const replacedDay = replacement
-      .json()
-      .schedule.find((day: { date: string }) => day.date === dayWithRefuerzo.date);
-    expect(replacedDay.doctors[0].doctor_id).toBe(replacementDoctorId);
-    expect(replacedDay.refuerzos).toHaveLength(0);
-  });
-
-  it('allows promoting the current refuerzo to primary when replacing a reduced-hours doctor', async () => {
-    const generation = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
-    });
-    expect(generation.statusCode).toBe(201);
-
-    const dayWithRefuerzo = generation
-      .json()
-      .schedule.find((day: { refuerzos: unknown[] }) => day.refuerzos.length > 0);
-    expect(dayWithRefuerzo).toBeDefined();
-
-    const currentRefuerzoDoctorId = dayWithRefuerzo.refuerzos[0].doctor_id;
-
-    const replacement = await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/rota/2026/AC/replace',
-      payload: {
-        date: dayWithRefuerzo.date,
-        old_doctor_id: dayWithRefuerzo.doctors[0].doctor_id,
-        new_doctor_id: currentRefuerzoDoctorId,
-      },
-    });
-    expect(replacement.statusCode).toBe(200);
-
-    const replacedDay = replacement
-      .json()
-      .schedule.find((day: { date: string }) => day.date === dayWithRefuerzo.date);
-    expect(replacedDay.doctors[0].doctor_id).toBe(currentRefuerzoDoctorId);
-    expect(replacedDay.refuerzos).toHaveLength(0);
-  });
-
-  it('rejects reduced-hours doctors as refuerzo replacements', async () => {
-    const doubleReducedPool = [
-      { ...REDUCED_AC_POOL_4[0] },
-      { ...REDUCED_AC_POOL_4[1], hours_reduced_per_day: 2 },
-      ...REDUCED_AC_POOL_4.slice(2),
-    ];
-
-    const generation = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: doubleReducedPool },
-    });
-    expect(generation.statusCode).toBe(201);
-
-    const dayWithRefuerzo = generation
-      .json()
-      .schedule.find((day: { refuerzos: unknown[] }) => day.refuerzos.length > 0);
-    expect(dayWithRefuerzo).toBeDefined();
-
-    const usedIds = new Set([
-      ...dayWithRefuerzo.doctors.map((doctor: { doctor_id: string }) => doctor.doctor_id),
-      ...dayWithRefuerzo.refuerzos.map((refuerzo: { doctor_id: string }) => refuerzo.doctor_id),
-    ]);
-    const reducedReplacement = doubleReducedPool.find(
-      (doctor) =>
-        (doctor.hours_reduced_per_day ?? 0) > 0 && !usedIds.has(doctor.id),
-    );
-    expect(reducedReplacement).toBeDefined();
-    const reducedReplacementId = reducedReplacement!.id;
-
-    const replacement = await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/rota/2026/AC/replace',
-      payload: {
-        date: dayWithRefuerzo.date,
-        old_doctor_id: dayWithRefuerzo.refuerzos[0].doctor_id,
-        new_doctor_id: reducedReplacementId,
-        assignment_kind: 'refuerzo',
-      },
-    });
-    expect(replacement.statusCode).toBe(400);
-    expect(replacement.json().message).toContain(
-      'Reduced-hours doctors cannot cover refuerzo assignments.',
-    );
   });
 
   it('keeps AC and AP rotas independent for the same year', async () => {
@@ -423,53 +261,6 @@ describe('HTTP contract', () => {
     expect(nonHoliday.duration_hours).toBe(7);
     expect(nonHoliday.shift_start).toBe('15:00');
     expect(nonHoliday.shift_end).toBe('22:00');
-  });
-
-  it('regenera una rota AC con horario reducido conservando los refuerzos vinculados', async () => {
-    const firstGeneration = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
-    });
-    expect(firstGeneration.statusCode).toBe(201);
-    const firstRefuerzos = firstGeneration
-      .json()
-      .schedule.flatMap((day: { refuerzos: unknown[] }) => day.refuerzos);
-    expect(firstRefuerzos.length).toBeGreaterThan(0);
-
-    const secondGeneration = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AC', pool: REDUCED_AC_POOL_4 },
-    });
-    expect(secondGeneration.statusCode).toBe(201);
-
-    const regeneratedSchedule = secondGeneration.json().schedule;
-    const regeneratedRefuerzos = regeneratedSchedule.flatMap(
-      (day: { refuerzos: unknown[] }) => day.refuerzos,
-    );
-    expect(regeneratedRefuerzos.length).toBeGreaterThan(0);
-
-    const reducedDoctorId = REDUCED_AC_POOL_4[0].id;
-    const daysWithReducedPrimary = regeneratedSchedule.filter(
-      (day: { doctors: Array<{ doctor_id: string }> }) =>
-        day.doctors.some((doctor) => doctor.doctor_id === reducedDoctorId),
-    );
-    expect(daysWithReducedPrimary.length).toBeGreaterThan(0);
-    for (const day of daysWithReducedPrimary) {
-      expect(day.refuerzos).toHaveLength(1);
-      expect(day.refuerzos[0].linked_primary_doctor_id).toBe(reducedDoctorId);
-    }
-
-    const queriedAfterRegen = await app.inject({
-      method: 'GET',
-      url: '/api/v1/rota/2026/AC',
-    });
-    expect(queriedAfterRegen.statusCode).toBe(200);
-    const queriedRefuerzos = queriedAfterRegen
-      .json()
-      .schedule.flatMap((day: { refuerzos: unknown[] }) => day.refuerzos);
-    expect(queriedRefuerzos.length).toBe(regeneratedRefuerzos.length);
   });
 
   it('returns holidays for the configured city', async () => {

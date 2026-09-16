@@ -1,11 +1,9 @@
 export type RotaType = 'AC' | 'AP';
-export type AssignmentKind = 'primary' | 'refuerzo';
 
 export interface DoctorInput {
   id: string;
   name: string;
   department: string;
-  hours_reduced_per_day?: number;
 }
 
 export interface HolidayApiItem {
@@ -43,11 +41,6 @@ export const AP_POOL_8: DoctorInput[] = [
   { id: 'doc-016', name: 'Dr. Iglesias', department: 'Medicina General' },
   { id: 'doc-017', name: 'Dr. Marin', department: 'Medicina General' },
   { id: 'doc-018', name: 'Dr. Castro', department: 'Medicina General' },
-];
-
-export const REDUCED_AC_POOL_4: DoctorInput[] = [
-  { ...AC_POOL_4[0], hours_reduced_per_day: 2 },
-  ...AC_POOL_4.slice(1),
 ];
 
 export const HOLIDAY_API_RESPONSE: HolidayApiItem[] = [
@@ -171,9 +164,5 @@ export const HOLIDAYS_2026 = [
 
 export function toHolidaySet(dates: Date[]): Set<Date> {
   return new Set(dates);
-}
-
-export function reducedPool(): DoctorInput[] {
-  return REDUCED_AC_POOL_4.map((doctor) => ({ ...doctor }));
 }
 

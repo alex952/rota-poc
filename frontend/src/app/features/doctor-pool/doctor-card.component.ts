@@ -11,9 +11,6 @@ import { Doctor } from '../../core/models/doctor.model';
       <div class="doctor-info">
         <strong class="doctor-name">{{ doctor().name }}</strong>
         <span class="doctor-department">{{ doctor().department }}</span>
-        @if ((doctor().hours_reduced_per_day ?? 0) > 0) {
-          <span class="doctor-meta">Reduced: {{ doctor().hours_reduced_per_day ?? 0 }}h/day</span>
-        }
       </div>
       <div class="drag-handle">
         <span class="drag-icon">&#x2630;</span>
@@ -58,12 +55,6 @@ import { Doctor } from '../../core/models/doctor.model';
     .doctor-department {
       font-size: 0.72rem;
       color: #666;
-    }
-
-    .doctor-meta {
-      font-size: 0.68rem;
-      color: #ad1457;
-      font-weight: 600;
     }
 
     .drag-handle {

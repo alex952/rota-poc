@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class DoctorInputDto {
@@ -10,11 +10,6 @@ export class DoctorInputDto {
 
   @IsString()
   department!: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  hours_reduced_per_day?: number;
 }
 
 export class GenerateRotaDto {

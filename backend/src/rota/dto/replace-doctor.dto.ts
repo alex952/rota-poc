@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsString } from 'class-validator';
 
 export class ReplaceDoctorDto {
   @IsDateString()
@@ -9,12 +9,4 @@ export class ReplaceDoctorDto {
 
   @IsString()
   new_doctor_id!: string;
-
-  @IsOptional()
-  @IsIn(['primary', 'refuerzo'])
-  assignment_kind?: 'primary' | 'refuerzo';
-
-  @IsOptional()
-  @IsString()
-  linked_primary_doctor_id?: string;
 }

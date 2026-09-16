@@ -195,16 +195,14 @@ describe('StatsPanelComponent', () => {
     expect(rows.length).toBe(2);
   });
 
-  it('no marca imbalance cuando un AC reducido cumple su target personalizado al mismo nivel que un AC con jornada completa', () => {
+  it('no marca imbalance cuando un AC con target personalizado cumple su objetivo al mismo nivel que un AC con jornada completa', () => {
     const mixedStats: DoctorStats[] = [
       {
         doctor_id: 'doc-001',
-        doctor_name: 'Dr. Reducido',
+        doctor_name: 'Dr. Personalizado',
         total_hours: 1200,
         target_hours: 1180,
         hours_vs_target: 20,
-        primary_hours: 1200,
-        refuerzo_hours: 0,
         monthly_hours: { 1: 100 },
         shifts_weekday: 15,
         shifts_saturday: 4,
@@ -216,8 +214,6 @@ describe('StatsPanelComponent', () => {
         total_hours: 1655,
         target_hours: 1620,
         hours_vs_target: 35,
-        primary_hours: 1655,
-        refuerzo_hours: 0,
         monthly_hours: { 1: 138 },
         shifts_weekday: 19,
         shifts_saturday: 5,
@@ -241,8 +237,6 @@ describe('StatsPanelComponent', () => {
         total_hours: 1850,
         target_hours: 1620,
         hours_vs_target: 230,
-        primary_hours: 1850,
-        refuerzo_hours: 0,
         monthly_hours: { 1: 160 },
         shifts_weekday: 22,
         shifts_saturday: 6,
@@ -254,8 +248,6 @@ describe('StatsPanelComponent', () => {
         total_hours: 1625,
         target_hours: 1620,
         hours_vs_target: 5,
-        primary_hours: 1625,
-        refuerzo_hours: 0,
         monthly_hours: { 1: 135 },
         shifts_weekday: 19,
         shifts_saturday: 5,

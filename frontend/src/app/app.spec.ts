@@ -5,7 +5,6 @@ import { App } from './app';
 import { RotaResponse } from './core/models/rota.model';
 import { Doctor } from './core/models/doctor.model';
 import { NotificationService } from './core/services/notification.service';
-import { ReplacementEvent } from './features/calendar/day-cell.component';
 
 const mockDoctors: Doctor[] = [
   { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
@@ -347,71 +346,4 @@ describe('App', () => {
     expect(cards.length).toBe(2); // doc-001, doc-002 are AC
   });
 
-  it('should offer a missing refuerzo assignment target for reduced-hours AC primaries', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    flushInitRequests({
-      rotaStatus: 404,
-      doctors: [
-        { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC', hours_reduced_per_day: 2 },
-        { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
-        { id: 'doc-003', name: 'Dr. Martinez', department: 'Cardiologia', rota_type: 'AC' },
-      ],
-    });
-    fixture.detectChanges();
-
-    const event: ReplacementEvent = {
-      date: '2026-01-15',
-      newDoctor: { id: 'doc-003', name: 'Dr. Martinez', department: 'Cardiologia', rota_type: 'AC' },
-      acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
-      acRefuerzos: [],
-      apDoctors: [],
-    };
-
-    const options = fixture.componentInstance['getReplaceableDoctors']('AC', event);
-    expect(options).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          doctor_id: 'doc-001',
-          assignment_kind: 'refuerzo',
-          linked_primary_doctor_id: 'doc-001',
-        }),
-      ])
-    );
-  });
-
-  it('should block reduced-hours doctors from refuerzo targets in the picker', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    flushInitRequests({
-      rotaStatus: 404,
-      doctors: [
-        { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC', hours_reduced_per_day: 2 },
-        { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC', hours_reduced_per_day: 2 },
-        { id: 'doc-003', name: 'Dr. Martinez', department: 'Cardiologia', rota_type: 'AC' },
-      ],
-    });
-    fixture.detectChanges();
-
-    const event: ReplacementEvent = {
-      date: '2026-01-15',
-      newDoctor: { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC', hours_reduced_per_day: 2 },
-      acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
-      acRefuerzos: [
-        {
-          doctor_id: 'doc-003',
-          doctor_name: 'Dr. Martinez',
-          linked_primary_doctor_id: 'doc-001',
-          linked_primary_doctor_name: 'Dr. Garcia',
-          shift_start: '15:00',
-          shift_end: '22:00',
-          duration_hours: 7,
-        },
-      ],
-      apDoctors: [],
-    };
-
-    const options = fixture.componentInstance['getReplaceableDoctors']('AC', event);
-    expect(options.every((option: { assignment_kind: string }) => option.assignment_kind === 'primary')).toBe(true);
-  });
 });

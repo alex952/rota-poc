@@ -8,8 +8,6 @@ export function calculateStats(
   const doctorMap = new Map(pool.map((doctor) => [doctor.id, doctor]));
 
   const totalHours: Record<string, number> = {};
-  const primaryHours: Record<string, number> = {};
-  const refuerzoHours: Record<string, number> = {};
   const monthlyHours: Record<string, Record<string, number>> = {};
   const shiftsWeekday: Record<string, number> = {};
   const shiftsSaturday: Record<string, number> = {};
@@ -17,8 +15,6 @@ export function calculateStats(
 
   for (const doctor of pool) {
     totalHours[doctor.id] = 0;
-    primaryHours[doctor.id] = 0;
-    refuerzoHours[doctor.id] = 0;
     monthlyHours[doctor.id] = {};
     shiftsWeekday[doctor.id] = 0;
     shiftsSaturday[doctor.id] = 0;
@@ -34,7 +30,6 @@ export function calculateStats(
       }
 
       totalHours[doctor.doctorId] += day.durationHours;
-      primaryHours[doctor.doctorId] += day.durationHours;
       monthlyHours[doctor.doctorId][month] =
         (monthlyHours[doctor.doctorId][month] ?? 0) + day.durationHours;
 
@@ -46,17 +41,6 @@ export function calculateStats(
         shiftsSundayHoliday[doctor.doctorId] += 1;
       }
     }
-
-    for (const refuerzo of day.refuerzos) {
-      if (!doctorMap.has(refuerzo.doctorId)) {
-        continue;
-      }
-
-      totalHours[refuerzo.doctorId] += refuerzo.durationHours;
-      refuerzoHours[refuerzo.doctorId] += refuerzo.durationHours;
-      monthlyHours[refuerzo.doctorId][month] =
-        (monthlyHours[refuerzo.doctorId][month] ?? 0) + refuerzo.durationHours;
-    }
   }
 
   return pool.map((doctor) => {
@@ -67,8 +51,6 @@ export function calculateStats(
       totalHours: totalHours[doctor.id],
       targetHours: target,
       hoursVsTarget: totalHours[doctor.id] - target,
-      primaryHours: primaryHours[doctor.id],
-      refuerzoHours: refuerzoHours[doctor.id],
       monthlyHours: monthlyHours[doctor.id],
       shiftsWeekday: shiftsWeekday[doctor.id],
       shiftsSaturday: shiftsSaturday[doctor.id],

@@ -40,15 +40,15 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 ## Modelo de Datos
 
 - `rotas`: una rota persistida por `(año, tipo_rota)` más la instantánea del grupo original.
-- `rota_doctors`: miembros del grupo normalizados para una rota, incluyendo `hours_reduced_per_day`.
-- `rota_assignments`: una fila por asignación y tipo de asignación (`primary` o `refuerzo`). En AP festivos hay dos filas `primary` por fecha (cobertura doble). En AC con horario reducido hay una fila `refuerzo` adicional vinculada al primary mediante `linked_primary_doctor_id`. La columna `duration_hours` puede diferir entre rotas para la misma fecha (AC usa la duración del día calendario; AP usa 7h o 12h).
+- `rota_doctors`: miembros del grupo normalizados para una rota.
+- `rota_assignments`: una fila por asignación. En AP festivos hay dos filas por fecha (cobertura doble), cada una con distinto `doctor_id`. La columna `duration_hours` puede diferir entre rotas para la misma fecha (AC usa la duración del día calendario; AP usa 7h o 12h).
 - `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`. Contiene una columna `source ('api' | 'manual')` para distinguir los festivos obtenidos de la API externa de los creados por el usuario.
 
 Restricciones importantes:
 
 - `rotas(año, tipo_rota)` es único.
 - `rota_doctors(rota_id, doctor_id)` es único.
-- `rota_assignments(rota_id, fecha, doctor_id, tipo_asignación)` es único.
+- `rota_assignments(rota_id, fecha, doctor_id)` es único.
 - Las filas hijas se eliminan en cascada al borrar una rota.
 
 ## Forma de las Pruebas
