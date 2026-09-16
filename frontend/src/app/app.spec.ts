@@ -321,7 +321,7 @@ describe('App', () => {
     // Debería haber un warning visible
     const warning = fixture.nativeElement.querySelector('.no-rota-warning');
     expect(warning).toBeTruthy();
-    expect(warning.textContent).toContain('No hay rota generada');
+    expect(warning.textContent).toContain('No hay ningún cuadrante generado');
   });
 
   it('should show pool tabs for AC and AP', () => {

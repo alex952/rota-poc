@@ -45,7 +45,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
         @if (!hasData() && viewMode() === 'month') {
           <div class="no-rota-warning">
             <span class="warning-icon">&#9888;</span>
-            <span class="warning-text">No hay rota generada para {{ year() }}. Añade médicos al grupo y haz clic en "Generar Rota".</span>
+            <span class="warning-text">No hay ningún cuadrante generado para {{ year() }}. Añada médicos al grupo y pulse el botón de generar.</span>
           </div>
         }
         @if (viewMode() === 'month') {
