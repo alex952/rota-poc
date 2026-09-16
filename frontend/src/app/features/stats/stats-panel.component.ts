@@ -10,8 +10,8 @@ import { RotaType } from '../../core/models/doctor.model';
   template: `
     <aside class="stats-panel" [class.open]="visible()">
       <div class="stats-header">
-        <h3 class="stats-title">{{ activeTab() }} Statistics</h3>
-        <button class="btn-close-stats" (click)="closed.emit()" aria-label="Close stats panel">&times;</button>
+        <h3 class="stats-title">Estadísticas {{ activeTab() }}</h3>
+        <button class="btn-close-stats" (click)="closed.emit()" aria-label="Cerrar panel de estadísticas">&times;</button>
       </div>
       @if (stats().length > 0) {
         <div class="stats-body">
@@ -21,29 +21,29 @@ import { RotaType } from '../../core/models/doctor.model';
         </div>
         @if (hasImbalance()) {
           <div class="equity-warning">
-            Imbalance detected: {{ hoursDifference() }}h spread ({{ imbalancePercent() }}%) {{ imbalanceBasisLabel() }}.
+            Desequilibrio detectado: {{ hoursDifference() }}h de diferencia ({{ imbalancePercent() }}%) {{ imbalanceBasisLabel() }}.
           </div>
         }
         <div class="stats-summary">
           <div class="summary-row">
-            <span class="summary-label">Total Hours</span>
+            <span class="summary-label">Horas totales</span>
             <span class="summary-value">{{ totalHours() }}h</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Average / Doctor</span>
+            <span class="summary-label">Media por médico</span>
             <span class="summary-value">{{ averageHours() }}h</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Average Delta</span>
+            <span class="summary-label">Desviación media</span>
             <span class="summary-value">{{ averageDelta() }}h</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Doctors</span>
+            <span class="summary-label">Médicos</span>
             <span class="summary-value">{{ stats().length }}</span>
           </div>
         </div>
       } @else {
-        <p class="no-stats">No statistics available. Generate a rota first.</p>
+        <p class="no-stats">No hay estadísticas disponibles. Genere primero un cuadrante.</p>
       }
     </aside>
   `,
@@ -209,8 +209,8 @@ export class StatsPanelComponent {
 
   readonly imbalanceBasisLabel = computed(() =>
     this.imbalanceMetric().basis === 'delta'
-      ? 'in delta vs target'
-      : 'between max and min total hours',
+      ? 'en la desviación respecto al objetivo'
+      : 'entre las horas totales máxima y mínima',
   );
 
   readonly hasImbalance = computed(() => {

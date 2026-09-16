@@ -1,10 +1,10 @@
 <header class="app-header">
   <span class="city-label">{{ city() }}</span>
   <span class="header-divider"></span>
-  <span class="app-title">Doctor Rota</span>
+  <span class="app-title">Cuadrante de Guardias</span>
   <span class="header-spacer"></span>
   <button class="btn-stats" (click)="toggleStats()">
-    {{ showStats() ? 'Hide Stats' : 'Show Stats' }}
+    {{ showStats() ? 'Ocultar estadísticas' : 'Mostrar estadísticas' }}
   </button>
 </header>
 
@@ -23,9 +23,9 @@
       <div class="loading-overlay">
         <div class="spinner"></div>
         @if (isGenerating()) {
-          <span class="loading-text">Generating rota...</span>
+          <span class="loading-text">Generando cuadrante...</span>
         } @else {
-          <span class="loading-text">Loading...</span>
+          <span class="loading-text">Cargando...</span>
         }
       </div>
     }
@@ -42,9 +42,8 @@
     />
   </div>
   <app-stats-panel [visible]="showStats()" [stats]="activeStats()" [activeTab]="activePoolTab()" [currentMonth]="currentMonth()" (closed)="toggleStats()" />
+  <app-notifications />
 </div>
-
-<app-notifications />
 
 @if (showConfirmDialog()) {
   <app-confirm-dialog

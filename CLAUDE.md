@@ -77,10 +77,109 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (31 tests actualmente)
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (33 tests actualmente)
 - Frontend: `vitest` — 92 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
+
+## Verificación Visual (obligatoria antes del commit)
+
+Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
+125 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
+ningún test comprueba, un mensaje que la librería genera en inglés. Por eso, todo
+cambio que toque algo visible para el usuario —frontend, o mensajes del backend,
+que llegan literalmente a la interfaz vía `extractErrorMessage` en
+`frontend/src/app/app.ts`— se revisa **en el navegador, con el stack levantado**,
+antes de commitear.
+
+Esta etapa va **después del simplify pass y antes del commit**. Si el cambio es
+puramente interno (algoritmo, persistencia, refactor sin efecto visible), se
+omite y se dice explícitamente en el informe por qué no aplica.
+
+### 1. Levantar el stack
+
+```bash
+docker compose up --build -d
+```
+
+Frontend en `http://localhost:4200`, backend en `http://localhost:8000`, Postgres
+en `5432`. La ciudad es `Alicante` y el grupo de médicos se sirve del cliente
+desde `frontend/src/assets/doctors.json`, no de la base de datos.
+
+Espera a que respondan antes de abrir el navegador (`db` tiene healthcheck, el
+backend no):
+
+```bash
+for i in $(seq 1 30); do curl -sf http://localhost:8000/api/v1/config >/dev/null && curl -sf http://localhost:4200 >/dev/null && { echo listo; break; }; sleep 1; done
+```
+
+Ojo: el endpoint de health **no** cuelga de `/api/v1`. Para comprobar que el
+backend vive, usa `/api/v1/config`, que devuelve `{"city":"Alicante"}`.
+
+### 2. Revisar en el navegador
+
+Abre `http://localhost:4200` con las herramientas de navegador y recorre las
+pantallas, haciendo captura de cada una:
+
+1. **Carga inicial sin cuadrante** — cabecera, banner de aviso, grupo de médicos, calendario vacío
+2. **Generar** un cuadrante AC y otro AP — notificación de éxito, calendario poblado, prefijo `R:` en los AP
+3. **Panel de estadísticas** — etiquetas, totales, insignias Lab/Sáb/Fest
+4. **Diálogos** — confirmación de regeneración, añadir médico, sustituir médico
+5. **Menú contextual** (clic derecho en un día) — marcar/desmarcar festivo y su notificación
+6. **Vista de día** (clic en una celda) — cabecera con la fecha larga en español
+
+Qué se está buscando, más allá de que "se vea bien":
+
+- Texto cortado, desbordado o que rompe su contenedor. El español es un 15-25 %
+  más largo que el inglés: los botones y las etiquetas de una sola línea son lo
+  primero que revienta.
+- Tildes y `ñ` mal renderizadas, incluso en mayúsculas (`DESVIACIÓN`, `MÉDICOS`).
+- Texto que no cuadra con el resto: tuteo donde el resto usa usted, un término
+  fuera del glosario, una cadena que cita el nombre de un botón que ya cambió.
+- Cadenas que ningún test cubre. Son las que sobreviven a un refactor sin que
+  nadie se entere.
+
+### 3. Provocar los errores, no sólo el camino feliz
+
+Los mensajes de error son la mitad del texto que ve el usuario y casi nunca se
+ven al pulsar por la interfaz. Fuérzalos contra la API:
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/holidays/2026 -H 'Content-Type: application/json' -d '{"date":"08-09-2026"}'
+curl -s -X POST http://localhost:8000/api/v1/rota/generate -H 'Content-Type: application/json' -d '{"year":"x","rota_type":"XX","pool":"no"}'
+curl -s 'http://localhost:8000/api/v1/rota/2035?rota_type=AC'
+```
+
+Revisa la respuesta entera, no sólo el primer mensaje. **Los decoradores de
+class-validator sin opción `message` generan su texto por defecto en inglés**
+(`"name must be a string"`, `"pool must be an array"`): no son literales del
+código, así que no aparecen en ninguna búsqueda por el repositorio y sólo se ven
+así.
+
+### 4. Trampas conocidas
+
+- **Tras tocar el frontend**, la imagen hay que reconstruirla; el contenedor no
+  recarga en caliente: `docker compose up -d --build frontend`.
+- **El navegador cachea `assets/doctors.json`.** Si cambias los datos semilla y
+  la interfaz sigue mostrando los viejos, es caché, no un fallo del build.
+  Confírmalo con `curl -s http://localhost:4200/assets/doctors.json` y fuerza la
+  recarga.
+- **Para iterar**, reconstruir la imagen en cada cambio es lento. Levanta sólo
+  los servicios de datos y sirve el frontend en local:
+  `docker compose up -d db backend` y
+  `npx ng serve --port 4200 --proxy-config src/proxy.conf.json`.
+  La comprobación **final**, la que cierra la etapa, va contra el stack Docker
+  completo.
+
+### 5. Cerrar
+
+```bash
+docker compose down
+```
+
+En el informe final, di qué pantallas revisaste y qué encontraste. Si la etapa
+descubrió algo, arréglalo y vuelve a pasarla: no se commitea con un hallazgo
+visual abierto.
 
 ## Reglas de Negocio (Críticas)
 

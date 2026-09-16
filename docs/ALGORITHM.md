@@ -43,7 +43,7 @@ generar_rota(año, tipo_rota, grupo, clasificaciones_días):
 
 La cobertura base de primary es **siempre 1 médico por día** para ambas rotas. La única excepción es el segundo AP en festivos. La cobertura no se incrementa automáticamente con el tamaño del pool.
 
-Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("Pool too large for AC|AP: target Xh exceeds yearly coverage capacity Yh").
+Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("El grupo de N médicos es demasiado grande para AC|AP: el objetivo de Xh supera la capacidad anual de cobertura de Yh").
 
 #### Cobertura variable por día
 

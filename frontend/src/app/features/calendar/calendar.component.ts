@@ -12,13 +12,13 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
       <div class="calendar-header">
         <div class="nav-group">
           @if (viewMode() === 'month') {
-            <button class="nav-btn" (click)="prevMonth()" [disabled]="currentMonth() === 1" title="Previous month">&lsaquo;</button>
+            <button class="nav-btn" (click)="prevMonth()" [disabled]="currentMonth() === 1" title="Mes anterior">&lsaquo;</button>
           } @else {
-            <button class="back-btn" (click)="showMonthView()" title="Back to month view">Month view</button>
+            <button class="back-btn" (click)="showMonthView()" title="Volver a la vista mensual">Vista mensual</button>
           }
-          <span class="month-label" [class.disabled]="!hasData()" (click)="hasData() && goToCurrentMonth()" [title]="hasData() ? 'Go to current month' : ''">{{ currentMonthName() }} {{ year() }}</span>
+          <span class="month-label" [class.disabled]="!hasData()" (click)="hasData() && goToCurrentMonth()" [title]="hasData() ? 'Ir al mes actual' : ''">{{ currentMonthName() }} {{ year() }}</span>
           @if (viewMode() === 'month') {
-            <button class="nav-btn" (click)="nextMonth()" [disabled]="currentMonth() === 12" title="Next month">&rsaquo;</button>
+            <button class="nav-btn" (click)="nextMonth()" [disabled]="currentMonth() === 12" title="Mes siguiente">&rsaquo;</button>
           } @else {
             <span class="day-view-label">{{ selectedDateLabel() }}</span>
           }
@@ -26,11 +26,11 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
         @if (filteredDoctor()) {
           <div class="filter-pill">
             <span class="filter-pill-label">{{ filteredDoctor()!.doctor_name }}</span>
-            <button class="filter-pill-clear" (click)="clearFilter()" title="Clear filter">&times;</button>
+            <button class="filter-pill-clear" (click)="clearFilter()" title="Limpiar filtro">&times;</button>
           </div>
         }
         <div class="year-group">
-          <label class="year-label">Year:</label>
+          <label class="year-label">Año:</label>
           <input
             type="number"
             class="year-input"
@@ -45,7 +45,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
         @if (!hasData() && viewMode() === 'month') {
           <div class="no-rota-warning">
             <span class="warning-icon">&#9888;</span>
-            <span class="warning-text">No hay rota generada para {{ year() }}. Añade médicos al grupo y haz clic en "Generar Rota".</span>
+            <span class="warning-text">No hay ningún cuadrante generado para {{ year() }}. Añada médicos al grupo y pulse el botón de generar.</span>
           </div>
         }
         @if (viewMode() === 'month') {
@@ -64,7 +64,7 @@ import { MergedDayAssignment } from '../../core/models/rota.model';
           <div class="day-view">
             <div class="day-view-header">
               <h3 class="day-view-title">{{ selectedDateLabel() }}</h3>
-              <p class="day-view-subtitle">Detailed assignments for the selected day.</p>
+              <p class="day-view-subtitle">Asignaciones detalladas del día seleccionado.</p>
             </div>
             <div class="day-view-content">
               <app-day-cell
@@ -369,8 +369,8 @@ export class CalendarComponent {
   readonly selectedDate = signal('');
 
   private static readonly MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ];
 
   readonly currentMonthName = computed(
@@ -433,7 +433,7 @@ export class CalendarComponent {
     const selectedDate = this.selectedDate();
     if (!selectedDate) return '';
     const date = new Date(selectedDate + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',

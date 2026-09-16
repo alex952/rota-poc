@@ -93,7 +93,7 @@ describe('HTTP contract', () => {
     });
     expect(response.statusCode).toBe(400);
     expect(typeof response.json().message).toBe('string');
-    expect(response.json().message).toMatch(/pool/i);
+    expect(response.json().message).toMatch(/grupo/i);
   });
 
   it('returns 400 with a descriptive message when the AC pool is too large', async () => {
@@ -109,7 +109,7 @@ describe('HTTP contract', () => {
       payload: { year: YEAR_2026, rota_type: 'AC', pool: oversizedPool },
     });
     expect(response.statusCode).toBe(400);
-    expect(response.json().message).toMatch(/too large/i);
+    expect(response.json().message).toMatch(/demasiado grande/i);
   });
 
   it('supports GET rota queries and doctor filtering', async () => {

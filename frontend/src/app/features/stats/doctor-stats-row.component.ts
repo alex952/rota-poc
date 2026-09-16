@@ -13,7 +13,7 @@ import { DoctorStats } from '../../core/models/rota.model';
           <span class="stat-value">{{ stats().total_hours }}h</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Target</span>
+          <span class="stat-label">Objetivo</span>
           <span class="stat-value">{{ stats().target_hours ?? 0 }}h</span>
         </div>
         <div class="stat-item">
@@ -23,7 +23,7 @@ import { DoctorStats } from '../../core/models/rota.model';
       </div>
       <div class="stats-grid compact">
         <div class="stat-item">
-          <span class="stat-label">Delta</span>
+          <span class="stat-label">Desviación</span>
           <span class="stat-value" [class.negative]="(stats().hours_vs_target ?? 0) < 0">
             {{ (stats().hours_vs_target ?? 0) >= 0 ? '+' : '' }}{{ stats().hours_vs_target ?? 0 }}h
           </span>
@@ -33,9 +33,9 @@ import { DoctorStats } from '../../core/models/rota.model';
         <div class="hours-bar-fill" [style.width.%]="barWidth()"></div>
       </div>
       <div class="shifts-row">
-        <span class="shift-badge weekday">Wkd: {{ stats().shifts_weekday }}</span>
-        <span class="shift-badge saturday">Sat: {{ stats().shifts_saturday }}</span>
-        <span class="shift-badge holiday">Hol: {{ stats().shifts_sunday_holiday }}</span>
+        <span class="shift-badge weekday">Lab: {{ stats().shifts_weekday }}</span>
+        <span class="shift-badge saturday">Sáb: {{ stats().shifts_saturday }}</span>
+        <span class="shift-badge holiday">Fest: {{ stats().shifts_sunday_holiday }}</span>
       </div>
     </div>
   `,
@@ -138,8 +138,8 @@ export class DoctorStatsRowComponent {
   readonly currentMonth = input<number>(new Date().getMonth() + 1);
 
   private static readonly MONTH_NAMES = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
   ];
 
   readonly barWidth = computed(() => {

@@ -10,7 +10,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
   imports: [DoctorCardComponent, AddDoctorDialogComponent, CdkDropList],
   template: `
     <section class="doctor-pool">
-      <h3 class="pool-title">Doctor Pool</h3>
+      <h3 class="pool-title">Grupo de médicos</h3>
 
       <div class="pool-tabs">
         <button
@@ -43,7 +43,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
 
       <div class="pool-actions">
         <button class="btn-add-doctor" (click)="onAddDoctorClick()">
-          + Add Doctor
+          + Añadir médico
         </button>
         <button
           class="btn-generate"
@@ -54,7 +54,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
           @if (isLoading()) {
             <span class="btn-spinner"></span>
           }
-          {{ hasExistingRota() ? 'Re-generate ' + activeTab() + ' Rota' : 'Generate ' + activeTab() + ' Rota' }}
+          {{ hasExistingRota() ? 'Regenerar cuadrante ' + activeTab() : 'Generar cuadrante ' + activeTab() }}
         </button>
       </div>
     </section>

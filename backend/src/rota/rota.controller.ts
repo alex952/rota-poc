@@ -62,7 +62,7 @@ export class RotaController {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new BadGatewayException(`Could not resolve holidays for ${year}: ${message}`);
+      throw new BadGatewayException(`No se han podido obtener los festivos de ${year}: ${message}`);
     }
   }
 }

@@ -143,7 +143,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Generate AC Rota');
+    expect(generateBtn.textContent).toContain('Generar cuadrante AC');
   });
 
   it('should show Re-generate AC Rota when AC rota exists', () => {
@@ -153,7 +153,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Re-generate AC Rota');
+    expect(generateBtn.textContent).toContain('Regenerar cuadrante AC');
   });
 
   it('should call generateRota with rota_type when generate button clicked (no existing rota)', () => {
@@ -268,7 +268,8 @@ describe('App', () => {
     genReq.flush(
       {
         statusCode: 400,
-        message: 'Pool of 8 is too large for AC: target 12960h exceeds yearly coverage capacity 6627h.',
+        message:
+          'El grupo de 8 médicos es demasiado grande para AC: el objetivo de 12960h supera la capacidad anual de cobertura de 6627h.',
         error: 'Bad Request',
       },
       { status: 400, statusText: 'Bad Request' }
@@ -279,8 +280,8 @@ describe('App', () => {
     expect(notifications.length).toBeGreaterThan(0);
     const errorNotif = notifications.find((n) => n.type === 'error');
     expect(errorNotif).toBeTruthy();
-    expect(errorNotif!.message).toContain('Failed to generate AC rota');
-    expect(errorNotif!.message).toContain('too large');
+    expect(errorNotif!.message).toContain('No se ha podido generar el cuadrante AC');
+    expect(errorNotif!.message).toContain('demasiado grande');
     expect(errorNotif!.message).toContain('12960h');
   });
 
@@ -304,7 +305,7 @@ describe('App', () => {
     expect(notifications.length).toBeGreaterThan(0);
     const successNotif = notifications.find((n) => n.type === 'success');
     expect(successNotif).toBeTruthy();
-    expect(successNotif!.message).toContain('AC rota generated successfully');
+    expect(successNotif!.message).toContain('Cuadrante AC generado correctamente');
   });
 
   it('should show empty calendar with warning when no rota exists', () => {
@@ -320,7 +321,7 @@ describe('App', () => {
     // Debería haber un warning visible
     const warning = fixture.nativeElement.querySelector('.no-rota-warning');
     expect(warning).toBeTruthy();
-    expect(warning.textContent).toContain('No hay rota generada');
+    expect(warning.textContent).toContain('No hay ningún cuadrante generado');
   });
 
   it('should show pool tabs for AC and AP', () => {

@@ -52,11 +52,11 @@ describe('MonthViewComponent', () => {
     fixture.detectChanges();
 
     const header = fixture.nativeElement.querySelector('.month-header');
-    expect(header.textContent).toContain('March');
+    expect(header.textContent).toContain('Marzo');
     expect(header.textContent).toContain('2026');
   });
 
-  it('should show day-of-week headers (Mon-Sun)', () => {
+  it('should show day-of-week headers (Lun-Dom)', () => {
     fixture.componentRef.setInput('month', 1);
     fixture.componentRef.setInput('year', 2026);
     fixture.componentRef.setInput('assignments', []);
@@ -66,7 +66,7 @@ describe('MonthViewComponent', () => {
     expect(dayHeaders.length).toBe(7);
 
     const headerTexts = Array.from(dayHeaders).map((el: any) => el.textContent.trim());
-    expect(headerTexts).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    expect(headerTexts).toEqual(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
   });
 
   it('should pass assignments to day cells', () => {

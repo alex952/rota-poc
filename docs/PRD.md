@@ -46,7 +46,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 - RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
 - RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
-- RN-7: La cobertura primary base es **siempre 1 médico por día**, tanto para AC como para AP. La única cobertura adicional es el segundo AP en festivos. Si el pool es demasiado grande para que todos los médicos alcancen su target con esa cobertura, el algoritmo rechaza la generación con `InfeasiblePoolError` ("Pool too large").
+- RN-7: La cobertura primary base es **siempre 1 médico por día**, tanto para AC como para AP. La única cobertura adicional es el segundo AP en festivos. Si el pool es demasiado grande para que todos los médicos alcancen su target con esa cobertura, el algoritmo rechaza la generación con `InfeasiblePoolError` ("El grupo … es demasiado grande …").
 - RN-8: **Día de descanso post-guardia** — un médico que está de guardia el día D **no está disponible** para asignación el día D+1. Los días de descanso aplican **por tipo de rota únicamente** (los descansos de AC no afectan a AP y viceversa, ya que los grupos son separados). Restricción blanda para grupos con menos de 4 médicos.
 - RN-9: Las asignaciones de guardia deben tener **máxima variación de grupo** — el algoritmo usa un puntero round-robin deslizante para evitar que el mismo subconjunto de médicos sea asignado siempre junto.
 - RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h para AC, 12h para AP), no como sábado. La clasificación de festivo siempre tiene prioridad.
@@ -139,9 +139,9 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | ID | Criterio |
 |----|---------|
 | CA-3.6.1 | **Dada** la carga de la interfaz, **cuando** existe una rota para el año seleccionado, **entonces** el calendario muestra todas las asignaciones para cada día de cada mes. |
-| CA-3.6.2 | **Dada** la carga de la interfaz, **cuando** no existe rota para el año seleccionado, **entonces** el calendario está vacío y el botón de generar muestra "Generar Rota". |
-| CA-3.6.3 | **Dada** una rota existente, **entonces** el botón de generar muestra "Re-generar Rota". |
-| CA-3.6.4 | **Dado** que el usuario hace clic en "Re-generar Rota", **entonces** aparece un diálogo de confirmación advirtiendo que la rota actual será reemplazada antes de continuar. |
+| CA-3.6.2 | **Dada** la carga de la interfaz, **cuando** no existe rota para el año seleccionado, **entonces** el calendario está vacío y el botón de generar muestra "Generar cuadrante {AC|AP}" (según la pestaña activa). |
+| CA-3.6.3 | **Dada** una rota existente, **entonces** el botón de generar muestra "Regenerar cuadrante {AC|AP}" (según la pestaña activa). |
+| CA-3.6.4 | **Dado** que el usuario hace clic en "Regenerar cuadrante {AC|AP}", **entonces** aparece un diálogo de confirmación advirtiendo que la rota actual será reemplazada antes de continuar. |
 | CA-3.6.5 | **Dada** la interfaz, **entonces** hay un selector de año visible que por defecto muestra el año actual. |
 | CA-3.6.6 | **Dado** que el usuario cambia el año, **entonces** el calendario recarga los datos del año seleccionado. |
 | CA-3.6.7 | **Dada** la carga de la interfaz, **entonces** el nombre de la ciudad configurada se muestra en la interfaz. |
@@ -160,9 +160,9 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 |----|---------|
 | CA-3.7.1 | **Dada** la carga de la interfaz, **entonces** el panel izquierdo muestra tarjetas de médicos pre-cargadas desde un archivo de configuración estático. |
 | CA-3.7.2 | **Dada** una tarjeta de médico, **entonces** muestra el nombre y el departamento del médico. |
-| CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir Médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento). |
+| CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento). |
 | CA-3.7.4 | **Dadas** las tarjetas de médico, **entonces** se pueden arrastrar y soltar en las celdas del calendario para asignar sustituciones. |
-| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir Médico" y "Generar Rota" / "Re-generar Rota" son visibles. |
+| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico" y "Generar cuadrante {AC|AP}" / "Regenerar cuadrante {AC|AP}" son visibles. |
 
 ---
 

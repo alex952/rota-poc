@@ -122,7 +122,7 @@ export class App implements OnInit {
   );
 
   protected readonly confirmMessage = computed(() =>
-    `The current ${this.activePoolTab()} rota for ${this.selectedYear()} will be replaced with a new one. This action cannot be undone. Continue?`
+    `El cuadrante ${this.activePoolTab()} actual de ${this.selectedYear()} se sustituirá por uno nuevo. Esta acción no se puede deshacer. ¿Desea continuar?`
   );
 
   ngOnInit(): void {
@@ -135,7 +135,7 @@ export class App implements OnInit {
       error: (err) => {
         console.error('Failed to load config', err);
         this.notificationService.show(
-          this.extractErrorMessage(err, 'Failed to load application configuration'),
+          this.extractErrorMessage(err, 'No se ha podido cargar la configuración de la aplicación'),
           'error'
         );
       },
@@ -171,7 +171,7 @@ export class App implements OnInit {
       this.holidaysService.markHoliday(year, date, 'Festivo Manual').subscribe({
         next: () => {
           this.notificationService.show(
-            `El día ${date} se ha marcado como festivo manual. Las rotas existentes pueden no reflejar este cambio. Regenera la rota para actualizar las asignaciones.`,
+            `El día ${date} se ha marcado como festivo manual. Los cuadrantes existentes pueden no reflejar este cambio. Regenere el cuadrante para actualizar las asignaciones.`,
             'warning'
           );
         },
@@ -186,7 +186,7 @@ export class App implements OnInit {
       this.holidaysService.unmarkHoliday(year, date).subscribe({
         next: () => {
           this.notificationService.show(
-            `El día ${date} ya no es festivo manual. Las rotas existentes pueden no reflejar este cambio. Regenera la rota para actualizar las asignaciones.`,
+            `El día ${date} ya no es festivo manual. Los cuadrantes existentes pueden no reflejar este cambio. Regenere el cuadrante para actualizar las asignaciones.`,
             'warning'
           );
         },
@@ -285,7 +285,7 @@ export class App implements OnInit {
         console.error('Failed to replace doctor', err);
         this.loading.set(false);
         this.notificationService.show(
-          this.extractErrorMessage(err, 'Failed to replace doctor'),
+          this.extractErrorMessage(err, 'No se ha podido sustituir al médico'),
           'error'
         );
       },
@@ -318,7 +318,7 @@ export class App implements OnInit {
         this.loading.set(false);
         if (err.status !== 404) {
           this.notificationService.show(
-            this.extractErrorMessage(err, 'Failed to load rota'),
+            this.extractErrorMessage(err, 'No se ha podido cargar el cuadrante'),
             'error'
           );
         }
@@ -358,12 +358,12 @@ export class App implements OnInit {
         this.isGenerating.set(false);
         if (rota.warnings?.length) {
           this.notificationService.show(
-            `${tab} rota generated with warnings:\n${rota.warnings.join('\n')}`,
+            `Cuadrante ${tab} generado con advertencias:\n${rota.warnings.join('\n')}`,
             'warning'
           );
         } else {
           this.notificationService.show(
-            `${tab} rota generated successfully for ${year}`,
+            `Cuadrante ${tab} generado correctamente para ${year}`,
             'success'
           );
         }
@@ -373,7 +373,7 @@ export class App implements OnInit {
         this.loading.set(false);
         this.isGenerating.set(false);
         this.notificationService.show(
-          this.extractErrorMessage(err, `Failed to generate ${tab} rota`),
+          this.extractErrorMessage(err, `No se ha podido generar el cuadrante ${tab}`),
           'error'
         );
       },
