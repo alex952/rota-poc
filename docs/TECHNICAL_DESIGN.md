@@ -43,6 +43,7 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
 - `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación
+- `POST /api/v1/rota/:year/:rotaType/add` añade un médico a la guardia de un día sin quitar a los ya asignados; cuerpo `{ date, doctor_id }`, responde 200 con la rota completa. La fila nueva copia tipo de día y horario de la guardia existente; es una corrección manual sin validar día de descanso ni `doctors_per_day`
 
 ## Diseño de Persistencia
 

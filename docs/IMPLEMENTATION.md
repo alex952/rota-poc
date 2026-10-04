@@ -81,6 +81,7 @@ El frontend espera:
 - `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
 - `/api/v1/rota/generate` para devolver una respuesta completa de rota persistida
 - `/api/v1/rota/:year/:rotaType/replace` para devolver la rota actualizada tras la sustitución
+- `/api/v1/rota/:year/:rotaType/add` para devolver la rota actualizada tras añadir un médico a una guardia
 
 ## Restricciones Operativas Actuales
 

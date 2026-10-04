@@ -232,20 +232,29 @@ export class App implements OnInit {
   }
 
   onDoctorDropped(event: ReplacementEvent): void {
-    const tab = this.activePoolTab();
-    const replaceableDoctors = this.getReplaceableDoctors(tab, event);
-    if (replaceableDoctors.length === 0) {
+    const assignedDoctors = this.getReplaceableDoctors(this.activePoolTab(), event);
+    if (assignedDoctors.length === 0) {
       this.notificationService.show(
         'No hay ninguna sustitución disponible para ese médico en este día.',
         'warning'
       );
       return;
     }
-    if (replaceableDoctors.length === 1) {
-      this.doReplace(tab, event.date, replaceableDoctors[0].doctor_id, event.newDoctor.id);
-    } else {
-      this.pendingReplacement.set(event);
+    if (assignedDoctors.some((doctor) => doctor.doctor_id === event.newDoctor.id)) {
+      this.notificationService.show(
+        'Ese médico ya está asignado a la guardia de este día.',
+        'warning'
+      );
+      return;
     }
+    this.pendingReplacement.set(event);
+  }
+
+  onAddDoctorToDay(): void {
+    const pending = this.pendingReplacement();
+    if (!pending) return;
+    this.pendingReplacement.set(null);
+    this.doAdd(this.activePoolTab(), pending.date, pending.newDoctor.id);
   }
 
   onReplaceDoctorSelected(choice: ReplaceDoctorChoice): void {
@@ -257,6 +266,30 @@ export class App implements OnInit {
 
   onCancelReplacement(): void {
     this.pendingReplacement.set(null);
+  }
+
+  private doAdd(rotaType: RotaType, dateStr: string, doctorId: string): void {
+    this.loading.set(true);
+
+    this.rotaService
+      .addDoctor(this.selectedYear(), rotaType, { date: dateStr, doctor_id: doctorId })
+      .subscribe({
+        next: (rota) => {
+          this.applyRota(rota);
+          this.loading.set(false);
+          if (rota.warnings?.length) {
+            this.notificationService.show(rota.warnings.join('\n'), 'warning');
+          }
+        },
+        error: (err) => {
+          console.error('Failed to add doctor', err);
+          this.loading.set(false);
+          this.notificationService.show(
+            this.extractErrorMessage(err, 'No se ha podido añadir al médico'),
+            'error'
+          );
+        },
+      });
   }
 
   private doReplace(

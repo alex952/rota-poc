@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { GenerateRequest, ReplaceRequest, RotaResponse } from '../models/rota.model';
+import { AddDoctorRequest, GenerateRequest, ReplaceRequest, RotaResponse } from '../models/rota.model';
 import { Doctor, RotaType } from '../models/doctor.model';
 
 @Injectable({ providedIn: 'root' })
@@ -27,6 +27,10 @@ export class RotaService {
       })),
     };
     return this.http.post<RotaResponse>('/api/v1/rota/generate', request);
+  }
+
+  addDoctor(year: number, rotaType: RotaType, request: AddDoctorRequest): Observable<RotaResponse> {
+    return this.http.post<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/add`, request);
   }
 
   replaceDoctor(year: number, rotaType: RotaType, request: ReplaceRequest): Observable<RotaResponse> {
