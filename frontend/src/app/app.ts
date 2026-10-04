@@ -46,6 +46,7 @@ export class App implements OnInit {
   protected readonly showConfirmDialog = signal(false);
   protected readonly loading = signal(false);
   protected readonly isGenerating = signal(false);
+  protected readonly exporting = signal(false);
   protected readonly currentMonth = signal(new Date().getMonth() + 1);
 
   protected readonly contextMenuOpen = signal(false);
@@ -145,6 +146,44 @@ export class App implements OnInit {
 
   toggleStats(): void {
     this.showStats.update((v) => !v);
+  }
+
+  onExportRota(): void {
+    const year = this.selectedYear();
+    this.exporting.set(true);
+    this.rotaService.exportRotas(year).subscribe({
+      next: (blob) => {
+        this.downloadBlob(blob, `cuadrante-guardias-${year}.xlsx`);
+        this.exporting.set(false);
+      },
+      error: async (err: HttpErrorResponse) => {
+        console.error('Failed to export rota', err);
+        // Con responseType 'blob' el cuerpo del error también llega como Blob
+        const body = await this.parseBlobError(err);
+        this.exporting.set(false);
+        this.notificationService.show(
+          this.extractErrorMessage({ error: body }, 'No se ha podido exportar el cuadrante'),
+          'error'
+        );
+      },
+    });
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async parseBlobError(err: HttpErrorResponse): Promise<unknown> {
+    try {
+      return JSON.parse(await (err.error as Blob).text());
+    } catch {
+      return undefined;
+    }
   }
 
   onMonthChange(month: number): void {

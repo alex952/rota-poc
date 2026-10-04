@@ -137,4 +137,19 @@ describe('RotaService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockRotaResponse);
   });
+
+  it('should export rotas via GET /api/v1/rota/{year}/export with blob response type', () => {
+    const blob = new Blob(['xlsx'], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    service.exportRotas(2026).subscribe((result) => {
+      expect(result).toBeInstanceOf(Blob);
+    });
+
+    const req = httpTesting.expectOne('/api/v1/rota/2026/export');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(blob);
+  });
 });

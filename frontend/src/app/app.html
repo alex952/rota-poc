@@ -3,6 +3,9 @@
   <span class="header-divider"></span>
   <span class="app-title">Cuadrante de Guardias</span>
   <span class="header-spacer"></span>
+  <button class="btn-export" [disabled]="!hasData() || exporting()" (click)="onExportRota()">
+    Exportar a Excel
+  </button>
   <button class="btn-stats" (click)="toggleStats()">
     {{ showStats() ? 'Ocultar estadísticas' : 'Mostrar estadísticas' }}
   </button>

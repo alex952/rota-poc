@@ -180,6 +180,18 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 ---
 
+### 3.9 — Exportación a Excel
+
+**Descripción:** El usuario puede descargar los cuadrantes del año seleccionado (AC y AP juntos) como un libro de Excel.
+
+#### Criterios de Aceptación
+
+| ID | Criterio |
+|----|---------|
+| CA-3.9.1 | **Dado** un año con al menos un cuadrante generado, **cuando** el usuario pulsa «Exportar a Excel», **entonces** se descarga `cuadrante-guardias-<año>.xlsx` con una hoja `Cuadrante` (una fila por día, con médico, horario y horas de AC y AP) y una hoja de estadísticas por cada tipo de cuadrante existente (`Estadísticas AC`, `Estadísticas AP`). Si no hay ningún cuadrante, el botón está deshabilitado y el endpoint devuelve 404 con un mensaje en español. |
+
+---
+
 ## 4. Fuera de Alcance (PoC)
 
 Lo siguiente queda explícitamente **fuera del alcance** de esta PoC:

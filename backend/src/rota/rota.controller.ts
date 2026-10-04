@@ -8,18 +8,23 @@ import {
   Post,
   Query,
   Body,
+  StreamableFile,
 } from '@nestjs/common';
 
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
+import { RotaExportService } from './rota-export.service';
 import { RotaService } from './rota.service';
 import { HolidaysService } from '../holidays/holidays.service';
 import { AppConfigService } from '../config/app-config.service';
+
+const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 @Controller('rota')
 export class RotaController {
   constructor(
     private readonly rotaService: RotaService,
+    private readonly rotaExportService: RotaExportService,
     private readonly holidaysService: HolidaysService,
     private readonly appConfigService: AppConfigService,
   ) {}
@@ -27,6 +32,17 @@ export class RotaController {
   @Post('generate')
   async generate(@Body() request: GenerateRotaDto) {
     return this.rotaService.generate(request);
+  }
+
+  @Get(':year/export')
+  async exportByYear(@Param('year', ParseIntPipe) year: number) {
+    const rotas = await this.rotaService.getByYear(year);
+    const buffer = await this.rotaExportService.buildWorkbook(rotas);
+    return new StreamableFile(buffer, {
+      type: XLSX_CONTENT_TYPE,
+      disposition: `attachment; filename="cuadrante-guardias-${year}.xlsx"`,
+      length: buffer.length,
+    });
   }
 
   @Get(':year/:rotaType')

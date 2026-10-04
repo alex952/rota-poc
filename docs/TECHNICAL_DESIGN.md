@@ -42,6 +42,7 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  PostgreSQL
 - `POST /api/v1/rota/generate` genera y persiste un tipo de rota
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
+- `GET /api/v1/rota/:year/export` descarga un libro de Excel (`cuadrante-guardias-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
 - `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación
 
 ## Diseño de Persistencia

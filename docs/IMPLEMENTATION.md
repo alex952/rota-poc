@@ -80,6 +80,7 @@ El frontend espera:
 - `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
 - `/api/v1/rota/generate` para devolver una respuesta completa de rota persistida
 - `/api/v1/rota/:year/:rotaType/replace` para devolver la rota actualizada tras la sustitución
+- `/api/v1/rota/:year/export` para descargar el libro de Excel del año (respuesta binaria; el cuerpo de los errores también llega como `Blob` y se decodifica en `App.onExportRota`)
 
 ## Restricciones Operativas Actuales
 
@@ -88,3 +89,9 @@ El frontend espera:
 - Sin soporte de deshacer
 - Sin Swagger/OpenAPI UI todavía
 - Docker Compose es el flujo de trabajo principal local para el stack completo
+
+## 4.4 Trazabilidad de Criterios de Aceptación
+
+| Criterio | Pruebas |
+|----------|---------|
+| CA-3.9.1 | `backend/test/e2e/rota-export.e2e-spec.ts` (contrato HTTP, hojas, filas, sólo AC, sustitución), `frontend/src/app/core/services/rota.service.spec.ts` (`exportRotas`), `frontend/src/app/app.spec.ts` (botón, descarga, errores en español) |
