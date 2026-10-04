@@ -32,7 +32,7 @@ npm run migration:run
 
 ```bash
 cd frontend
-npx ng test --watch=false       # ejecutar los 92 tests del frontend
+npx ng test --watch=false       # ejecutar los 101 tests del frontend
 npx ng build                    # build de producción
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desarrollo
 ```
@@ -77,15 +77,15 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (33 tests actualmente)
-- Frontend: `vitest` — 92 tests cubriendo servicios, componentes y la integración del app shell
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (34 tests actualmente)
+- Frontend: `vitest` — 101 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
 ## Verificación Visual (obligatoria antes del commit)
 
 Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
-125 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
+135 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
 ningún test comprueba, un mensaje que la librería genera en inglés. Por eso, todo
 cambio que toque algo visible para el usuario —frontend, o mensajes del backend,
 que llegan literalmente a la interfaz vía `extractErrorMessage` en
@@ -124,7 +124,7 @@ pantallas, haciendo captura de cada una:
 1. **Carga inicial sin cuadrante** — cabecera, banner de aviso, grupo de médicos, calendario vacío
 2. **Generar** un cuadrante AC y otro AP — notificación de éxito, calendario poblado, prefijo `R:` en los AP
 3. **Panel de estadísticas** — etiquetas, totales, insignias Lab/Sáb/Fest
-4. **Diálogos** — confirmación de regeneración, añadir médico, sustituir médico
+4. **Diálogos** — confirmación de regeneración, añadir médico al grupo, añadir o sustituir médico (al soltar un médico sobre un día)
 5. **Menú contextual** (clic derecho en un día) — marcar/desmarcar festivo y su notificación
 6. **Vista de día** (clic en una celda) — cabecera con la fecha larga en español
 
@@ -187,7 +187,7 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente. Funcionalmente, AC son guardias principales y **AP son refuerzos del día**.
 2. Un médico de guardia el día D está **libre el D+1** dentro del mismo tipo de rota (día de descanso — restricción blanda para grupos pequeños)
 3. Horas mínimas: **1.620h/año AC** (135h/mes × 12), **425h/año AP** por médico — **restricción dura** (genera error si no se cumple)
-4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en festivos. Si el pool excede la capacidad anual de cobertura, el algoritmo lanza `InfeasiblePoolError` (cap superior).
+4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en festivos o por adición manual de un médico a un día (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas). Si el pool excede la capacidad anual de cobertura, el algoritmo lanza `InfeasiblePoolError` (cap superior).
 5. **Duraciones por rota**:
    - AC: 17h laborable, 18h sábado, 23h festivo (15:00 → 08:00+1 / 09:00+1, festivo 09:00 → 08:00+1).
    - AP: 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).

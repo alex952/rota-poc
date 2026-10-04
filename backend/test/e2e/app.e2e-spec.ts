@@ -173,6 +173,73 @@ describe('HTTP contract', () => {
     expect(allRotas.json()[0].rota_type).toBe('AC');
   });
 
+  it('supports adding a doctor to an existing day', async () => {
+    const generation = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AC', pool: AC_POOL_4 },
+    });
+    expect(generation.statusCode).toBe(201);
+
+    const targetDay = generation.json().schedule[0];
+    const assignedDoctorId = targetDay.doctors[0].doctor_id;
+    const extraDoctor = AC_POOL_4.find((doctor) => doctor.id !== assignedDoctorId);
+    expect(extraDoctor).toBeDefined();
+
+    const hoursOf = (body: { stats: { doctors: { doctor_id: string; total_hours: number }[] } }) =>
+      body.stats.doctors.find((doctor) => doctor.doctor_id === extraDoctor!.id)!.total_hours;
+    const hoursBefore = hoursOf(generation.json());
+
+    const addition = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/2026/AC/add',
+      payload: { date: targetDay.date, doctor_id: extraDoctor!.id },
+    });
+    expect(addition.statusCode).toBe(200);
+
+    const updatedDay = addition
+      .json()
+      .schedule.find((day: { date: string }) => day.date === targetDay.date);
+    expect(updatedDay.doctors).toHaveLength(2);
+    expect(updatedDay.doctors[0].doctor_id).toBe(assignedDoctorId);
+    expect(updatedDay.doctors[1].doctor_id).toBe(extraDoctor!.id);
+    expect(hoursOf(addition.json())).toBe(hoursBefore + targetDay.duration_hours);
+
+    const duplicate = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/2026/AC/add',
+      payload: { date: targetDay.date, doctor_id: extraDoctor!.id },
+    });
+    expect(duplicate.statusCode).toBe(400);
+    expect(duplicate.json().message).toMatch(/ya tiene una asignación/i);
+
+    const outsider = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/2026/AC/add',
+      payload: { date: targetDay.date, doctor_id: 'doc-fuera-del-grupo' },
+    });
+    expect(outsider.statusCode).toBe(400);
+    expect(outsider.json().message).toMatch(/no pertenece al grupo/i);
+
+    const missingRota = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/2035/AC/add',
+      payload: { date: '2035-01-01', doctor_id: extraDoctor!.id },
+    });
+    expect(missingRota.statusCode).toBe(404);
+
+    const invalidBody = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/2026/AC/add',
+      payload: { date: 'x' },
+    });
+    expect(invalidBody.statusCode).toBe(400);
+    expect(invalidBody.json().message).toEqual([
+      'la fecha debe ser una fecha válida con formato AAAA-MM-DD',
+      'el identificador del médico debe ser una cadena de texto',
+    ]);
+  });
+
   it('keeps AC and AP rotas independent for the same year', async () => {
     const acGeneration = await app.inject({
       method: 'POST',

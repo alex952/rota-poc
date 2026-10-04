@@ -36,6 +36,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
 - `PATCH /api/v1/rota/:year/:rotaType/replace`
+- `POST /api/v1/rota/:year/:rotaType/add`
 
 ## Modelo de Datos
 

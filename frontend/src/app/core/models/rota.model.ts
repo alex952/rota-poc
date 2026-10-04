@@ -53,6 +53,11 @@ export interface ReplaceRequest {
   new_doctor_id: string;
 }
 
+export interface AddDoctorRequest {
+  date: string;
+  doctor_id: string;
+}
+
 /** Merged day for the combined calendar view */
 export interface MergedDayAssignment {
   date: string;

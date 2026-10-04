@@ -161,7 +161,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.7.1 | **Dada** la carga de la interfaz, **entonces** el panel izquierdo muestra tarjetas de médicos pre-cargadas desde un archivo de configuración estático. |
 | CA-3.7.2 | **Dada** una tarjeta de médico, **entonces** muestra el nombre y el departamento del médico. |
 | CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento). |
-| CA-3.7.4 | **Dadas** las tarjetas de médico, **entonces** se pueden arrastrar y soltar en las celdas del calendario para asignar sustituciones. |
+| CA-3.7.4 | **Dadas** las tarjetas de médico, **entonces** se pueden arrastrar y soltar en las celdas del calendario con guardia; al soltar se abre un diálogo para **añadir** el médico a la guardia del día o **sustituir** a uno de los ya asignados. Si el médico ya está asignado ese día se muestra un aviso y no se abre el diálogo. |
 | CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico" y "Generar cuadrante {AC|AP}" / "Regenerar cuadrante {AC|AP}" son visibles. |
 
 ---
