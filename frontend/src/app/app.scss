@@ -37,7 +37,8 @@
   flex: 1;
 }
 
-.btn-stats {
+.btn-stats,
+.btn-export {
   padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
   font-weight: 600;
@@ -49,8 +50,18 @@
   transition: background-color 0.15s ease;
 }
 
-.btn-stats:hover {
+.btn-stats:hover,
+.btn-export:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-export {
+  margin-right: 0.5rem;
+}
+
+.btn-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .app-layout {

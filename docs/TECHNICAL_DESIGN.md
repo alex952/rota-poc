@@ -42,6 +42,7 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `POST /api/v1/rota/generate` genera y persiste un tipo de rota
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
+- `GET /api/v1/rota/:year/export` descarga un libro de Excel (`cuadrante-guardias-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
 - `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación
 - `POST /api/v1/rota/:year/:rotaType/add` añade un médico a la guardia de un día sin quitar a los ya asignados; cuerpo `{ date, doctor_id }`, responde 200 con la rota completa. La fila nueva copia tipo de día y horario de la guardia existente; es una corrección manual sin validar día de descanso ni `doctors_per_day`
 

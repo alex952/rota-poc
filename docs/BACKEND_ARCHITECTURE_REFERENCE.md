@@ -15,6 +15,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 2. El servicio relevante carga festivos/config y ejecuta la lógica de planificación cuando es necesario.
 3. TypeORM persiste `rotas`, `rota_doctors`, `rota_assignments` y `holidays` en caché.
 4. `RotaResponseMapper` reconstruye la forma de respuesta de la API, incluyendo estadísticas y vistas de rota filtradas.
+5. `RotaExportService` (`src/rota/rota-export.service.ts`) recibe las `RotaResponse` que devuelve `RotaService.getByYear` y genera con `exceljs` el libro de Excel (`buildWorkbook`); no accede a la base de datos ni recalcula estadísticas. El controlador devuelve el resultado como `StreamableFile`.
 
 ## Módulos
 
@@ -22,7 +23,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `src/database/` gestiona la configuración de TypeORM y las migraciones.
 - `src/holidays/` obtiene los festivos españoles, los filtra por ciudad/región y los almacena en caché.
 - `src/scheduling/` contiene el algoritmo de rota y el cálculo de estadísticas.
-- `src/rota/` gestiona la generación, recuperación, sustitución, entidades y mapeo de respuestas.
+- `src/rota/` gestiona la generación, recuperación, sustitución, exportación a Excel, entidades y mapeo de respuestas.
 - `src/health/` proporciona el endpoint de liveness `/health`.
 
 ## Superficie de API
@@ -35,6 +36,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `POST /api/v1/rota/generate`
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
+- `GET /api/v1/rota/:year/export`
 - `PATCH /api/v1/rota/:year/:rotaType/replace`
 - `POST /api/v1/rota/:year/:rotaType/add`
 

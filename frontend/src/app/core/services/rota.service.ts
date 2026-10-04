@@ -16,6 +16,10 @@ export class RotaService {
     return this.http.get<RotaResponse[]>(`/api/v1/rota/${year}`);
   }
 
+  exportRotas(year: number): Observable<Blob> {
+    return this.http.get(`/api/v1/rota/${year}/export`, { responseType: 'blob' });
+  }
+
   generateRota(year: number, rotaType: RotaType, pool: Doctor[]): Observable<RotaResponse> {
     const request: GenerateRequest = {
       year,
