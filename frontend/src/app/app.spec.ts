@@ -491,4 +491,82 @@ describe('App', () => {
       expect(notification.message).not.toContain('Http failure');
     });
   });
+
+  describe('soltar un médico sobre un día', () => {
+    const drop = (assigned: { doctor_id: string; doctor_name: string }[], newDoctor = mockDoctors[1]) => ({
+      date: '2026-01-01',
+      newDoctor,
+      acDoctors: assigned,
+      apDoctors: [],
+    });
+    const garcia = { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' };
+
+    function setup() {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      flushInitRequests();
+      fixture.detectChanges();
+      return { fixture, app: fixture.componentInstance, notifications: TestBed.inject(NotificationService) };
+    }
+
+    it('con un solo médico asignado abre el diálogo y no lanza ninguna sustitución', () => {
+      const { fixture, app } = setup();
+
+      app.onDoctorDropped(drop([garcia]));
+      fixture.detectChanges();
+
+      expect(app['pendingReplacement']()).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('app-replace-doctor-dialog')).not.toBeNull();
+      httpTesting.expectNone('/api/v1/rota/2026/AC/replace');
+    });
+
+    it('onAddDoctorToDay lanza el POST y aplica la rota devuelta', () => {
+      const { fixture, app } = setup();
+      app.onDoctorDropped(drop([garcia]));
+
+      app.onAddDoctorToDay();
+
+      expect(app['pendingReplacement']()).toBeNull();
+      const req = httpTesting.expectOne((r) => r.url.endsWith('/AC/add'));
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ date: '2026-01-01', doctor_id: 'doc-002' });
+
+      const updated: RotaResponse = {
+        ...mockAcRotaResponse,
+        schedule: [
+          {
+            ...mockAcRotaResponse.schedule[0],
+            doctors: [garcia, { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' }],
+          },
+        ],
+      };
+      req.flush(updated);
+      fixture.detectChanges();
+
+      expect(app['acSchedule']()[0].doctors.length).toBe(2);
+    });
+
+    it('si el médico ya está asignado ese día avisa y no abre el diálogo', () => {
+      const { app, notifications } = setup();
+
+      app.onDoctorDropped(drop([garcia], mockDoctors[0]));
+
+      expect(app['pendingReplacement']()).toBeNull();
+      const last = notifications.notifications().at(-1);
+      expect(last?.type).toBe('warning');
+      expect(last?.message).toBe('Ese médico ya está asignado a la guardia de este día.');
+    });
+
+    it('sin médicos asignados mantiene el aviso actual', () => {
+      const { app, notifications } = setup();
+
+      app.onDoctorDropped(drop([]));
+
+      expect(app['pendingReplacement']()).toBeNull();
+      expect(notifications.notifications().at(-1)?.message).toBe(
+        'No hay ninguna sustitución disponible para ese médico en este día.',
+      );
+    });
+  });
+
 });

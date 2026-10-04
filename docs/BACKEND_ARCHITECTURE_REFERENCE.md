@@ -6,7 +6,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 
 - `backend/src/main.ts` arranca una aplicación Nest basada en Fastify, aplica `/api/v1` como prefijo global, habilita CORS y registra la validación.
 - `backend/src/app.module.ts` compone los módulos de config, database, holidays, rota y health.
-- TypeORM es la capa de persistencia para PostgreSQL en producción y `sql.js` en pruebas.
+- TypeORM es la capa de persistencia para MySQL 8.4 en producción y `sql.js` en pruebas.
 - La planificación y la clasificación de festivos permanecen en servicios de dominio puros para mantener la capa HTTP delgada.
 
 ## Flujo de Solicitudes
@@ -38,6 +38,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `GET /api/v1/rota/:year`
 - `GET /api/v1/rota/:year/export`
 - `PATCH /api/v1/rota/:year/:rotaType/replace`
+- `POST /api/v1/rota/:year/:rotaType/add`
 
 ## Modelo de Datos
 
@@ -61,6 +62,6 @@ Restricciones importantes:
 
 ## Notas Operativas
 
-- Producción y Docker usan migraciones PostgreSQL mediante `npm run migration:run` o `npm run migration:run:dist`.
+- Producción y Docker usan migraciones MySQL mediante `npm run migration:run` o `npm run migration:run:dist`.
 - La respuesta de la API preserva el formato de turno nocturno con `+1` sólo cuando el turno realmente cruza medianoche (`formatShiftEnd`). Los turnos AP (15:00–22:00 y 10:00–22:00) se devuelven sin sufijo `+1`.
 - El backend no expone Swagger actualmente; el contrato estable está documentado en código y pruebas.

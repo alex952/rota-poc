@@ -12,6 +12,7 @@ import { formatClockTime } from '../common/date.utils';
 import { HolidaysService, classifyYear } from '../holidays/holidays.service';
 import { InfeasiblePoolError, generateRota } from '../scheduling/assignment.service';
 import { DoctorInput } from '../scheduling/scheduling.types';
+import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
 import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
@@ -192,6 +193,61 @@ export class RotaService {
 
       assignment.doctorId = request.new_doctor_id;
       await assignmentRepository.save(assignment);
+
+      const refreshed = await rotaRepository.findOneOrFail({
+        where: { id: rota.id },
+        relations: { assignments: true, doctors: true },
+      });
+
+      return this.responseMapper.toResponse(refreshed);
+    });
+  }
+
+  async addDoctor(year: number, rotaType: string, request: AddDoctorDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const rotaRepository = manager.getRepository(RotaEntity);
+      const assignmentRepository = manager.getRepository(RotaAssignmentEntity);
+
+      const rota = await rotaRepository.findOne({
+        where: { year, rotaType },
+        relations: { assignments: true, doctors: true },
+      });
+      if (!rota) {
+        throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
+      }
+
+      const poolDoctorIds = new Set((rota.pool as DoctorInput[]).map((doctor) => doctor.id));
+      if (!poolDoctorIds.has(request.doctor_id)) {
+        throw new BadRequestException(`El médico ${request.doctor_id} no pertenece al grupo original.`);
+      }
+
+      const dayAssignments = rota.assignments.filter((candidate) => candidate.date === request.date);
+      if (dayAssignments.length === 0) {
+        throw new NotFoundException(
+          `No hay ninguna guardia el ${request.date} a la que añadir un médico.`,
+        );
+      }
+      if (dayAssignments.some((candidate) => candidate.doctorId === request.doctor_id)) {
+        throw new BadRequestException(
+          `El médico ${request.doctor_id} ya tiene una asignación el ${request.date}.`,
+        );
+      }
+
+      // La guardia nueva hereda tipo de día y horario de la fila más antigua del día.
+      const template = dayAssignments.reduce((first, candidate) =>
+        candidate.id < first.id ? candidate : first,
+      );
+      await assignmentRepository.save(
+        assignmentRepository.create({
+          rotaId: rota.id,
+          date: request.date,
+          dayType: template.dayType,
+          shiftStart: template.shiftStart,
+          shiftEnd: template.shiftEnd,
+          durationHours: template.durationHours,
+          doctorId: request.doctor_id,
+        }),
+      );
 
       const refreshed = await rotaRepository.findOneOrFail({
         where: { id: rota.id },

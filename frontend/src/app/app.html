@@ -61,6 +61,7 @@
     [date]="pendingReplacement()!.date"
     [doctorName]="pendingReplacement()!.newDoctor.name"
     [doctors]="getReplaceableDoctors(activePoolTab(), pendingReplacement()!)"
+    (added)="onAddDoctorToDay()"
     (selected)="onReplaceDoctorSelected($event)"
     (cancelled)="onCancelReplacement()"
   />

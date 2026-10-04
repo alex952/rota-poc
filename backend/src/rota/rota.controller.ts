@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -11,6 +12,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 
+import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
 import { RotaExportService } from './rota-export.service';
@@ -68,6 +70,16 @@ export class RotaController {
     @Body() request: ReplaceDoctorDto,
   ) {
     return this.rotaService.replaceDoctor(year, rotaType, request);
+  }
+
+  @Post(':year/:rotaType/add')
+  @HttpCode(200)
+  async addDoctor(
+    @Param('year', ParseIntPipe) year: number,
+    @Param('rotaType') rotaType: string,
+    @Body() request: AddDoctorDto,
+  ) {
+    return this.rotaService.addDoctor(year, rotaType, request);
   }
 
   private async ensureHolidaysLoaded(year: number): Promise<void> {

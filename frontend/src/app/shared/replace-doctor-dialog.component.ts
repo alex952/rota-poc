@@ -14,12 +14,14 @@ export interface ReplaceDoctorChoice {
       <div class="replace-doctor-dialog">
         <p class="dialog-title">Asignar a {{ doctorName() }} el {{ date() }}</p>
         <p class="dialog-subtitle">
-          Elija la asignación que desea actualizar
+          Elija cómo desea asignarlo
         </p>
+        <button class="btn-add" data-testid="add-doctor-option" (click)="added.emit()">Añadir a la guardia</button>
+        <p class="replace-label">O sustituir a:</p>
         <div class="doctor-buttons">
           @for (doc of doctors(); track doc.doctor_id) {
             <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name })">
-              {{ doc.doctor_name }}
+              Sustituir a {{ doc.doctor_name }}
             </button>
           }
         </div>
@@ -69,7 +71,33 @@ export interface ReplaceDoctorChoice {
       margin-bottom: 1rem;
     }
 
+    .btn-add {
+      display: block;
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 2px solid #1565c0;
+      border-radius: 6px;
+      background: #1565c0;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-add:hover {
+      background: #0d47a1;
+    }
+
+    .replace-label {
+      margin: 0.9rem 0 0.4rem;
+      font-size: 0.75rem;
+      color: #666;
+    }
+
     .btn-doctor {
+      overflow-wrap: anywhere;
       padding: 0.65rem 0.75rem;
       border: 2px solid #1565c0;
       border-radius: 6px;
@@ -112,5 +140,6 @@ export class ReplaceDoctorDialogComponent {
   readonly doctors = input.required<DoctorRef[]>();
 
   readonly selected = output<ReplaceDoctorChoice>();
+  readonly added = output<void>();
   readonly cancelled = output<void>();
 }

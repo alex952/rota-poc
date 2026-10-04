@@ -29,12 +29,13 @@ export class RotaEntity {
 
   @Column({
     name: 'generated_at',
-    type: isSqlJs ? 'datetime' : 'timestamptz',
+    type: 'datetime',
+    precision: isSqlJs ? undefined : 3,
   })
   generatedAt!: Date;
 
   @Column({
-    type: isSqlJs ? 'simple-json' : 'jsonb',
+    type: isSqlJs ? 'simple-json' : 'json',
   })
   pool!: DoctorInput[];
 

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { RotaService } from './rota.service';
-import { RotaResponse, ReplaceRequest } from '../models/rota.model';
+import { AddDoctorRequest, RotaResponse, ReplaceRequest } from '../models/rota.model';
 import { Doctor } from '../models/doctor.model';
 
 describe('RotaService', () => {
@@ -123,6 +123,19 @@ describe('RotaService', () => {
     const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual(replaceRequest);
+    req.flush(mockRotaResponse);
+  });
+
+  it('should add doctor via POST /api/v1/rota/{year}/{type}/add', () => {
+    const addRequest: AddDoctorRequest = { date: '2026-03-15', doctor_id: 'doc-003' };
+
+    service.addDoctor(2026, 'AC', addRequest).subscribe((rota) => {
+      expect(rota).toBeTruthy();
+    });
+
+    const req = httpTesting.expectOne('/api/v1/rota/2026/AC/add');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(addRequest);
     req.flush(mockRotaResponse);
   });
 
