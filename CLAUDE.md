@@ -10,7 +10,7 @@ Aplicación de Asignación de Guardias Médicas — una PoC para la planificaci�
 
 ## Estructura del Repositorio
 
-- `backend/` — NestJS 11 / TypeScript / TypeORM / PostgreSQL
+- `backend/` — NestJS 11 / TypeScript / TypeORM / MySQL
 - `frontend/` — Angular 19+ / TypeScript / Angular CDK
 - `docs/` — PRD, Diseño Técnico, Referencia de Backend, Guía de Implementación
 - `docker-compose.yml` — Stack completo (db, backend, frontend)
@@ -41,20 +41,20 @@ npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desar
 
 ```bash
 docker compose up --build       # stack completo
-docker compose up db            # solo PostgreSQL (para desarrollo local del backend)
+docker compose up db            # solo MySQL (para desarrollo local del backend)
 ```
 
 ## Arquitectura
 
 - **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health
-- **Base de datos**: PostgreSQL con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
+- **Base de datos**: MySQL 8.4 con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Componentes standalone de Angular con estado basado en signals
 - **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y cobertura doble en festivos (`doctorsForDay`).
 
 ## Configuración Principal
 
 Variables de entorno (backend):
-- `DATABASE_URL` — Cadena de conexión a PostgreSQL
+- `DATABASE_URL` — Cadena de conexión a MySQL
 - `HOLIDAY_API_URL` — API de festivos española (por defecto: date.nager.at)
 - `CITY` — Ciudad del hospital (por defecto: Madrid), determina la resolución de festivos y la visualización en la interfaz
 
@@ -102,8 +102,8 @@ omite y se dice explícitamente en el informe por qué no aplica.
 docker compose up --build -d
 ```
 
-Frontend en `http://localhost:4200`, backend en `http://localhost:8000`, Postgres
-en `5432`. La ciudad es `Alicante` y el grupo de médicos se sirve del cliente
+Frontend en `http://localhost:4200`, backend en `http://localhost:8000`, MySQL
+en `3306`. La ciudad es `Alicante` y el grupo de médicos se sirve del cliente
 desde `frontend/src/assets/doctors.json`, no de la base de datos.
 
 Espera a que respondan antes de abrir el navegador (`db` tiene healthcheck, el

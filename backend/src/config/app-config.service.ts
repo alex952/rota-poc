@@ -16,7 +16,7 @@ export class AppConfigService {
   get databaseUrl(): string {
     return (
       this.configService.get<string>('DATABASE_URL') ??
-      'postgresql://rota_user:rota_pass@localhost:5432/rota'
+      'mysql://rota_user:rota_pass@localhost:3306/rota'
     );
   }
 }

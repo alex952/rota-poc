@@ -20,7 +20,7 @@ const migrations = [
 ];
 
 export function createTypeOrmOptions(): TypeOrmModuleOptions {
-  const dbType = process.env.DB_TYPE ?? 'postgres';
+  const dbType = process.env.DB_TYPE ?? 'mysql';
 
   if (dbType === 'sqljs') {
     return {
@@ -34,8 +34,10 @@ export function createTypeOrmOptions(): TypeOrmModuleOptions {
   }
 
   return {
-    type: 'postgres',
-    url: process.env.DATABASE_URL ?? 'postgresql://rota_user:rota_pass@localhost:5432/rota',
+    type: 'mysql',
+    url: process.env.DATABASE_URL ?? 'mysql://rota_user:rota_pass@localhost:3306/rota',
+    timezone: 'Z',
+    dateStrings: ['DATE'],
     synchronize: false,
     entities,
     migrations,

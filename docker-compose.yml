@@ -1,27 +1,32 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: mysql:8.4
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_as_cs"]
     environment:
-      POSTGRES_DB: rota
-      POSTGRES_USER: rota_user
-      POSTGRES_PASSWORD: rota_pass
+      MYSQL_DATABASE: rota
+      MYSQL_USER: rota_user
+      MYSQL_PASSWORD: rota_pass
+      MYSQL_ROOT_PASSWORD: rota_root_pass
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysqldata:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rota_user -d rota"]
+      # -h 127.0.0.1 es deliberado: durante la inicialización la imagen levanta un servidor
+      # temporal sólo por socket; un ping por socket daría "healthy" antes de tiempo.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u rota_user -prota_pass --silent"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 30s
 
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     environment:
-      DB_TYPE: postgres
-      DATABASE_URL: postgresql://rota_user:rota_pass@db:5432/rota
+      DB_TYPE: mysql
+      DATABASE_URL: mysql://rota_user:rota_pass@db:3306/rota
       HOLIDAY_API_URL: https://date.nager.at/api/v3
       CITY: Alicante
     depends_on:
@@ -38,4 +43,4 @@ services:
       - backend
 
 volumes:
-  pgdata:
+  mysqldata:

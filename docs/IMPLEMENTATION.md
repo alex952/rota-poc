@@ -53,8 +53,9 @@ La imagen Docker compila TypeScript, ejecuta `npm run migration:run:dist` e inic
 
 - La configuración de TypeORM reside en `src/database/typeorm.config.ts`
 - La fuente de datos de la CLI reside en `src/database/data-source.ts`
-- PostgreSQL es la base de datos por defecto en tiempo de ejecución
+- MySQL 8.4 es la base de datos por defecto en tiempo de ejecución
 - `sql.js` se usa únicamente para el aislamiento de pruebas
+- `src/database/migration-helpers.ts` contiene los helpers idempotentes de las migraciones (`addColumnIfMissing`, `addUniqueIfMissing`, `dropIndexIfExists`, ...): MySQL no admite `IF NOT EXISTS` en el DDL de columnas ni de índices
 
 Comandos de migración:
 
@@ -69,7 +70,7 @@ npm run migration:revert
 
 - Las pruebas unitarias cubren la lógica de festivos y los invariantes de planificación
 - Las pruebas E2E cubren el contrato HTTP público
-- La aplicación de prueba usa la misma forma de bootstrap de Nest que en producción, con `sql.js` en lugar de PostgreSQL
+- La aplicación de prueba usa la misma forma de bootstrap de Nest que en producción, con `sql.js` en lugar de MySQL
 - Las llamadas a la API externa de festivos están simuladas (mocked) en las pruebas
 
 ## Expectativas del Frontend

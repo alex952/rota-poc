@@ -4,14 +4,14 @@
 
 El sistema es un monorepo pequeño con:
 
-- `backend/`: API NestJS, motor de planificación, resolución de festivos y persistencia en PostgreSQL
+- `backend/`: API NestJS, motor de planificación, resolución de festivos y persistencia en MySQL 8.4
 - `frontend/`: Interfaz Angular para grupos de médicos, generación de rota, visualización de calendario y flujos de sustitución
-- `docker-compose.yml`: PostgreSQL local más contenedores de backend y frontend
+- `docker-compose.yml`: MySQL local más contenedores de backend y frontend
 
 ## Arquitectura en Tiempo de Ejecución
 
 ```text
-Frontend Angular  <->  API NestJS (/api/v1)  <->  PostgreSQL
+Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
                                 |
                                 +-> API de Festivos (date.nager.at)
 ```
@@ -54,6 +54,14 @@ El backend almacena cuatro tablas:
 - `holidays`
 
 Las migraciones residen en `backend/src/database/migrations/` y se ejecutan mediante la CLI de TypeORM.
+
+Particularidades de MySQL 8.4:
+
+- **Colación `utf8mb4_0900_as_cs`**: la de por defecto (`utf8mb4_0900_ai_ci`) no distingue mayúsculas ni acentos, y `a1`/`A1` chocarían en las claves únicas de `doctor_id` y `city`. Se fija en el servidor (`docker-compose.yml`) y en cada `CREATE TABLE`.
+- **`generated_at`** es `DATETIME(3)` y se guarda en UTC (`timezone: 'Z'` en el driver); las columnas `DATE` llegan como cadenas `AAAA-MM-DD` (`dateStrings: ['DATE']`). **`pool`** es `JSON`.
+- **DDL no transaccional**: cada sentencia DDL hace commit implícito, así que una migración fallida puede dejar el esquema a medias. Por eso las migraciones son idempotentes y comprueban el estado con `src/database/migration-helpers.ts`.
+- **Orden real de ejecución**: la migración 004 tiene el timestamp en segundos y TypeORM la ordena la primera; en una base vacía el orden es 004, 001, 002, 003, 005. Ni el timestamp ni los nombres se tocan.
+- Las FK se declaran a nivel de tabla (MySQL ignora `REFERENCES` en línea) y, como InnoDB exige un índice que empiece por `rota_id` para la FK de `rota_assignments`, los índices nuevos se crean antes de borrar los viejos.
 
 ## Diseño del Algoritmo de Planificación
 

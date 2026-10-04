@@ -1,171 +1,98 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
+import {
+  addColumnIfMissing,
+  addUniqueIfMissing,
+  columnExists,
+  createIndexIfMissing,
+  dropColumnIfExists,
+  dropIndexIfExists,
+} from '../migration-helpers';
+
+// Regla de InnoDB: la FK rota_assignments.rota_id necesita siempre un índice que empiece
+// por rota_id. Por eso cada índice nuevo se crea ANTES de borrar el viejo y los índices
+// se borran explícitamente antes de borrar sus columnas (si no, MySQL encoge el índice
+// multicolumna en silencio, o falla con el error 1553).
 export class SeparateAcApPools0021763395002002 implements MigrationInterface {
   name = 'SeparateAcApPools0021763395002002';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      ALTER TABLE rotas
-      ADD COLUMN IF NOT EXISTS rota_type VARCHAR(2)
-    `);
-    await queryRunner.query(`
-      ALTER TABLE rotas
-      ADD COLUMN IF NOT EXISTS doctors_per_day INTEGER
-    `);
+    await addColumnIfMissing(queryRunner, 'rotas', 'rota_type', 'VARCHAR(2)');
+    await addColumnIfMissing(queryRunner, 'rotas', 'doctors_per_day', 'INT');
     await queryRunner.query(`
       UPDATE rotas
       SET rota_type = 'AC', doctors_per_day = 1
       WHERE rota_type IS NULL OR doctors_per_day IS NULL
     `);
-    await queryRunner.query(`ALTER TABLE rotas ALTER COLUMN rota_type SET NOT NULL`);
-    await queryRunner.query(`ALTER TABLE rotas ALTER COLUMN doctors_per_day SET NOT NULL`);
-    await queryRunner.query(`ALTER TABLE rotas DROP CONSTRAINT IF EXISTS rotas_year_key`);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'uq_rotas_year_rota_type'
-        ) THEN
-          ALTER TABLE rotas
-          ADD CONSTRAINT uq_rotas_year_rota_type UNIQUE (year, rota_type);
-        END IF;
-      END
-      $$;
-    `);
+    await queryRunner.query(`ALTER TABLE rotas MODIFY COLUMN rota_type VARCHAR(2) NOT NULL`);
+    await queryRunner.query(`ALTER TABLE rotas MODIFY COLUMN doctors_per_day INT NOT NULL`);
+    await addUniqueIfMissing(queryRunner, 'rotas', 'uq_rotas_year_rota_type', ['year', 'rota_type']);
+    await dropIndexIfExists(queryRunner, 'rotas', 'rotas_year_key');
 
-    await queryRunner.query(`
-      ALTER TABLE rota_assignments
-      ADD COLUMN IF NOT EXISTS doctor_id VARCHAR(50)
-    `);
-    await queryRunner.query(`
-      UPDATE rota_assignments
-      SET doctor_id = ac_doctor_id
-      WHERE doctor_id IS NULL AND EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'rota_assignments'
-        AND column_name = 'ac_doctor_id'
-      )
-    `);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'rota_assignments'
-          AND column_name = 'doctor_id'
-        ) THEN
-          EXECUTE 'ALTER TABLE rota_assignments ALTER COLUMN doctor_id SET NOT NULL';
-        END IF;
-      END
-      $$;
-    `);
-    await queryRunner.query(`DROP INDEX IF EXISTS ix_rota_assignments_ac_doctor`);
-    await queryRunner.query(`DROP INDEX IF EXISTS ix_rota_assignments_ap_doctor`);
-    await queryRunner.query(`ALTER TABLE rota_assignments DROP CONSTRAINT IF EXISTS rota_assignments_rota_id_date_key`);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'rota_assignments'
-          AND column_name = 'ac_doctor_id'
-        ) THEN
-          ALTER TABLE rota_assignments DROP COLUMN ac_doctor_id;
-        END IF;
-        IF EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'rota_assignments'
-          AND column_name = 'ap_doctor_id'
-        ) THEN
-          ALTER TABLE rota_assignments DROP COLUMN ap_doctor_id;
-        END IF;
-      END
-      $$;
-    `);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'uq_rota_assignments_rota_date_doctor'
-        ) THEN
-          ALTER TABLE rota_assignments
-          ADD CONSTRAINT uq_rota_assignments_rota_date_doctor
-          UNIQUE (rota_id, date, doctor_id);
-        END IF;
-      END
-      $$;
-    `);
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ix_rota_assignments_doctor
-      ON rota_assignments (rota_id, doctor_id)
-    `);
+    await addColumnIfMissing(queryRunner, 'rota_assignments', 'doctor_id', 'VARCHAR(50)');
+    if (await columnExists(queryRunner, 'rota_assignments', 'ac_doctor_id')) {
+      await queryRunner.query(`
+        UPDATE rota_assignments
+        SET doctor_id = ac_doctor_id
+        WHERE doctor_id IS NULL
+      `);
+    }
+    await queryRunner.query(
+      `ALTER TABLE rota_assignments MODIFY COLUMN doctor_id VARCHAR(50) NOT NULL`,
+    );
+    // Primero lo nuevo...
+    await addUniqueIfMissing(queryRunner, 'rota_assignments', 'uq_rota_assignments_rota_date_doctor', [
+      'rota_id',
+      'date',
+      'doctor_id',
+    ]);
+    await createIndexIfMissing(queryRunner, 'rota_assignments', 'ix_rota_assignments_doctor', [
+      'rota_id',
+      'doctor_id',
+    ]);
+    // ...y sólo entonces lo viejo.
+    await dropIndexIfExists(queryRunner, 'rota_assignments', 'ix_rota_assignments_ac_doctor');
+    await dropIndexIfExists(queryRunner, 'rota_assignments', 'ix_rota_assignments_ap_doctor');
+    await dropIndexIfExists(queryRunner, 'rota_assignments', 'rota_assignments_rota_id_date_key');
+    await dropColumnIfExists(queryRunner, 'rota_assignments', 'ac_doctor_id');
+    await dropColumnIfExists(queryRunner, 'rota_assignments', 'ap_doctor_id');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS ix_rota_assignments_doctor`);
-    await queryRunner.query(`ALTER TABLE rota_assignments DROP CONSTRAINT IF EXISTS uq_rota_assignments_rota_date_doctor`);
-    await queryRunner.query(`
-      ALTER TABLE rota_assignments
-      ADD COLUMN IF NOT EXISTS ac_doctor_id VARCHAR(50)
-    `);
-    await queryRunner.query(`
-      ALTER TABLE rota_assignments
-      ADD COLUMN IF NOT EXISTS ap_doctor_id VARCHAR(50)
-    `);
+    await addColumnIfMissing(queryRunner, 'rota_assignments', 'ac_doctor_id', 'VARCHAR(50)');
+    await addColumnIfMissing(queryRunner, 'rota_assignments', 'ap_doctor_id', 'VARCHAR(50)');
     await queryRunner.query(`
       UPDATE rota_assignments
       SET ac_doctor_id = doctor_id, ap_doctor_id = doctor_id
       WHERE doctor_id IS NOT NULL
     `);
-    await queryRunner.query(`ALTER TABLE rota_assignments ALTER COLUMN ac_doctor_id SET NOT NULL`);
-    await queryRunner.query(`ALTER TABLE rota_assignments ALTER COLUMN ap_doctor_id SET NOT NULL`);
-    await queryRunner.query(`ALTER TABLE rota_assignments DROP COLUMN IF EXISTS doctor_id`);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'rota_assignments_rota_id_date_key'
-        ) THEN
-          ALTER TABLE rota_assignments
-          ADD CONSTRAINT rota_assignments_rota_id_date_key UNIQUE (rota_id, date);
-        END IF;
-      END
-      $$;
-    `);
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ix_rota_assignments_ac_doctor
-      ON rota_assignments (rota_id, ac_doctor_id)
-    `);
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ix_rota_assignments_ap_doctor
-      ON rota_assignments (rota_id, ap_doctor_id)
-    `);
+    await queryRunner.query(
+      `ALTER TABLE rota_assignments MODIFY COLUMN ac_doctor_id VARCHAR(50) NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE rota_assignments MODIFY COLUMN ap_doctor_id VARCHAR(50) NOT NULL`,
+    );
+    // Primero lo que se restaura...
+    await addUniqueIfMissing(queryRunner, 'rota_assignments', 'rota_assignments_rota_id_date_key', [
+      'rota_id',
+      'date',
+    ]);
+    await createIndexIfMissing(queryRunner, 'rota_assignments', 'ix_rota_assignments_ac_doctor', [
+      'rota_id',
+      'ac_doctor_id',
+    ]);
+    await createIndexIfMissing(queryRunner, 'rota_assignments', 'ix_rota_assignments_ap_doctor', [
+      'rota_id',
+      'ap_doctor_id',
+    ]);
+    // ...y después se retira lo nuevo, índices antes que la columna.
+    await dropIndexIfExists(queryRunner, 'rota_assignments', 'ix_rota_assignments_doctor');
+    await dropIndexIfExists(queryRunner, 'rota_assignments', 'uq_rota_assignments_rota_date_doctor');
+    await dropColumnIfExists(queryRunner, 'rota_assignments', 'doctor_id');
 
-    await queryRunner.query(`ALTER TABLE rotas DROP CONSTRAINT IF EXISTS uq_rotas_year_rota_type`);
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'rotas_year_key'
-        ) THEN
-          ALTER TABLE rotas ADD CONSTRAINT rotas_year_key UNIQUE (year);
-        END IF;
-      END
-      $$;
-    `);
-    await queryRunner.query(`ALTER TABLE rotas DROP COLUMN IF EXISTS doctors_per_day`);
-    await queryRunner.query(`ALTER TABLE rotas DROP COLUMN IF EXISTS rota_type`);
+    await addUniqueIfMissing(queryRunner, 'rotas', 'rotas_year_key', ['year']);
+    await dropIndexIfExists(queryRunner, 'rotas', 'uq_rotas_year_rota_type');
+    await dropColumnIfExists(queryRunner, 'rotas', 'doctors_per_day');
+    await dropColumnIfExists(queryRunner, 'rotas', 'rota_type');
   }
 }

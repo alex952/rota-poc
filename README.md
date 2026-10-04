@@ -17,13 +17,13 @@ docker compose up --build
 
 ### Desarrollo local
 
-**Requisitos previos:** Node 22+, PostgreSQL 16+.
+**Requisitos previos:** Node 22+, MySQL 8.4+.
 
 **Backend (NestJS):**
 ```bash
 cd backend
 npm install
-# Levanta PostgreSQL (o usa: docker compose up db)
+# Levanta MySQL (o usa: docker compose up db)
 npm run migration:run
 npm run start:dev
 ```
@@ -43,7 +43,7 @@ La ciudad del hospital se configura mediante la variable de entorno `CITY` del b
 
 | Variable | Valor por defecto | Descripción |
 |----------|-------------------|-------------|
-| `DATABASE_URL` | `postgresql://rota_user:rota_pass@localhost:5432/rota` | Cadena de conexión a PostgreSQL |
+| `DATABASE_URL` | `mysql://rota_user:rota_pass@localhost:3306/rota` | Cadena de conexión a MySQL |
 | `HOLIDAY_API_URL` | `https://date.nager.at/api/v3` | API de festivos españoles |
 | `CITY` | `Madrid` | Ciudad del hospital para la resolución de festivos |
 
@@ -92,6 +92,6 @@ rota-poc/
 |------|-----------|
 | Backend | NestJS 11, TypeScript, TypeORM |
 | Frontend | Angular 19+, TypeScript, Angular CDK (drag-and-drop) |
-| Base de datos | PostgreSQL 16 |
+| Base de datos | MySQL 8.4 |
 | Tests | Jest (backend), vitest (frontend) |
 | Infraestructura | Docker Compose, Nginx |
