@@ -84,7 +84,7 @@ El sistema consulta una API externa de festivos españoles (por defecto `https:/
 
 ### 11.1 Servicio de asignación (backend)
 
-- **Stack**: NestJS 11, TypeScript, class-validator, TypeORM, PostgreSQL.
+- **Stack**: NestJS 11, TypeScript, class-validator, TypeORM, MySQL.
 - **Endpoints principales**:
   - `POST /api/v1/rota/generate` — genera la rota anual.
   - `GET /api/v1/rota/:year/:rotaType` — consulta una rota (soporta filtro por `doctor_id`).
