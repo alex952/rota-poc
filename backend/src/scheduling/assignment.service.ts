@@ -1,4 +1,4 @@
-import { addDays, compareIsoDates, toIsoDate } from '../common/date.utils';
+import { addDays, compareIsoDates, getIsoWeekday, toIsoDate } from '../common/date.utils';
 import { calculateStats } from './stats.service';
 import {
   DayAssignment,
@@ -50,15 +50,25 @@ function effectiveDayInfo(rotaType: RotaType, dayInfo: DayInfo): DayInfo {
   };
 }
 
+const SUNDAY_ISO_WEEKDAY = 6;
+
+// El segundo refuerzo AP sólo se aplica a un festivo cuyo día anterior también
+// es festivo. Sin `previousDay` (1 de enero cuando no se conoce el 31 de diciembre
+// anterior) sólo se sabe que el día anterior es festivo si cae en domingo.
 export function doctorsForDay(
   rotaType: RotaType,
   baseDoctorsPerDay: number,
-  dayType: DayType,
+  day: DayInfo,
+  previousDay?: DayInfo,
 ): number {
-  if (rotaType === 'AP' && dayType === 'holiday') {
-    return Math.max(baseDoctorsPerDay, 2);
+  if (rotaType !== 'AP' || day.dayType !== 'holiday') {
+    return baseDoctorsPerDay;
   }
-  return baseDoctorsPerDay;
+  const previousIsHoliday = previousDay
+    ? previousDay.dayType === 'holiday'
+    : getIsoWeekday(addDays(toIsoDate(day.date), -1)) === SUNDAY_ISO_WEEKDAY;
+
+  return previousIsHoliday ? Math.max(baseDoctorsPerDay, 2) : baseDoctorsPerDay;
 }
 
 export function computeDoctorsPerDay(
@@ -91,6 +101,7 @@ export function generateRota(
   rotaType: RotaType,
   pool: DoctorInput[],
   dayClassifications: DayInfo[],
+  dayBeforeYear?: DayInfo,
 ): RotaSchedule {
   const effectiveDays = dayClassifications.map((day) => effectiveDayInfo(rotaType, day));
   const targetHours = buildTargetHours(rotaType, pool);
@@ -101,34 +112,24 @@ export function generateRota(
 
   const doctorsPerDay = 1;
 
+  const requiredByDay = effectiveDays.map((day, index) =>
+    doctorsForDay(rotaType, doctorsPerDay, day, effectiveDays[index - 1] ?? dayBeforeYear),
+  );
+
   let peakDoctorsPerDay = doctorsPerDay;
   let totalCapacityHours = 0;
-  for (const day of effectiveDays) {
-    const required = doctorsForDay(rotaType, doctorsPerDay, day.dayType);
+  effectiveDays.forEach((day, index) => {
+    const required = requiredByDay[index];
     if (required > peakDoctorsPerDay) {
       peakDoctorsPerDay = required;
     }
     totalCapacityHours += day.durationHours * required;
-  }
+  });
 
   const minPool = peakDoctorsPerDay * 2;
   if (pool.length < minPool) {
     throw new InfeasiblePoolError(
       `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}. Se necesitan al menos ${minPool} médicos (${peakDoctorsPerDay} por día × 2 por la rotación del día de descanso).`,
-    );
-  }
-
-  const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
-  if (rotaType === 'AP') {
-    if (totalCapacityHours > totalTargetHours) {
-      const minDoctors = Math.ceil(totalCapacityHours / AP_MAX_HOURS_YEAR);
-      throw new InfeasiblePoolError(
-        `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}: la cobertura anual de ${totalCapacityHours}h superaría el máximo de ${AP_MAX_HOURS_YEAR}h por médico. Se necesitan al menos ${minDoctors} médicos.`,
-      );
-    }
-  } else if (totalCapacityHours < totalTargetHours) {
-    throw new InfeasiblePoolError(
-      `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h.`,
     );
   }
 
@@ -165,10 +166,10 @@ export function generateRota(
   let roundRobinPointer = 0;
   const schedule: DayAssignment[] = [];
 
-  for (const dayInfo of effectiveDays) {
+  for (const [dayIndex, dayInfo] of effectiveDays.entries()) {
     const currentDate = toIsoDate(dayInfo.date);
     const previousDay = addDays(currentDate, -1);
-    const required = doctorsForDay(rotaType, doctorsPerDay, dayInfo.dayType);
+    const required = requiredByDay[dayIndex];
 
     const rested: string[] = [];
     const unrested: string[] = [];
@@ -227,15 +228,48 @@ export function generateRota(
   }
 
   const stats = calculateStats(schedule, pool, targetHours);
-  for (const doctor of stats) {
-    if (rotaType === 'AP' && doctor.totalHours > doctor.targetHours) {
-      throw new InfeasiblePoolError(
-        `${doctor.doctorName} tiene ${doctor.totalHours}h, por encima del máximo de ${doctor.targetHours}h para ${rotaType}.`,
+
+  // Los límites de horas no bloquean la generación: el cuadrante se devuelve con un
+  // único aviso agregado y la desviación de cada médico queda en las estadísticas.
+  // AC tiene un mínimo (1.620h) y AP un máximo (425h).
+  const warnings: string[] = [];
+  if (rotaType === 'AC') {
+    const shortfalls = stats
+      .map((doctor) => doctor.targetHours - doctor.totalHours)
+      .filter((shortfall) => shortfall > 0);
+    if (shortfalls.length > 0) {
+      const missingHours = shortfalls.reduce((sum, value) => sum + value, 0);
+      const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
+      const cause =
+        totalCapacityHours < totalTargetHours
+          ? `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h. `
+          : '';
+      const below =
+        shortfalls.length === 1
+          ? '1 médico queda'
+          : `${shortfalls.length} médicos quedan`;
+      warnings.push(
+        `${cause}${below} por debajo del mínimo de ${AC_MIN_HOURS_YEAR}h; faltan ${missingHours}h en total.`,
       );
     }
-    if (rotaType === 'AC' && doctor.totalHours < doctor.targetHours) {
-      throw new InfeasiblePoolError(
-        `${doctor.doctorName} tiene ${doctor.totalHours}h, por debajo del mínimo de ${doctor.targetHours}h para ${rotaType}.`,
+  } else {
+    const excesses = stats
+      .map((doctor) => doctor.totalHours - doctor.targetHours)
+      .filter((excess) => excess > 0);
+    if (excesses.length > 0) {
+      const excessHours = excesses.reduce((sum, value) => sum + value, 0);
+      const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
+      const minDoctors = Math.ceil(totalCapacityHours / AP_MAX_HOURS_YEAR);
+      const cause =
+        totalCapacityHours > totalTargetHours
+          ? `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}: la cobertura anual de ${totalCapacityHours}h supera el máximo de ${AP_MAX_HOURS_YEAR}h por médico (se necesitan al menos ${minDoctors} médicos). `
+          : '';
+      const above =
+        excesses.length === 1
+          ? '1 médico queda'
+          : `${excesses.length} médicos quedan`;
+      warnings.push(
+        `${cause}${above} por encima del máximo de ${AP_MAX_HOURS_YEAR}h; sobran ${excessHours}h en total.`,
       );
     }
   }
@@ -248,6 +282,6 @@ export function generateRota(
       compareIsoDates(toIsoDate(left.date), toIsoDate(right.date)),
     ),
     stats: { doctors: stats },
-    warnings: [],
+    warnings,
   };
 }

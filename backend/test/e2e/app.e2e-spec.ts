@@ -8,6 +8,7 @@ import {
   YEAR_2026,
 } from '../helpers/fixtures';
 import { createTestApp } from '../helpers/test-app';
+import { HolidaysService } from '../../src/holidays/holidays.service';
 
 describe('HTTP contract', () => {
   let app: NestFastifyApplication;
@@ -96,7 +97,7 @@ describe('HTTP contract', () => {
     expect(response.json().message).toMatch(/grupo/i);
   });
 
-  it('returns 400 with a descriptive message when the AC pool is too large', async () => {
+  it('genera el cuadrante con un aviso y horas faltantes cuando el pool AC es demasiado grande', async () => {
     const oversizedPool = Array.from({ length: 8 }, (_, index) => ({
       id: `doc-overflow-${index}`,
       name: `Doctor ${index}`,
@@ -108,8 +109,21 @@ describe('HTTP contract', () => {
       url: '/api/v1/rota/generate',
       payload: { year: YEAR_2026, rota_type: 'AC', pool: oversizedPool },
     });
-    expect(response.statusCode).toBe(400);
-    expect(response.json().message).toMatch(/demasiado grande/i);
+    expect(response.statusCode).toBe(201);
+
+    const body = response.json();
+    expect(body.schedule).toHaveLength(365);
+    expect(body.warnings).toHaveLength(1);
+    expect(body.warnings[0]).toMatch(/demasiado grande para AC/);
+    expect(body.warnings[0]).toMatch(/faltan \d+h en total/);
+    for (const doctor of body.stats.doctors) {
+      expect(doctor.hours_vs_target).toBeLessThan(0);
+    }
+
+    // El cuadrante queda guardado y las horas faltantes siguen en las estadísticas.
+    const stored = await app.inject({ method: 'GET', url: '/api/v1/rota/2026/AC' });
+    expect(stored.statusCode).toBe(200);
+    expect(stored.json().stats.doctors[0].hours_vs_target).toBeLessThan(0);
   });
 
   it('supports GET rota queries and doctor filtering', async () => {
@@ -266,7 +280,7 @@ describe('HTTP contract', () => {
     );
   });
 
-  it('asigna dos primarios AP en festivos y permite reemplazar uno sin tocar al otro', async () => {
+  it('asigna dos primarios AP en el segundo festivo consecutivo y permite reemplazar uno sin tocar al otro', async () => {
     const generation = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
@@ -274,10 +288,20 @@ describe('HTTP contract', () => {
     });
     expect(generation.statusCode).toBe(201);
 
+    const schedule: Array<{ date: string; day_type: string; doctors: unknown[] }> =
+      generation.json().schedule;
+
+    // Con los festivos simulados, sólo el domingo 16-08 sigue a otro festivo (sábado 15-08).
+    expect(schedule.filter((day) => day.doctors.length === 2).map((day) => day.date)).toEqual([
+      '2026-08-16',
+    ]);
+    expect(schedule.find((day) => day.date === '2026-08-15')?.doctors).toHaveLength(1);
+
     const holidayDay = generation
       .json()
-      .schedule.find((day: { day_type: string }) => day.day_type === 'holiday');
+      .schedule.find((day: { date: string }) => day.date === '2026-08-16');
     expect(holidayDay).toBeDefined();
+    expect(holidayDay.day_type).toBe('holiday');
     expect(holidayDay.doctors).toHaveLength(2);
     expect(holidayDay.duration_hours).toBe(12);
     expect(holidayDay.shift_start).toBe('10:00');
@@ -309,6 +333,24 @@ describe('HTTP contract', () => {
     expect(updatedDoctorIds).toContain(replacementCandidate!.id);
     expect(updatedDoctorIds).toContain(secondAp.doctor_id);
     expect(updatedDoctorIds).not.toContain(firstAp.doctor_id);
+  });
+
+  it('asigna dos AP el 1 de enero cuando el 31 de diciembre anterior es festivo manual', async () => {
+    // El 31-12-2025 es miércoles: sólo es festivo porque se marca a mano en el año anterior.
+    await app.get(HolidaysService).createCustomHoliday(2025, CITY, '2025-12-31', 'Festivo Manual');
+
+    const generation = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9 },
+    });
+    expect(generation.statusCode).toBe(201);
+
+    const newYear = generation
+      .json()
+      .schedule.find((day: { date: string }) => day.date === '2026-01-01');
+    expect(newYear.day_type).toBe('holiday');
+    expect(newYear.doctors).toHaveLength(2);
   });
 
   it('aplica turnos AP de 7h en laborables y sábados (15:00–22:00)', async () => {

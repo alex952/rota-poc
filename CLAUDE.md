@@ -49,7 +49,7 @@ docker compose up db            # solo MySQL (para desarrollo local del backend)
 - **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health
 - **Base de datos**: MySQL 8.4 con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Componentes standalone de Angular con estado basado en signals
-- **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y cobertura doble en festivos (`doctorsForDay`).
+- **Algoritmo**: Round-robin equilibrado independiente por tipo con `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y un segundo refuerzo sólo en el segundo de dos festivos consecutivos (`doctorsForDay`).
 
 ## Configuración Principal
 
@@ -186,8 +186,8 @@ visual abierto.
 Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente. Funcionalmente, AC son guardias principales y **AP son refuerzos del día**.
 2. Un médico de guardia el día D está **libre el D+1** dentro del mismo tipo de rota (día de descanso — restricción blanda para grupos pequeños)
-3. Límites de horas: **mínimo 1.620h/año AC** (135h/mes × 12), **máximo 425h/año AP** por médico — **restricción dura** (genera error si no se cumple; un grupo AP necesita ≥ 9 médicos para no superar el máximo)
-4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en festivos o por adición manual de un médico a un día (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas). Si el pool AC excede la capacidad anual de cobertura, o el pool AP es demasiado pequeño para respetar el máximo de 425h, el algoritmo lanza `InfeasiblePoolError`.
+3. Límites de horas: **mínimo 1.620h/año AC** (135h/mes × 12), **máximo 425h/año AP** por médico — **restricción blanda**: si algún médico no cumple (AC por debajo, AP por encima), el cuadrante se genera igualmente con un aviso (`warnings`) y las estadísticas muestran la desviación
+4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en un festivo precedido de otro festivo (los domingos cuentan como festivo) o por adición manual de un médico a un día (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas). Si el pool AC excede la capacidad anual de cobertura («El grupo … es demasiado grande …») o el pool AP es tan pequeño que superaría el máximo de 425h («El grupo … es demasiado pequeño …»), el cuadrante se genera con ese aviso en lugar de fallar. `InfeasiblePoolError` queda sólo para grupos demasiado pequeños.
 5. **Duraciones por rota**:
    - AC: 17h laborable, 18h sábado, 23h festivo (15:00 → 08:00+1 / 09:00+1, festivo 09:00 → 08:00+1).
    - AP: 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).

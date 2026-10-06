@@ -75,6 +75,64 @@ describe('DoctorStatsRowComponent', () => {
     expect(monthHours.textContent).toContain('0h');
   });
 
+  it('muestra las horas faltantes cuando el médico no alcanza el objetivo', () => {
+    fixture.componentRef.setInput('stats', {
+      ...mockStats,
+      total_hours: 138,
+      target_hours: 425,
+      hours_vs_target: -287,
+    });
+    fixture.detectChanges();
+
+    const missing = fixture.nativeElement.querySelector('.missing-hours');
+    expect(missing).toBeTruthy();
+    expect(missing.textContent.trim()).toBe('287h');
+    expect(fixture.nativeElement.textContent).toContain('Faltan');
+  });
+
+  it('no muestra horas faltantes cuando el médico alcanza el objetivo', () => {
+    fixture.componentRef.setInput('stats', {
+      ...mockStats,
+      target_hours: 1620,
+      hours_vs_target: 30,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.missing-hours')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Faltan');
+  });
+
+  it('en AP no avisa de horas faltantes: estar por debajo del máximo es correcto', () => {
+    fixture.componentRef.setInput('rotaType', 'AP');
+    fixture.componentRef.setInput('stats', {
+      ...mockStats,
+      total_hours: 170,
+      target_hours: 425,
+      hours_vs_target: -255,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.missing-hours')).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Faltan');
+    expect(fixture.nativeElement.querySelector('.stat-value.negative')).toBeFalsy();
+  });
+
+  it('en AP muestra las horas sobrantes cuando el médico supera el máximo', () => {
+    fixture.componentRef.setInput('rotaType', 'AP');
+    fixture.componentRef.setInput('stats', {
+      ...mockStats,
+      total_hours: 450,
+      target_hours: 425,
+      hours_vs_target: 25,
+    });
+    fixture.detectChanges();
+
+    const excess = fixture.nativeElement.querySelector('.missing-hours');
+    expect(excess).toBeTruthy();
+    expect(excess.textContent.trim()).toBe('25h');
+    expect(fixture.nativeElement.textContent).toContain('Sobran');
+  });
+
   it('should display shifts_weekday, shifts_saturday, shifts_sunday_holiday as badges', () => {
     fixture.componentRef.setInput('stats', mockStats);
     fixture.detectChanges();

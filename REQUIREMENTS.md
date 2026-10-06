@@ -2,7 +2,7 @@
 
 ## 1. Visión y alcance
 
-Aplicación para la planificación automática de guardias en hospitales españoles. Cubre dos rotas anuales: **AC** (Atención Continuada) y **AP** (Atención Primaria). El sistema asegura el cumplimiento de los mínimos horarios anuales, equidad entre profesionales y la cobertura mínima de personal por día.
+Aplicación para la planificación automática de guardias en hospitales españoles. Cubre dos rotas anuales: **AC** (Atención Continuada) y **AP** (Atención Primaria). El sistema asegura el cumplimiento de los límites horarios anuales, equidad entre profesionales y la cobertura mínima de personal por día.
 
 Esta es una Prueba de Concepto (PoC): sin autenticación, sin multi-ciudad, sin deshacer, sin diseño móvil ni CI/CD productivo.
 
@@ -18,24 +18,25 @@ Un médico pertenece a un único grupo (AC o AP) y nunca participa en la rota de
 ## 3. Reglas de cobertura diaria
 
 - **Cada día** debe haber, como mínimo, **1 AC** asignado y **1 AP** asignado.
-- **En festivos** (incluye domingos clasificados como festivos por la regulación) hay **2 AP** asignados con turnos de **12 h cada uno** (10:00 a 22:00).
+- **En festivos** (incluye domingos clasificados como festivos por la regulación) el AP hace un turno de **12 h** (10:00 a 22:00).
+- **Cuando hay dos festivos consecutivos**, el **segundo** lleva **2 AP** (12 h cada uno). El primer festivo de la serie y los festivos aislados llevan 1 AP.
 
 ## 4. Duraciones de turno por rota y tipo de día
 
 | Rota / rol            | Laborable             | Sábado                | Festivo / Domingo     |
 |-----------------------|-----------------------|-----------------------|-----------------------|
 | AC (primary)          | 17 h (15:00–08:00+1)  | 18 h (15:00–09:00+1)  | 23 h (09:00–08:00+1)  |
-| AP (refuerzo del día) | 7 h (15:00–22:00)     | 7 h (15:00–22:00)     | 12 h × 2 (10:00–22:00) |
+| AP (refuerzo del día) | 7 h (15:00–22:00)     | 7 h (15:00–22:00)     | 12 h (10:00–22:00); × 2 en el segundo festivo consecutivo |
 
-## 5. Restricciones duras (validadas por el algoritmo)
+## 5. Restricciones (validadas por el algoritmo)
 
-1. **Límite anual por médico**:
-   - AC: 1.620 h/año (135 h/mes × 12).
+1. **Límite anual por médico** (no bloqueante):
+   - AC: mínimo 1.620 h/año (135 h/mes × 12).
    - AP: máximo 425 h/año (tope, no mínimo).
-   - El algoritmo lanza error si un profesional de AC queda por debajo de su mínimo o uno de AP supera su máximo.
+   - Si algún profesional incumple su límite (AC por debajo, AP por encima), el cuadrante se genera igualmente con un aviso y las estadísticas muestran la desviación de cada médico.
 2. **Día de descanso**: un médico de guardia el día D queda libre el D+1 dentro de la misma rota. Restricción suavizable en pools muy pequeños.
 3. **AC y AP se generan de forma independiente**: un mismo médico no puede aparecer en ambas rotas.
-4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo festivos AP, que llevan 2. Pools AC que exceden la capacidad de cobertura anual, o pools AP demasiado pequeños para respetar el máximo de 425 h, son rechazados con `InfeasiblePoolError`.
+4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo los festivos AP precedidos de otro festivo, que llevan 2. Con pools AC que exceden la capacidad de cobertura anual, o pools AP demasiado pequeños para respetar el máximo de 425 h, el cuadrante se genera igualmente y se devuelve un aviso.
 
 ## 6. Equidad
 
@@ -68,7 +69,7 @@ Se devuelve un calendario anual con:
 
 - Asignaciones primary por día (1 médico para AC, 1 ó 2 médicos para AP).
 - Estadísticas por médico: horas totales, horas vs. objetivo, número de turnos por tipo de día, horas mensuales.
-- Avisos (`warnings`): el campo se mantiene en la respuesta pero actualmente siempre es una lista vacía.
+- Avisos (`warnings`): al generar, un aviso agregado si algún médico incumple su límite anual (cuántos médicos y cuántas horas faltan o sobran en total). En las consultas posteriores la lista va vacía; la desviación sigue en las estadísticas.
 
 ## 9. Persistencia y consultas
 

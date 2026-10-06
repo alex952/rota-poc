@@ -9,7 +9,7 @@ import { DataSource, Repository } from 'typeorm';
 
 import { AppConfigService } from '../config/app-config.service';
 import { formatClockTime } from '../common/date.utils';
-import { HolidaysService, classifyYear } from '../holidays/holidays.service';
+import { HolidaysService, classifyDay, classifyYear } from '../holidays/holidays.service';
 import { InfeasiblePoolError, generateRota } from '../scheduling/assignment.service';
 import { DoctorInput } from '../scheduling/scheduling.types';
 import { AddDoctorDto } from './dto/add-doctor.dto';
@@ -35,21 +35,28 @@ export class RotaService {
     private readonly rotaAssignmentRepository: Repository<RotaAssignmentEntity>,
   ) {}
 
+  private async holidayDates(year: number): Promise<Set<Date>> {
+    const holidayItems = await this.holidaysService.getHolidays(year, this.appConfigService.city);
+    return new Set(holidayItems.map((holiday) => new Date(`${holiday.date}T00:00:00.000Z`)));
+  }
+
   async generate(request: GenerateRotaDto) {
     try {
-      const holidayItems = await this.holidaysService.getHolidays(
+      const dayClassifications = classifyYear(
         request.year,
-        this.appConfigService.city,
+        await this.holidayDates(request.year),
       );
-      const holidayDates = new Set(
-        holidayItems.map((holiday) => new Date(`${holiday.date}T00:00:00.000Z`)),
+      // El 31 de diciembre anterior decide si el 1 de enero es un segundo festivo consecutivo.
+      const dayBeforeYear = classifyDay(
+        new Date(Date.UTC(request.year - 1, 11, 31)),
+        await this.holidayDates(request.year - 1),
       );
-      const dayClassifications = classifyYear(request.year, holidayDates);
       const rota = generateRota(
         request.year,
         request.rota_type,
         request.pool,
         dayClassifications,
+        dayBeforeYear,
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => {
@@ -108,7 +115,7 @@ export class RotaService {
         });
       });
 
-      return this.responseMapper.toResponse(persisted);
+      return { ...this.responseMapper.toResponse(persisted), warnings: rota.warnings };
     } catch (error) {
       if (error instanceof InfeasiblePoolError) {
         throw new BadRequestException(error.message);

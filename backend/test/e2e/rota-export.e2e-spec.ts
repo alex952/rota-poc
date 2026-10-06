@@ -125,12 +125,13 @@ describe('Exportación del cuadrante a Excel', () => {
     expect(cuadrante.rowCount).toBe(366);
   });
 
-  it('la primera fila es el 1 de enero: festivo, 23 h AC, 12 h AP y dos médicos AP', async () => {
+  it('la primera fila es el 1 de enero: festivo, 23 h AC, 12 h AP y un médico AP; el segundo festivo consecutivo lleva dos', async () => {
     await generar('AC');
     await generar('AP');
 
     const workbook = await cargarLibro((await exportar()).rawPayload);
-    const fila = workbook.getWorksheet('Cuadrante')!.getRow(2);
+    const cuadrante = workbook.getWorksheet('Cuadrante')!;
+    const fila = cuadrante.getRow(2);
 
     const fecha = fila.getCell(1).value;
     expect(fecha).toBeInstanceOf(Date);
@@ -144,8 +145,13 @@ describe('Exportación del cuadrante a Excel', () => {
     expect(fila.getCell(9).value).toBe(12);
 
     const refuerzo = String(fila.getCell(7).value);
-    expect(refuerzo.split(', ')).toHaveLength(2);
+    expect(refuerzo.split(', ')).toHaveLength(1);
     expect(refuerzo).not.toContain('R:');
+
+    // Domingo 16-08, tras el festivo del sábado 15-08.
+    const segundoFestivo = String(filaDeFecha(cuadrante, '2026-08-16').getCell(7).value);
+    expect(segundoFestivo.split(', ')).toHaveLength(2);
+    expect(segundoFestivo).not.toContain('R:');
   });
 
   it('traduce el tipo de día y el día de la semana', async () => {

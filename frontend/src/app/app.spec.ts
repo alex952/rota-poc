@@ -308,6 +308,37 @@ describe('App', () => {
     expect(successNotif!.message).toContain('Cuadrante AC generado correctamente');
   });
 
+  it('muestra un aviso, no un error, cuando el cuadrante se genera con advertencias', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitRequests({ rotaStatus: 404 });
+    fixture.detectChanges();
+
+    const notificationService = TestBed.inject(NotificationService);
+
+    const generateBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-generate');
+    generateBtn.click();
+    fixture.detectChanges();
+
+    const genReq = httpTesting.expectOne('/api/v1/rota/generate');
+    genReq.flush({
+      ...mockAcRotaResponse,
+      warnings: [
+        'El grupo de 8 médicos es demasiado grande para AC: el objetivo de 12960h supera la capacidad anual de cobertura de 6627h. 8 médicos quedan por debajo del mínimo de 1620h; faltan 6333h en total.',
+      ],
+    });
+    fixture.detectChanges();
+
+    const notifications = notificationService.notifications();
+    expect(notifications.find((n) => n.type === 'error')).toBeFalsy();
+    expect(notifications.find((n) => n.type === 'success')).toBeFalsy();
+    const warningNotif = notifications.find((n) => n.type === 'warning');
+    expect(warningNotif).toBeTruthy();
+    expect(warningNotif!.message).toContain('Cuadrante AC generado con advertencias');
+    expect(warningNotif!.message).toContain('faltan 6333h en total');
+    expect(fixture.componentInstance['hasAcRota']()).toBe(true);
+  });
+
   it('should show empty calendar with warning when no rota exists', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
