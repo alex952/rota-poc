@@ -29,13 +29,13 @@ Un médico pertenece a un único grupo (AC o AP) y nunca participa en la rota de
 
 ## 5. Restricciones duras (validadas por el algoritmo)
 
-1. **Mínimo anual por médico**:
+1. **Límite anual por médico**:
    - AC: 1.620 h/año (135 h/mes × 12).
-   - AP: 425 h/año.
-   - El algoritmo lanza error si algún profesional queda por debajo.
+   - AP: máximo 425 h/año (tope, no mínimo).
+   - El algoritmo lanza error si un profesional de AC queda por debajo de su mínimo o uno de AP supera su máximo.
 2. **Día de descanso**: un médico de guardia el día D queda libre el D+1 dentro de la misma rota. Restricción suavizable en pools muy pequeños.
 3. **AC y AP se generan de forma independiente**: un mismo médico no puede aparecer en ambas rotas.
-4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo festivos AP, que llevan 2. Pools que exceden la capacidad de cobertura anual con esa regla son rechazados con `InfeasiblePoolError`.
+4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo festivos AP, que llevan 2. Pools AC que exceden la capacidad de cobertura anual, o pools AP demasiado pequeños para respetar el máximo de 425 h, son rechazados con `InfeasiblePoolError`.
 
 ## 6. Equidad
 

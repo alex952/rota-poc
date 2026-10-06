@@ -186,8 +186,8 @@ visual abierto.
 Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo, rotas generadas de forma independiente. Funcionalmente, AC son guardias principales y **AP son refuerzos del día**.
 2. Un médico de guardia el día D está **libre el D+1** dentro del mismo tipo de rota (día de descanso — restricción blanda para grupos pequeños)
-3. Horas mínimas: **1.620h/año AC** (135h/mes × 12), **425h/año AP** por médico — **restricción dura** (genera error si no se cumple)
-4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en festivos o por adición manual de un médico a un día (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas). Si el pool excede la capacidad anual de cobertura, el algoritmo lanza `InfeasiblePoolError` (cap superior).
+3. Límites de horas: **mínimo 1.620h/año AC** (135h/mes × 12), **máximo 425h/año AP** por médico — **restricción dura** (genera error si no se cumple; un grupo AP necesita ≥ 9 médicos para no superar el máximo)
+4. **`doctors_per_day`**: cobertura primary base **siempre 1 médico/día** para AC y AP. La cobertura sólo crece con el segundo AP en festivos o por adición manual de un médico a un día (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas). Si el pool AC excede la capacidad anual de cobertura, o el pool AP es demasiado pequeño para respetar el máximo de 425h, el algoritmo lanza `InfeasiblePoolError`.
 5. **Duraciones por rota**:
    - AC: 17h laborable, 18h sábado, 23h festivo (15:00 → 08:00+1 / 09:00+1, festivo 09:00 → 08:00+1).
    - AP: 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).

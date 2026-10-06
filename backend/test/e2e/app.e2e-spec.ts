@@ -2,7 +2,7 @@ import { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import {
   AC_POOL_4,
-  AP_POOL_5,
+  AP_POOL_9,
   CITY,
   HOLIDAY_API_RESPONSE,
   YEAR_2026,
@@ -68,7 +68,7 @@ describe('HTTP contract', () => {
     const apResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9 },
     });
     expect(apResponse.statusCode).toBe(201);
 
@@ -78,7 +78,7 @@ describe('HTTP contract', () => {
       doctors_per_day: 1,
     });
     expect(apResponse.json().schedule).toHaveLength(365);
-    expect(apResponse.json().stats.doctors).toHaveLength(5);
+    expect(apResponse.json().stats.doctors).toHaveLength(AP_POOL_9.length);
   });
 
   it('returns 400 for an infeasible pool', async () => {
@@ -251,7 +251,7 @@ describe('HTTP contract', () => {
     const apGeneration = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9 },
     });
     expect(apGeneration.statusCode).toBe(201);
 
@@ -270,7 +270,7 @@ describe('HTTP contract', () => {
     const generation = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9 },
     });
     expect(generation.statusCode).toBe(201);
 
@@ -284,7 +284,7 @@ describe('HTTP contract', () => {
     expect(holidayDay.shift_end).toBe('22:00');
 
     const [firstAp, secondAp] = holidayDay.doctors;
-    const replacementCandidate = AP_POOL_5.find(
+    const replacementCandidate = AP_POOL_9.find(
       (doctor) => doctor.id !== firstAp.doctor_id && doctor.id !== secondAp.doctor_id,
     );
     expect(replacementCandidate).toBeDefined();
@@ -315,7 +315,7 @@ describe('HTTP contract', () => {
     const generation = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_5 },
+      payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9 },
     });
     expect(generation.statusCode).toBe(201);
 

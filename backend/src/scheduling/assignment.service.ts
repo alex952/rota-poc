@@ -10,7 +10,7 @@ import {
 } from './scheduling.types';
 
 export const AC_MIN_HOURS_YEAR = 1620;
-export const AP_MIN_HOURS_YEAR = 425;
+export const AP_MAX_HOURS_YEAR = 425;
 
 export const AP_WEEKDAY_SATURDAY_HOURS = 7;
 export const AP_HOLIDAY_HOURS = 12;
@@ -69,7 +69,7 @@ export function computeDoctorsPerDay(
 ): number {
   const minTotalHours = targetHours
     ? Object.values(targetHours).reduce((sum, value) => sum + value, 0)
-    : poolSize * (rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MIN_HOURS_YEAR);
+    : poolSize * (rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MAX_HOURS_YEAR);
 
   return Math.ceil(minTotalHours / totalYearlyHours);
 }
@@ -81,7 +81,7 @@ export function buildTargetHours(
   return Object.fromEntries(
     pool.map((doctor) => [
       doctor.id,
-      rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MIN_HOURS_YEAR,
+      rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MAX_HOURS_YEAR,
     ]),
   );
 }
@@ -119,7 +119,14 @@ export function generateRota(
   }
 
   const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
-  if (totalCapacityHours < totalTargetHours) {
+  if (rotaType === 'AP') {
+    if (totalCapacityHours > totalTargetHours) {
+      const minDoctors = Math.ceil(totalCapacityHours / AP_MAX_HOURS_YEAR);
+      throw new InfeasiblePoolError(
+        `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}: la cobertura anual de ${totalCapacityHours}h superaría el máximo de ${AP_MAX_HOURS_YEAR}h por médico. Se necesitan al menos ${minDoctors} médicos.`,
+      );
+    }
+  } else if (totalCapacityHours < totalTargetHours) {
     throw new InfeasiblePoolError(
       `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h.`,
     );
@@ -221,7 +228,12 @@ export function generateRota(
 
   const stats = calculateStats(schedule, pool, targetHours);
   for (const doctor of stats) {
-    if (doctor.totalHours < doctor.targetHours) {
+    if (rotaType === 'AP' && doctor.totalHours > doctor.targetHours) {
+      throw new InfeasiblePoolError(
+        `${doctor.doctorName} tiene ${doctor.totalHours}h, por encima del máximo de ${doctor.targetHours}h para ${rotaType}.`,
+      );
+    }
+    if (rotaType === 'AC' && doctor.totalHours < doctor.targetHours) {
       throw new InfeasiblePoolError(
         `${doctor.doctorName} tiene ${doctor.totalHours}h, por debajo del mínimo de ${doctor.targetHours}h para ${rotaType}.`,
       );

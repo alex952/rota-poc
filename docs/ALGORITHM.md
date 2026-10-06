@@ -17,14 +17,14 @@ Para **AP**, el modelo refleja que los profesionales de AP son **refuerzos diari
 ```
 generar_rota(año, tipo_rota, grupo, clasificaciones_días):
   1. Calcular días "efectivos" — duración real del turno por rota (AC usa la duración del día calendario; AP usa apShiftDetails)
-  2. Calcular objetivos anuales por médico (1.620h AC / 425h AP para todos)
+  2. Calcular objetivos anuales por médico (1.620h mínimo AC / 425h máximo AP para todos)
   3. Fijar `doctors_per_day` base en 1
   4. Para cada día D del año:
      a. Determinar `required = doctorsForDay(tipo_rota, base, día.tipo)` — AP dobla en festivos
      b. Construir el grupo elegible de médicos (filtrado por día de descanso)
      c. Seleccionar `required` médicos (ordenar por equidad de tipo de día → horas totales → posición round-robin)
      d. Actualizar seguimiento (horas, recuentos de turnos, fecha última asignación)
-  5. Validar horas mínimas (restricción DURA)
+  5. Validar horas (mínimo AC, máximo AP; restricción DURA)
   6. Devolver calendario + estadísticas
 ```
 
@@ -34,8 +34,8 @@ generar_rota(año, tipo_rota, grupo, clasificaciones_días):
 
 ### 1. Calcular objetivos por médico
 
-- **AP:** cada médico mantiene el objetivo plano de `425h/año`
-- **AC:** cada médico mantiene el objetivo plano de `1.620h/año` (135h/mes × 12)
+- **AP:** cada médico mantiene el tope plano de `425h/año` (**máximo**)
+- **AC:** cada médico mantiene el objetivo plano de `1.620h/año` (135h/mes × 12, **mínimo**)
 
 `buildTargetHours(rotaType, pool)` asigna el mismo objetivo a todos los médicos del pool según el tipo de rota; no hay objetivos personalizados por médico.
 
@@ -43,7 +43,7 @@ generar_rota(año, tipo_rota, grupo, clasificaciones_días):
 
 La cobertura base de primary es **siempre 1 médico por día** para ambas rotas. La única excepción es el segundo AP en festivos. La cobertura no se incrementa automáticamente con el tamaño del pool.
 
-Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("El grupo de N médicos es demasiado grande para AC|AP: el objetivo de Xh supera la capacidad anual de cobertura de Yh").
+En AC, si el pool es demasiado grande para que cada médico llegue a su mínimo con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("El grupo de N médicos es demasiado grande para AC: el objetivo de Xh supera la capacidad anual de cobertura de Yh"). En AP ocurre al revés: si el pool es demasiado pequeño y la cobertura anual superaría el máximo de 425h por médico, lanza `InfeasiblePoolError` ("El grupo de N médicos es demasiado pequeño para AP: … Se necesitan al menos M médicos"). Un pool AP grande es válido: cada médico simplemente hace menos horas.
 
 #### Cobertura variable por día
 
@@ -56,21 +56,22 @@ El `minPool` (tamaño mínimo del grupo) se calcula con el pico anual de `doctor
 
 #### Validación de capacidad
 
-Tras calcular `doctors_per_day`, el algoritmo verifica que la capacidad anual de cobertura sea suficiente para cumplir los targets:
+Tras calcular `doctors_per_day`, el algoritmo verifica la capacidad anual de cobertura frente al total de targets (AC: capacidad >= mínimos; AP: capacidad <= máximos):
 
 ```python
 total_capacity = sum(día.duración × doctorsForDay(tipo_rota, base, día.tipo) for día in año)
 total_target = sum(target_por_médico for médico in grupo)
-assert total_capacity >= total_target
+if tipo_rota == AC: assert total_capacity >= total_target   # mínimo
+if tipo_rota == AP: assert total_capacity <= total_target   # máximo
 ```
 
-Si no, lanza `InfeasiblePoolError`. Esto detecta pools AP excesivos (>= ~8 médicos con la aritmética actual) antes de iterar.
+Si no, lanza `InfeasiblePoolError`. En AP esto detecta pools demasiado pequeños (< 9 médicos con la aritmética actual) antes de iterar.
 
 Ejemplos:
 - Grupo AC de 4 → capacidad ≈ 6.627h; target = 4×1620 = 6.480h → OK, 1 médico/día.
 - Grupo AC de 5 → target = 8.100h > 6.627h → **`InfeasiblePoolError`**.
-- Grupo AP de 5 → capacidad ≈ 303×7 + 62×24 ≈ 3.609h; target = 5×425 = 2.125h → OK, 1 médico/día (festivos: 2).
-- Grupo AP de 9 → capacidad ≈ 3.609h; target = 9×425 = 3.825h → **`InfeasiblePoolError`** (pool demasiado grande).
+- Grupo AP de 5 → capacidad ≈ 303×7 + 62×24 ≈ 3.609h; tope = 5×425 = 2.125h < 3.609h → **`InfeasiblePoolError`** (pool demasiado pequeño).
+- Grupo AP de 9 → capacidad ≈ 3.609h; tope = 9×425 = 3.825h → OK (≈ 401h por médico, 1 médico/día; festivos: 2).
 
 ### 3. Construir el grupo elegible
 
@@ -108,9 +109,9 @@ Para cada médico asignado:
 
 Después de que se genera el año completo, se verifican las horas totales de cada médico:
 - **AC:** cada médico debe tener >= 1.620 horas/año
-- **AP:** cada médico debe tener >= 425 horas/año
+- **AP:** cada médico debe tener <= 425 horas/año (máximo)
 
-Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una **restricción dura** — la rota se rechaza, no se devuelve con advertencias.
+Si algún médico incumple su límite (queda por debajo en AC o por encima en AP), se lanza un `InfeasiblePoolError`. Esta es una **restricción dura** — la rota se rechaza, no se devuelve con advertencias.
 
 ---
 
@@ -120,7 +121,7 @@ Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una
 |----|------|------------|
 | RD-1 | Grupos AC/AP separados — un médico pertenece a un solo grupo | **Dura** — aplicada por el invocador (grupo separado por llamada de generación) |
 | RD-2 | Día de descanso: asignado en D → no disponible en D+1 (dentro del mismo tipo de rota) | **Dura** para grupos >= 2×doctors_per_day; **blanda** para grupos más pequeños |
-| RD-3 | Horas mínimas: 1.620h/año AC, 425h/año AP por médico | **Dura** — `InfeasiblePoolError` lanzado si no se cumple |
+| RD-3 | Horas: mínimo 1.620h/año AC, máximo 425h/año AP por médico | **Dura** — `InfeasiblePoolError` lanzado si no se cumple |
 | RD-4 | Cobertura base: 1 médico/día (AC y AP); 2 médicos en festivos para AP | **Dura** — garantizado por el algoritmo |
 | RD-5 | AP en festivos: 2 médicos primary con turnos de 12 h (10:00–22:00) | **Dura** — `doctorsForDay` aplica el override en cada festivo |
 | RD-6 | AP en L-Sábado: 1 médico con turno de 7 h (15:00–22:00) | **Dura** — duración tomada de `apShiftDetails` |
@@ -149,7 +150,7 @@ Esto es una simplificación significativa respecto al diseño anterior de un ún
 
 ## Objetivos de Optimización (orden de prioridad)
 
-1. **Horas mínimas** — cada médico debe alcanzar el mínimo obligatorio (1.620h AC o 425h AP)
+1. **Límites de horas** — cada médico de AC debe alcanzar 1.620h y ningún médico de AP puede superar 425h
 2. **Equidad de tipo de día** — cada médico obtiene aproximadamente el mismo recuento (±1) de turnos laborables, de sábado y festivos
 3. **Equidad de horas** — minimizar la diferencia máximo-mínimo de horas totales entre médicos
 4. **Variación de grupo** — evitar que el mismo subconjunto de médicos sea siempre asignado junto (puntero round-robin deslizante)
@@ -186,7 +187,7 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 - **Codicioso, no óptimo.** El algoritmo selecciona los mejores candidatos localmente cada día. Para grupos de 4 o más médicos esto produce calendarios bien equilibrados. Para grupos muy pequeños (2-3 médicos), se necesitaría un solver de programación por restricciones (p. ej., Google OR-Tools) para garantizar la optimalidad.
 - **Sin retroceso.** Una vez asignado un día, nunca se revisita. Esto mantiene el algoritmo en O(D × N × K) donde D = días del año, N = tamaño del grupo y K = doctors_per_day, pero significa que no puede recuperarse de elecciones subóptimas tempranas.
 - **Suavidad del día de descanso.** Para grupos pequeños, aplicar días de descanso estrictos puede crear callejones sin salida. El algoritmo degrada graciosamente permitiendo médicos sin descanso cuando es necesario, en lugar de fallar.
-- **Mínimos duros.** A diferencia del enfoque anterior de restricción blanda, el algoritmo ahora **rechaza** calendarios que no cumplen los mínimos. Esto significa que grupos muy grandes pueden ser inviables (no hay suficientes horas para distribuir).
+- **Límites duros.** A diferencia del enfoque anterior de restricción blanda, el algoritmo ahora **rechaza** calendarios que no cumplen los límites. En AC, grupos muy grandes pueden ser inviables (no hay suficientes horas para distribuir); en AP, lo son los grupos muy pequeños (las horas de cobertura exceden el máximo por médico).
 
 ---
 

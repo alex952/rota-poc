@@ -3,7 +3,7 @@ import { Workbook, Worksheet } from 'exceljs';
 
 import {
   AC_POOL_4,
-  AP_POOL_5,
+  AP_POOL_9,
   HOLIDAY_API_RESPONSE,
   YEAR_2026,
 } from '../helpers/fixtures';
@@ -51,7 +51,7 @@ describe('Exportación del cuadrante a Excel', () => {
       payload: {
         year: YEAR_2026,
         rota_type: rotaType,
-        pool: rotaType === 'AC' ? AC_POOL_4 : AP_POOL_5,
+        pool: rotaType === 'AC' ? AC_POOL_4 : AP_POOL_9,
       },
     });
     expect(response.statusCode).toBe(201);
@@ -214,7 +214,7 @@ describe('Exportación del cuadrante a Excel', () => {
     ]);
     expect(estadisticas.getRow(1).font?.bold).toBe(true);
     expect(estadisticas.rowCount).toBe(AC_POOL_4.length + 1);
-    expect(workbook.getWorksheet('Estadísticas AP')!.rowCount).toBe(AP_POOL_5.length + 1);
+    expect(workbook.getWorksheet('Estadísticas AP')!.rowCount).toBe(AP_POOL_9.length + 1);
 
     const nombres = [2, 3, 4, 5].map((numero) => estadisticas.getRow(numero).getCell(1).value);
     expect(nombres.sort()).toEqual(AC_POOL_4.map((doctor) => doctor.name).sort());

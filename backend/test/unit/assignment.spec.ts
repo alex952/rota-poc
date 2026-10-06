@@ -1,7 +1,9 @@
 import {
   AC_POOL_4,
+  AP_POOL_12,
   AP_POOL_5,
   AP_POOL_8,
+  AP_POOL_9,
   HOLIDAYS_2026,
   YEAR_2026,
   toHolidaySet,
@@ -25,7 +27,7 @@ describe('Assignment domain', () => {
 
   it('keeps AC and AP generation independent', () => {
     const acRota = generateRota(YEAR_2026, 'AC', AC_POOL_4, dayClassifications);
-    const apRota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+    const apRota = generateRota(YEAR_2026, 'AP', AP_POOL_9, dayClassifications);
 
     expect(acRota.rotaType).toBe('AC');
     expect(apRota.rotaType).toBe('AP');
@@ -78,7 +80,7 @@ describe('AP rota — refuerzo diario y festivos doblados', () => {
   const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
 
   it('asigna turnos AP de 7h en laborables y sábados (15:00–22:00)', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_9, dayClassifications);
     const nonHolidayDays = rota.schedule.filter((day) => day.dayType !== 'holiday');
 
     expect(nonHolidayDays.length).toBeGreaterThan(0);
@@ -91,7 +93,7 @@ describe('AP rota — refuerzo diario y festivos doblados', () => {
   });
 
   it('asigna dos primarios AP en cada festivo, ambos con turnos de 12h (10:00–22:00)', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_9, dayClassifications);
     const holidayDays = rota.schedule.filter((day) => day.dayType === 'holiday');
 
     expect(holidayDays.length).toBeGreaterThan(0);
@@ -105,16 +107,34 @@ describe('AP rota — refuerzo diario y festivos doblados', () => {
     }
   });
 
-  it('los AP cumplen las 425h anuales mínimas con la nueva aritmética', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+  it('los AP no superan las 425h anuales (máximo)', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_9, dayClassifications);
 
     for (const doctor of rota.stats.doctors) {
-      expect(doctor.totalHours).toBeGreaterThanOrEqual(425);
+      expect(doctor.totalHours).toBeLessThanOrEqual(425);
+      expect(doctor.targetHours).toBe(425);
     }
   });
 
+  it('un grupo AP grande es válido: nadie supera el máximo aunque tenga pocas horas', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_12, dayClassifications);
+
+    for (const doctor of rota.stats.doctors) {
+      expect(doctor.totalHours).toBeLessThanOrEqual(425);
+    }
+  });
+
+  it('rechaza un grupo AP demasiado pequeño porque superaría el máximo de horas', () => {
+    expect(() => generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications)).toThrow(
+      /demasiado pequeño.*máximo de 425h/i,
+    );
+    expect(() => generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications)).toThrow(
+      /demasiado pequeño.*al menos 9 médicos/i,
+    );
+  });
+
   it('asigna sólo 1 AP en laborables y sábados aunque el pool sea grande', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications);
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_12, dayClassifications);
 
     for (const day of rota.schedule) {
       if (day.dayType === 'holiday') {
