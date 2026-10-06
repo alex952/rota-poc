@@ -70,9 +70,9 @@ Particularidades de MySQL 8.4:
 El algoritmo de rota se mantiene deliberadamente fuera de los decoradores NestJS y las preocupaciones de transporte.
 
 - La clasificación de días se deriva de los domingos más la caché de festivos. El `DayInfo` resultante representa la duración del **día calendario** (la usada por AC).
-- `doctorsPerDay` es una **constante fija de 1 médico/día** (valor base) y se complementa con `doctorsForDay(rotaType, base, dayType)` para los casos donde la cobertura del día varía. AP dobla a 2 en festivos.
+- `doctorsPerDay` es una **constante fija de 1 médico/día** (valor base) y se complementa con `doctorsForDay(rotaType, base, day, previousDay)` para los casos donde la cobertura del día varía. AP dobla a 2 sólo en un festivo cuyo día anterior también es festivo.
 - AC y AP se generan de forma independiente. Las **duraciones de turno AP** son distintas de las del día calendario: 7 h en laborable/sábado, 12 h en festivo. Se aplican vía `apShiftDetails(dayType)` y se persisten en `RotaAssignmentEntity.durationHours`.
-- En festivos AP se persisten **dos filas** para la misma fecha, con distinto `doctor_id`.
+- En el segundo festivo consecutivo AP se persisten **dos filas** para la misma fecha, con distinto `doctor_id`.
 - Las estadísticas se recalculan a partir de las asignaciones persistidas para garantizar la consistencia de la respuesta.
 
 Consulta [ALGORITHM.md](./ALGORITHM.md) para el conjunto de reglas detallado.
@@ -89,7 +89,7 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 ### Renderizado del calendario
 
 - **Sección AC** muestra el médico AC del día.
-- **Sección AP** muestra los médicos AP del día con prefijo visual `R:` (vía pseudo-elemento `::before`). En festivos aparecen los dos médicos AP, ambos con `R:`.
+- **Sección AP** muestra los médicos AP del día con prefijo visual `R:` (vía pseudo-elemento `::before`). En el segundo festivo consecutivo aparecen los dos médicos AP, ambos con `R:`.
 
 ## Desarrollo Local
 

@@ -28,6 +28,12 @@ import { DoctorStats } from '../../core/models/rota.model';
             {{ (stats().hours_vs_target ?? 0) >= 0 ? '+' : '' }}{{ stats().hours_vs_target ?? 0 }}h
           </span>
         </div>
+        @if (missingHours() > 0) {
+          <div class="stat-item">
+            <span class="stat-label">Faltan</span>
+            <span class="stat-value negative missing-hours">{{ missingHours() }}h</span>
+          </div>
+        }
       </div>
       <div class="hours-bar">
         <div class="hours-bar-fill" [style.width.%]="barWidth()"></div>
@@ -147,6 +153,8 @@ export class DoctorStatsRowComponent {
     if (max === 0) return 0;
     return Math.round((this.stats().total_hours / max) * 100);
   });
+
+  readonly missingHours = computed(() => Math.max(0, -(this.stats().hours_vs_target ?? 0)));
 
   readonly monthName = computed(() =>
     DoctorStatsRowComponent.MONTH_NAMES[this.currentMonth() - 1] ?? ''

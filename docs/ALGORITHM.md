@@ -6,9 +6,10 @@ El algoritmo de planificación genera un calendario de guardias completo para to
 
 Para **AC**, cada médico tiene el mismo objetivo anual fijo de `1.620h/año` (135h/mes × 12). Cada día se asigna exactamente **1 médico AC**.
 
-Para **AP**, el modelo refleja que los profesionales de AP son **refuerzos diarios de la guardia AC**. La rota se genera por separado, pero las duraciones de turno son distintas de las de AC y los festivos requieren cobertura doble:
+Para **AP**, el modelo refleja que los profesionales de AP son **refuerzos diarios de la guardia AC**. La rota se genera por separado, pero las duraciones de turno son distintas de las de AC y el segundo de dos festivos consecutivos requiere cobertura doble:
 - L-Sábado: 1 médico AP con turno de 7 h (15:00–22:00).
-- Festivos: 2 médicos AP primary, cada uno con turno de 12 h (10:00–22:00).
+- Festivos: 1 médico AP con turno de 12 h (10:00–22:00).
+- Festivo precedido de otro festivo: 2 médicos AP primary, cada uno con turno de 12 h.
 
 ---
 
@@ -20,11 +21,11 @@ generar_rota(año, tipo_rota, grupo, clasificaciones_días):
   2. Calcular objetivos anuales por médico (1.620h AC / 425h AP para todos)
   3. Fijar `doctors_per_day` base en 1
   4. Para cada día D del año:
-     a. Determinar `required = doctorsForDay(tipo_rota, base, día.tipo)` — AP dobla en festivos
+     a. Determinar `required = doctorsForDay(tipo_rota, base, día, día_anterior)` — AP dobla en el segundo festivo consecutivo
      b. Construir el grupo elegible de médicos (filtrado por día de descanso)
      c. Seleccionar `required` médicos (ordenar por equidad de tipo de día → horas totales → posición round-robin)
      d. Actualizar seguimiento (horas, recuentos de turnos, fecha última asignación)
-  5. Validar horas mínimas (restricción DURA)
+  5. Comprobar horas mínimas (si faltan, aviso en `warnings`; no bloquea)
   6. Devolver calendario + estadísticas
 ```
 
@@ -41,36 +42,38 @@ generar_rota(año, tipo_rota, grupo, clasificaciones_días):
 
 ### 2. Calcular doctors_per_day
 
-La cobertura base de primary es **siempre 1 médico por día** para ambas rotas. La única excepción es el segundo AP en festivos. La cobertura no se incrementa automáticamente con el tamaño del pool.
+La cobertura base de primary es **siempre 1 médico por día** para ambas rotas. La única excepción es el segundo AP en un festivo precedido de otro festivo. La cobertura no se incrementa automáticamente con el tamaño del pool.
 
-Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo lanza `InfeasiblePoolError` ("El grupo de N médicos es demasiado grande para AC|AP: el objetivo de Xh supera la capacidad anual de cobertura de Yh").
+Si el pool es demasiado grande para que cada médico llegue a su target con esa cobertura, el algoritmo **no falla**: genera el cuadrante y añade a `warnings` un aviso ("El grupo de N médicos es demasiado grande para AC|AP: el objetivo de Xh supera la capacidad anual de cobertura de Yh. K médicos quedan por debajo del mínimo de Mh; faltan Zh en total.").
 
 #### Cobertura variable por día
 
-El valor `doctors_per_day` es la **base**. En tiempo de asignación, el algoritmo aplica `doctorsForDay(tipo_rota, base, día.tipo)`:
+El valor `doctors_per_day` es la **base**. En tiempo de asignación, el algoritmo aplica `doctorsForDay(tipo_rota, base, día, día_anterior)`:
 
 - AC: siempre devuelve la base.
-- AP: en festivos devuelve `max(base, 2) = 2`. En el resto de días devuelve la base (1).
+- AP: en un festivo cuyo día anterior también es festivo devuelve `max(base, 2) = 2`. En el resto de días —incluidos los festivos aislados y el primero de una serie— devuelve la base (1).
+
+Los domingos cuentan como festivo: un lunes festivo lleva 2 AP, y también un domingo tras un sábado festivo. En una serie de tres o más festivos, todos menos el primero llevan 2. El 1 de enero no tiene día anterior en el año clasificado: `RotaService.generate` clasifica el 31 de diciembre anterior con los festivos de ese año (API y manuales) y lo pasa a `generateRota` como `dayBeforeYear`, de modo que el 1 de enero lleva 2 AP si ese 31 de diciembre es domingo o está marcado como festivo.
 
 El `minPool` (tamaño mínimo del grupo) se calcula con el pico anual de `doctorsForDay`, no con la base.
 
 #### Validación de capacidad
 
-Tras calcular `doctors_per_day`, el algoritmo verifica que la capacidad anual de cobertura sea suficiente para cumplir los targets:
+Tras calcular `doctors_per_day`, el algoritmo calcula si la capacidad anual de cobertura es suficiente para cumplir los targets:
 
 ```python
-total_capacity = sum(día.duración × doctorsForDay(tipo_rota, base, día.tipo) for día in año)
+total_capacity = sum(día.duración × doctorsForDay(tipo_rota, base, día, día_anterior) for día in año)
 total_target = sum(target_por_médico for médico in grupo)
-assert total_capacity >= total_target
+pool_demasiado_grande = total_capacity < total_target
 ```
 
-Si no, lanza `InfeasiblePoolError`. Esto detecta pools AP excesivos (>= ~8 médicos con la aritmética actual) antes de iterar.
+Si no alcanza (pools AP de >= 7 médicos con la aritmética actual), la generación continúa y el aviso final indica que el grupo es demasiado grande.
 
 Ejemplos:
 - Grupo AC de 4 → capacidad ≈ 6.627h; target = 4×1620 = 6.480h → OK, 1 médico/día.
-- Grupo AC de 5 → target = 8.100h > 6.627h → **`InfeasiblePoolError`**.
-- Grupo AP de 5 → capacidad ≈ 303×7 + 62×24 ≈ 3.609h; target = 5×425 = 2.125h → OK, 1 médico/día (festivos: 2).
-- Grupo AP de 9 → capacidad ≈ 3.609h; target = 9×425 = 3.825h → **`InfeasiblePoolError`** (pool demasiado grande).
+- Grupo AC de 5 → target = 8.100h > 6.627h → se genera **con aviso** (faltan horas).
+- Grupo AP de 5 → capacidad ≈ 302×7 + 63×12 + 6×12 ≈ 2.942h; target = 5×425 = 2.125h → OK, 1 médico/día (segundo festivo consecutivo: 2).
+- Grupo AP de 7 → capacidad ≈ 2.942h; target = 7×425 = 2.975h → se genera **con aviso** (pool demasiado grande).
 
 ### 3. Construir el grupo elegible
 
@@ -104,13 +107,13 @@ Para cada médico asignado:
 - Incrementar su contador de horas por la duración del día
 - Incrementar su contador de turnos por tipo de día
 
-### 6. Validación Dura
+### 6. Validación de horas mínimas (aviso)
 
 Después de que se genera el año completo, se verifican las horas totales de cada médico:
 - **AC:** cada médico debe tener >= 1.620 horas/año
 - **AP:** cada médico debe tener >= 425 horas/año
 
-Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una **restricción dura** — la rota se rechaza, no se devuelve con advertencias.
+Si algún médico cae por debajo, la rota **se devuelve igualmente** con un único aviso agregado en `warnings` (cuántos médicos quedan por debajo del mínimo y cuántas horas faltan en total; si además la capacidad anual no cubre el objetivo, el aviso empieza indicando que el grupo es demasiado grande). Las horas faltantes de cada médico son su `hours_vs_target` negativo, que la interfaz muestra como «Faltan» en las estadísticas. El aviso sólo se devuelve al generar; no se persiste.
 
 ---
 
@@ -120,9 +123,9 @@ Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una
 |----|------|------------|
 | RD-1 | Grupos AC/AP separados — un médico pertenece a un solo grupo | **Dura** — aplicada por el invocador (grupo separado por llamada de generación) |
 | RD-2 | Día de descanso: asignado en D → no disponible en D+1 (dentro del mismo tipo de rota) | **Dura** para grupos >= 2×doctors_per_day; **blanda** para grupos más pequeños |
-| RD-3 | Horas mínimas: 1.620h/año AC, 425h/año AP por médico | **Dura** — `InfeasiblePoolError` lanzado si no se cumple |
-| RD-4 | Cobertura base: 1 médico/día (AC y AP); 2 médicos en festivos para AP | **Dura** — garantizado por el algoritmo |
-| RD-5 | AP en festivos: 2 médicos primary con turnos de 12 h (10:00–22:00) | **Dura** — `doctorsForDay` aplica el override en cada festivo |
+| RD-3 | Horas mínimas: 1.620h/año AC, 425h/año AP por médico | **Blanda** — si no se cumple, la rota se genera con un aviso y las horas faltantes en las estadísticas |
+| RD-4 | Cobertura base: 1 médico/día (AC y AP); 2 médicos AP en un festivo precedido de otro festivo | **Dura** — garantizado por el algoritmo |
+| RD-5 | AP en festivos: turnos de 12 h (10:00–22:00); 2 médicos primary sólo en el segundo festivo consecutivo | **Dura** — `doctorsForDay` aplica el override en cada festivo precedido de otro festivo |
 | RD-6 | AP en L-Sábado: 1 médico con turno de 7 h (15:00–22:00) | **Dura** — duración tomada de `apShiftDetails` |
 
 ---
@@ -132,7 +135,7 @@ Si algún médico cae por debajo, se lanza un `InfeasiblePoolError`. Esta es una
 Antes de que se ejecute el bucle principal, el algoritmo valida el grupo:
 
 - **El grupo debe tener >= `doctors_per_day + doctors_per_day` médicos** (necesita suficientes para la rotación de días de descanso). Si no, se lanza `InfeasiblePoolError`.
-- Verificación de seguridad: si `doctors_per_day × total_horas_anuales / tamaño_grupo < horas_min`, la configuración no es factible.
+- Si la capacidad anual no cubre el objetivo del grupo (grupo demasiado grande), la generación **no** se bloquea: se emite un aviso (ver paso 6).
 
 ---
 
@@ -154,7 +157,7 @@ Esto es una simplificación significativa respecto al diseño anterior de un ún
 3. **Equidad de horas** — minimizar la diferencia máximo-mínimo de horas totales entre médicos
 4. **Variación de grupo** — evitar que el mismo subconjunto de médicos sea siempre asignado junto (puntero round-robin deslizante)
 
-Los objetivos 2-4 están codificados en la clave de ordenación. El objetivo 1 se aplica como validación dura post-generación.
+Los objetivos 2-4 están codificados en la clave de ordenación. El objetivo 1 se comprueba tras la generación y, si no se cumple, produce un aviso en lugar de un error.
 
 ---
 
@@ -174,7 +177,8 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 
 | Tipo de Día | Médicos | Duración | Turno |
 |-------------|---------|---------|-------|
-| festivo | 2 | 12h | 10:00 → 22:00 |
+| festivo precedido de otro festivo | 2 | 12h | 10:00 → 22:00 |
+| festivo aislado o primero de una serie | 1 | 12h | 10:00 → 22:00 |
 | laborable / sábado | 1 | 7h | 15:00 → 22:00 |
 
 **Precedencia:** Festivo > Sábado > Laborable. Un sábado que también es festivo se clasifica como `festivo`. Las duraciones AP **no coinciden** con la duración del día calendario (que es la usada por AC).
@@ -186,7 +190,7 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 - **Codicioso, no óptimo.** El algoritmo selecciona los mejores candidatos localmente cada día. Para grupos de 4 o más médicos esto produce calendarios bien equilibrados. Para grupos muy pequeños (2-3 médicos), se necesitaría un solver de programación por restricciones (p. ej., Google OR-Tools) para garantizar la optimalidad.
 - **Sin retroceso.** Una vez asignado un día, nunca se revisita. Esto mantiene el algoritmo en O(D × N × K) donde D = días del año, N = tamaño del grupo y K = doctors_per_day, pero significa que no puede recuperarse de elecciones subóptimas tempranas.
 - **Suavidad del día de descanso.** Para grupos pequeños, aplicar días de descanso estrictos puede crear callejones sin salida. El algoritmo degrada graciosamente permitiendo médicos sin descanso cuando es necesario, en lugar de fallar.
-- **Mínimos duros.** A diferencia del enfoque anterior de restricción blanda, el algoritmo ahora **rechaza** calendarios que no cumplen los mínimos. Esto significa que grupos muy grandes pueden ser inviables (no hay suficientes horas para distribuir).
+- **Mínimos blandos.** El algoritmo no rechaza calendarios que no cumplen los mínimos: con grupos muy grandes no hay suficientes horas para distribuir, y el cuadrante se entrega con un aviso y las horas faltantes por médico.
 
 ---
 

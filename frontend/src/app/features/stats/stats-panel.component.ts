@@ -37,6 +37,12 @@ import { RotaType } from '../../core/models/doctor.model';
             <span class="summary-label">Desviación media</span>
             <span class="summary-value">{{ averageDelta() }}h</span>
           </div>
+          @if (missingHours() > 0) {
+            <div class="summary-row summary-missing">
+              <span class="summary-label">Horas faltantes</span>
+              <span class="summary-value">{{ missingHours() }}h</span>
+            </div>
+          }
           <div class="summary-row">
             <span class="summary-label">Médicos</span>
             <span class="summary-value">{{ stats().length }}</span>
@@ -153,6 +159,11 @@ import { RotaType } from '../../core/models/doctor.model';
       color: #1a237e;
     }
 
+    .summary-missing .summary-label,
+    .summary-missing .summary-value {
+      color: #c62828;
+    }
+
     .no-stats {
       padding: 1.5rem 1rem;
       font-size: 0.8rem;
@@ -225,6 +236,10 @@ export class StatsPanelComponent {
 
   readonly totalDelta = computed(() =>
     this.stats().reduce((sum, d) => sum + (d.hours_vs_target ?? 0), 0),
+  );
+
+  readonly missingHours = computed(() =>
+    this.stats().reduce((sum, d) => sum + Math.max(0, -(d.hours_vs_target ?? 0)), 0),
   );
 
   readonly averageHours = computed(() => {
