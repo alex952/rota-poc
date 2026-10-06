@@ -10,5 +10,18 @@
   { "id": "doc-025", "name": "Dr. Ramos", "department": "Traumatología", "rota_type": "AP" },
   { "id": "doc-026", "name": "Dr. Gil", "department": "Neurología", "rota_type": "AP" },
   { "id": "doc-027", "name": "Dr. Serrano", "department": "Medicina Interna", "rota_type": "AP" },
-  { "id": "doc-028", "name": "Dr. Blanco", "department": "Cirugía General", "rota_type": "AP" }
+  { "id": "doc-028", "name": "Dr. Blanco", "department": "Cirugía General", "rota_type": "AP" },
+  { "id": "doc-029", "name": "Dra. Sánchez", "department": "Neurología", "rota_type": "AP" },
+  { "id": "doc-030", "name": "Dr. Pérez", "department": "Medicina Interna", "rota_type": "AP" },
+  { "id": "doc-031", "name": "Dra. Gómez", "department": "Urgencias", "rota_type": "AP" },
+  { "id": "doc-032", "name": "Dr. Ruiz", "department": "Cirugía General", "rota_type": "AP" },
+  { "id": "doc-033", "name": "Dra. Jiménez", "department": "Neumología", "rota_type": "AP" },
+  { "id": "doc-034", "name": "Dr. Moreno", "department": "Endocrinología", "rota_type": "AP" },
+  { "id": "doc-035", "name": "Dra. Muñoz", "department": "Reumatología", "rota_type": "AP" },
+  { "id": "doc-036", "name": "Dr. Álvarez", "department": "Urología", "rota_type": "AP" },
+  { "id": "doc-037", "name": "Dra. Romero", "department": "Medicina General", "rota_type": "AP" },
+  { "id": "doc-038", "name": "Dr. Alonso", "department": "Pediatría", "rota_type": "AP" },
+  { "id": "doc-039", "name": "Dra. Gutiérrez", "department": "Cardiología", "rota_type": "AP" },
+  { "id": "doc-040", "name": "Dr. Castaño", "department": "Medicina Interna", "rota_type": "AP" },
+  { "id": "doc-041", "name": "Dra. Ibáñez", "department": "Urgencias", "rota_type": "AP" }
 ]
