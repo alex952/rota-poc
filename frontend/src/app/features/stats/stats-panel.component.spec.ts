@@ -89,6 +89,23 @@ describe('StatsPanelComponent', () => {
     expect(row.textContent).toContain('573h');
   });
 
+  it('en AP muestra el total de horas sobrantes y no las faltantes', () => {
+    fixture.componentRef.setInput('visible', true);
+    fixture.componentRef.setInput('activeTab', 'AP');
+    fixture.componentRef.setInput('stats', [
+      { ...mockStats[0], total_hours: 170, target_hours: 425, hours_vs_target: -255 },
+      { ...mockStats[1], total_hours: 450, target_hours: 425, hours_vs_target: 25 },
+      { ...mockStats[1], doctor_id: 'doc-003', total_hours: 440, target_hours: 425, hours_vs_target: 15 },
+    ]);
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('.summary-missing');
+    expect(row).toBeTruthy();
+    expect(row.textContent).toContain('Horas sobrantes');
+    expect(row.textContent).toContain('40h');
+    expect(fixture.nativeElement.textContent).not.toContain('Horas faltantes');
+  });
+
   it('should be hidden by default', () => {
     fixture.componentRef.setInput('visible', false);
     fixture.componentRef.setInput('stats', mockStats);

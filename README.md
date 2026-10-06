@@ -1,6 +1,6 @@
 # Aplicación de Asignación de Guardias Médicas
 
-Aplicación full-stack para la planificación automática de guardias médicas en hospitales españoles. El sistema genera asignaciones anuales garantizando equidad, cumplimiento de los mínimos de horas y la regla del día de descanso.
+Aplicación full-stack para la planificación automática de guardias médicas en hospitales españoles. El sistema genera asignaciones anuales garantizando equidad, cumplimiento de los límites de horas y la regla del día de descanso.
 
 **Estado:** Prueba de Concepto (PoC).
 

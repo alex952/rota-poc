@@ -2,7 +2,7 @@
 
 ## 1. Visión y alcance
 
-Aplicación para la planificación automática de guardias en hospitales españoles. Cubre dos rotas anuales: **AC** (Atención Continuada) y **AP** (Atención Primaria). El sistema asegura el cumplimiento de los mínimos horarios anuales, equidad entre profesionales y la cobertura mínima de personal por día.
+Aplicación para la planificación automática de guardias en hospitales españoles. Cubre dos rotas anuales: **AC** (Atención Continuada) y **AP** (Atención Primaria). El sistema asegura el cumplimiento de los límites horarios anuales, equidad entre profesionales y la cobertura mínima de personal por día.
 
 Esta es una Prueba de Concepto (PoC): sin autenticación, sin multi-ciudad, sin deshacer, sin diseño móvil ni CI/CD productivo.
 
@@ -30,13 +30,13 @@ Un médico pertenece a un único grupo (AC o AP) y nunca participa en la rota de
 
 ## 5. Restricciones (validadas por el algoritmo)
 
-1. **Mínimo anual por médico** (no bloqueante):
-   - AC: 1.620 h/año (135 h/mes × 12).
-   - AP: 425 h/año.
-   - Si algún profesional queda por debajo, el cuadrante se genera igualmente con un aviso y las estadísticas muestran las horas faltantes de cada médico.
+1. **Límite anual por médico** (no bloqueante):
+   - AC: mínimo 1.620 h/año (135 h/mes × 12).
+   - AP: máximo 425 h/año (tope, no mínimo).
+   - Si algún profesional incumple su límite (AC por debajo, AP por encima), el cuadrante se genera igualmente con un aviso y las estadísticas muestran la desviación de cada médico.
 2. **Día de descanso**: un médico de guardia el día D queda libre el D+1 dentro de la misma rota. Restricción suavizable en pools muy pequeños.
 3. **AC y AP se generan de forma independiente**: un mismo médico no puede aparecer en ambas rotas.
-4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo los festivos AP precedidos de otro festivo, que llevan 2. Con pools que exceden la capacidad de cobertura anual con esa regla, el cuadrante se genera igualmente y se devuelve un aviso.
+4. **Cobertura primary base = 1**: el algoritmo nunca asigna más de un AC primary por día ni más de un AP primary por día, salvo los festivos AP precedidos de otro festivo, que llevan 2. Con pools AC que exceden la capacidad de cobertura anual, o pools AP demasiado pequeños para respetar el máximo de 425 h, el cuadrante se genera igualmente y se devuelve un aviso.
 
 ## 6. Equidad
 
@@ -69,7 +69,7 @@ Se devuelve un calendario anual con:
 
 - Asignaciones primary por día (1 médico para AC, 1 ó 2 médicos para AP).
 - Estadísticas por médico: horas totales, horas vs. objetivo, número de turnos por tipo de día, horas mensuales.
-- Avisos (`warnings`): al generar, un aviso agregado si algún médico queda por debajo del mínimo anual (cuántos médicos y cuántas horas faltan en total). En las consultas posteriores la lista va vacía; las horas faltantes siguen en las estadísticas.
+- Avisos (`warnings`): al generar, un aviso agregado si algún médico incumple su límite anual (cuántos médicos y cuántas horas faltan o sobran en total). En las consultas posteriores la lista va vacía; la desviación sigue en las estadísticas.
 
 ## 9. Persistencia y consultas
 

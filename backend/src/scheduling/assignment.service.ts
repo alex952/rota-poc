@@ -10,7 +10,7 @@ import {
 } from './scheduling.types';
 
 export const AC_MIN_HOURS_YEAR = 1620;
-export const AP_MIN_HOURS_YEAR = 425;
+export const AP_MAX_HOURS_YEAR = 425;
 
 export const AP_WEEKDAY_SATURDAY_HOURS = 7;
 export const AP_HOLIDAY_HOURS = 12;
@@ -79,7 +79,7 @@ export function computeDoctorsPerDay(
 ): number {
   const minTotalHours = targetHours
     ? Object.values(targetHours).reduce((sum, value) => sum + value, 0)
-    : poolSize * (rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MIN_HOURS_YEAR);
+    : poolSize * (rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MAX_HOURS_YEAR);
 
   return Math.ceil(minTotalHours / totalYearlyHours);
 }
@@ -91,7 +91,7 @@ export function buildTargetHours(
   return Object.fromEntries(
     pool.map((doctor) => [
       doctor.id,
-      rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MIN_HOURS_YEAR,
+      rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MAX_HOURS_YEAR,
     ]),
   );
 }
@@ -229,27 +229,49 @@ export function generateRota(
 
   const stats = calculateStats(schedule, pool, targetHours);
 
-  // Las horas mínimas no bloquean la generación: el cuadrante se devuelve con un
-  // único aviso agregado y las horas faltantes de cada médico quedan en las estadísticas.
+  // Los límites de horas no bloquean la generación: el cuadrante se devuelve con un
+  // único aviso agregado y la desviación de cada médico queda en las estadísticas.
+  // AC tiene un mínimo (1.620h) y AP un máximo (425h).
   const warnings: string[] = [];
-  const shortfalls = stats
-    .map((doctor) => doctor.targetHours - doctor.totalHours)
-    .filter((shortfall) => shortfall > 0);
-  if (shortfalls.length > 0) {
-    const minHours = rotaType === 'AC' ? AC_MIN_HOURS_YEAR : AP_MIN_HOURS_YEAR;
-    const missingHours = shortfalls.reduce((sum, value) => sum + value, 0);
-    const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
-    const cause =
-      totalCapacityHours < totalTargetHours
-        ? `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h. `
-        : '';
-    const below =
-      shortfalls.length === 1
-        ? '1 médico queda'
-        : `${shortfalls.length} médicos quedan`;
-    warnings.push(
-      `${cause}${below} por debajo del mínimo de ${minHours}h; faltan ${missingHours}h en total.`,
-    );
+  if (rotaType === 'AC') {
+    const shortfalls = stats
+      .map((doctor) => doctor.targetHours - doctor.totalHours)
+      .filter((shortfall) => shortfall > 0);
+    if (shortfalls.length > 0) {
+      const missingHours = shortfalls.reduce((sum, value) => sum + value, 0);
+      const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
+      const cause =
+        totalCapacityHours < totalTargetHours
+          ? `El grupo de ${pool.length} médicos es demasiado grande para ${rotaType}: el objetivo de ${totalTargetHours}h supera la capacidad anual de cobertura de ${totalCapacityHours}h. `
+          : '';
+      const below =
+        shortfalls.length === 1
+          ? '1 médico queda'
+          : `${shortfalls.length} médicos quedan`;
+      warnings.push(
+        `${cause}${below} por debajo del mínimo de ${AC_MIN_HOURS_YEAR}h; faltan ${missingHours}h en total.`,
+      );
+    }
+  } else {
+    const excesses = stats
+      .map((doctor) => doctor.totalHours - doctor.targetHours)
+      .filter((excess) => excess > 0);
+    if (excesses.length > 0) {
+      const excessHours = excesses.reduce((sum, value) => sum + value, 0);
+      const totalTargetHours = Object.values(targetHours).reduce((sum, value) => sum + value, 0);
+      const minDoctors = Math.ceil(totalCapacityHours / AP_MAX_HOURS_YEAR);
+      const cause =
+        totalCapacityHours > totalTargetHours
+          ? `El grupo de ${pool.length} médicos es demasiado pequeño para ${rotaType}: la cobertura anual de ${totalCapacityHours}h supera el máximo de ${AP_MAX_HOURS_YEAR}h por médico (se necesitan al menos ${minDoctors} médicos). `
+          : '';
+      const above =
+        excesses.length === 1
+          ? '1 médico queda'
+          : `${excesses.length} médicos quedan`;
+      warnings.push(
+        `${cause}${above} por encima del máximo de ${AP_MAX_HOURS_YEAR}h; sobran ${excessHours}h en total.`,
+      );
+    }
   }
 
   return {

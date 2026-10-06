@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { DoctorStats } from '../../core/models/rota.model';
+import { RotaType } from '../../core/models/doctor.model';
 
 @Component({
   selector: 'app-doctor-stats-row',
@@ -24,14 +25,14 @@ import { DoctorStats } from '../../core/models/rota.model';
       <div class="stats-grid compact">
         <div class="stat-item">
           <span class="stat-label">Desviación</span>
-          <span class="stat-value" [class.negative]="(stats().hours_vs_target ?? 0) < 0">
+          <span class="stat-value" [class.negative]="isOutOfLimit()">
             {{ (stats().hours_vs_target ?? 0) >= 0 ? '+' : '' }}{{ stats().hours_vs_target ?? 0 }}h
           </span>
         </div>
-        @if (missingHours() > 0) {
+        @if (limitExcessHours() > 0) {
           <div class="stat-item">
-            <span class="stat-label">Faltan</span>
-            <span class="stat-value negative missing-hours">{{ missingHours() }}h</span>
+            <span class="stat-label">{{ rotaType() === 'AP' ? 'Sobran' : 'Faltan' }}</span>
+            <span class="stat-value negative missing-hours">{{ limitExcessHours() }}h</span>
           </div>
         }
       </div>
@@ -140,6 +141,7 @@ import { DoctorStats } from '../../core/models/rota.model';
 })
 export class DoctorStatsRowComponent {
   readonly stats = input.required<DoctorStats>();
+  readonly rotaType = input<RotaType>('AC');
   readonly maxHours = input<number>(0);
   readonly currentMonth = input<number>(new Date().getMonth() + 1);
 
@@ -154,7 +156,13 @@ export class DoctorStatsRowComponent {
     return Math.round((this.stats().total_hours / max) * 100);
   });
 
-  readonly missingHours = computed(() => Math.max(0, -(this.stats().hours_vs_target ?? 0)));
+  // AC tiene un mínimo (alerta si faltan horas); AP un máximo (alerta si sobran).
+  readonly limitExcessHours = computed(() => {
+    const delta = this.stats().hours_vs_target ?? 0;
+    return Math.max(0, this.rotaType() === 'AP' ? delta : -delta);
+  });
+
+  readonly isOutOfLimit = computed(() => this.limitExcessHours() > 0);
 
   readonly monthName = computed(() =>
     DoctorStatsRowComponent.MONTH_NAMES[this.currentMonth() - 1] ?? ''

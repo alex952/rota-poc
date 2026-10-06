@@ -1,5 +1,6 @@
 import {
   AC_POOL_4,
+  AP_POOL_12,
   AP_POOL_5,
   AP_POOL_8,
   HOLIDAYS_2026,
@@ -168,16 +169,17 @@ describe('AP rota — refuerzo diario y segundo refuerzo en festivos consecutivo
     expect(rota.schedule[0].doctors).toHaveLength(2);
   });
 
-  it('los AP cumplen las 425h anuales mínimas con la nueva aritmética', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
+  it('los AP no superan las 425h anuales (máximo)', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications);
 
     for (const doctor of rota.stats.doctors) {
-      expect(doctor.totalHours).toBeGreaterThanOrEqual(425);
+      expect(doctor.totalHours).toBeLessThanOrEqual(425);
+      expect(doctor.targetHours).toBe(425);
     }
   });
 
-  it('asigna sólo 1 AP en laborables y sábados con el mayor pool factible', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_8.slice(0, 6), dayClassifications);
+  it('asigna sólo 1 AP en laborables y sábados con un pool grande', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_12, dayClassifications);
 
     for (const day of rota.schedule) {
       if (day.dayType !== 'holiday') {
@@ -187,30 +189,39 @@ describe('AP rota — refuerzo diario y segundo refuerzo en festivos consecutivo
     expect(rota.doctorsPerDay).toBe(1);
   });
 
-  it('genera el cuadrante con un aviso cuando el pool AP excede la capacidad anual', () => {
-    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications);
+  it('un pool AP grande es válido: nadie supera el máximo aunque haga pocas horas', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_12, dayClassifications);
+
+    expect(rota.warnings).toEqual([]);
+    for (const doctor of rota.stats.doctors) {
+      expect(doctor.totalHours).toBeLessThanOrEqual(425);
+    }
+  });
+
+  it('genera el cuadrante con un aviso cuando el pool AP es demasiado pequeño para el máximo', () => {
+    const rota = generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications);
 
     expect(rota.schedule).toHaveLength(365);
     expect(rota.schedule.every((day) => day.doctors.length >= 1)).toBe(true);
 
-    const shortfalls = rota.stats.doctors.map((doctor) =>
-      Math.max(0, doctor.targetHours - doctor.totalHours),
+    const excesses = rota.stats.doctors.map((doctor) =>
+      Math.max(0, doctor.totalHours - doctor.targetHours),
     );
-    const missingHours = shortfalls.reduce((sum, value) => sum + value, 0);
-    const doctorsBelow = shortfalls.filter((value) => value > 0).length;
-    // Capacidad 2.942h frente a un objetivo de 8 × 425h = 3.400h.
-    expect(missingHours).toBe(3400 - 2942);
+    const excessHours = excesses.reduce((sum, value) => sum + value, 0);
+    const doctorsAbove = excesses.filter((value) => value > 0).length;
+    // Capacidad 2.942h frente a un máximo de 5 × 425h = 2.125h.
+    expect(excessHours).toBe(2942 - 2125);
 
     expect(rota.warnings).toHaveLength(1);
-    expect(rota.warnings[0]).toMatch(/demasiado grande para AP/);
-    expect(rota.warnings[0]).toContain('3400h');
+    expect(rota.warnings[0]).toMatch(/demasiado pequeño para AP/);
     expect(rota.warnings[0]).toContain('2942h');
-    expect(rota.warnings[0]).toContain(`${doctorsBelow} médicos quedan por debajo del mínimo de 425h`);
-    expect(rota.warnings[0]).toContain(`faltan ${missingHours}h en total`);
+    expect(rota.warnings[0]).toContain('al menos 7 médicos');
+    expect(rota.warnings[0]).toContain(`${doctorsAbove} médicos quedan por encima del máximo de 425h`);
+    expect(rota.warnings[0]).toContain(`sobran ${excessHours}h en total`);
   });
 
-  it('no emite avisos cuando todos los médicos alcanzan el mínimo', () => {
-    expect(generateRota(YEAR_2026, 'AP', AP_POOL_5, dayClassifications).warnings).toEqual([]);
+  it('no emite avisos cuando todos los médicos respetan sus límites', () => {
+    expect(generateRota(YEAR_2026, 'AP', AP_POOL_8, dayClassifications).warnings).toEqual([]);
     expect(generateRota(YEAR_2026, 'AC', AC_POOL_4, dayClassifications).warnings).toEqual([]);
   });
 

@@ -16,7 +16,7 @@ import { RotaType } from '../../core/models/doctor.model';
       @if (stats().length > 0) {
         <div class="stats-body">
           @for (doctorStats of stats(); track doctorStats.doctor_id) {
-            <app-doctor-stats-row [stats]="doctorStats" [maxHours]="maxHours()" [currentMonth]="currentMonth()" />
+            <app-doctor-stats-row [stats]="doctorStats" [rotaType]="activeTab()" [maxHours]="maxHours()" [currentMonth]="currentMonth()" />
           }
         </div>
         @if (hasImbalance()) {
@@ -37,10 +37,10 @@ import { RotaType } from '../../core/models/doctor.model';
             <span class="summary-label">Desviación media</span>
             <span class="summary-value">{{ averageDelta() }}h</span>
           </div>
-          @if (missingHours() > 0) {
+          @if (limitExcessHours() > 0) {
             <div class="summary-row summary-missing">
-              <span class="summary-label">Horas faltantes</span>
-              <span class="summary-value">{{ missingHours() }}h</span>
+              <span class="summary-label">{{ activeTab() === 'AP' ? 'Horas sobrantes' : 'Horas faltantes' }}</span>
+              <span class="summary-value">{{ limitExcessHours() }}h</span>
             </div>
           }
           <div class="summary-row">
@@ -238,9 +238,14 @@ export class StatsPanelComponent {
     this.stats().reduce((sum, d) => sum + (d.hours_vs_target ?? 0), 0),
   );
 
-  readonly missingHours = computed(() =>
-    this.stats().reduce((sum, d) => sum + Math.max(0, -(d.hours_vs_target ?? 0)), 0),
-  );
+  // AC tiene un mínimo (suma lo que falta); AP un máximo (suma lo que sobra).
+  readonly limitExcessHours = computed(() => {
+    const sign = this.activeTab() === 'AP' ? 1 : -1;
+    return this.stats().reduce(
+      (sum, d) => sum + Math.max(0, sign * (d.hours_vs_target ?? 0)),
+      0,
+    );
+  });
 
   readonly averageHours = computed(() => {
     const s = this.stats();
