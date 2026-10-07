@@ -42,7 +42,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
   | Rota / rol | Lunes–Viernes | Sábado | Domingo / Festivo |
   |------------|---------------|--------|--------------------|
   | AC (primary) | 17 h (15:00 → 08:00+1) | 18 h (15:00 → 09:00+1) | 23 h (09:00 → 08:00+1) |
-  | AP (refuerzo del día) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h × 2 médicos (10:00 → 22:00) |
+  | AP (refuerzo del día) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h (10:00 → 22:00); × 2 médicos en el segundo festivo consecutivo |
 - RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
 - RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
@@ -50,7 +50,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 - RN-8: **Día de descanso post-guardia** — un médico que está de guardia el día D **no está disponible** para asignación el día D+1. Los días de descanso aplican **por tipo de rota únicamente** (los descansos de AC no afectan a AP y viceversa, ya que los grupos son separados). Restricción blanda para grupos con menos de 4 médicos.
 - RN-9: Las asignaciones de guardia deben tener **máxima variación de grupo** — el algoritmo usa un puntero round-robin deslizante para evitar que el mismo subconjunto de médicos sea asignado siempre junto.
 - RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h para AC, 12h para AP), no como sábado. La clasificación de festivo siempre tiene prioridad.
-- RN-11: **AP en festivos**: el turno AP de un festivo dura 12 h (10:00 → 22:00). El algoritmo asigna **2 médicos AP primary** sólo cuando hay **dos festivos consecutivos**, y únicamente en el **segundo** (un festivo cuyo día anterior también es festivo; los domingos cuentan como festivo). Ambos cuentan como asignación primaria a efectos de equidad y horas mínimas. **En el resto de días —incluidos los festivos aislados y el primero de una serie— AP asigna exactamente 1 médico** (7 h en laborable/sábado, 12 h en festivo), independientemente del tamaño del pool. Si el pool es demasiado grande para que todos los médicos cumplan 425 h con esa cobertura, el cuadrante se genera igualmente con un aviso.
+- RN-11: **AP en festivos**: el turno AP de un festivo dura 12 h (10:00 → 22:00). El algoritmo asigna **2 médicos AP primary** sólo cuando hay **dos festivos consecutivos**, y únicamente en el **segundo** (un festivo cuyo día anterior también es festivo; los domingos cuentan como festivo). Ambos cuentan como asignación primaria a efectos de equidad y horas. **En el resto de días —incluidos los festivos aislados y el primero de una serie— AP asigna exactamente 1 médico** (7 h en laborable/sábado, 12 h en festivo), independientemente del tamaño del pool. Si el pool es demasiado grande para que todos los médicos cumplan 425 h con esa cobertura, el cuadrante se genera igualmente con un aviso.
 #### Criterios de Aceptación
 
 | ID | Criterio |
