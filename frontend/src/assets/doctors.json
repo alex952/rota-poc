@@ -19,9 +19,5 @@
   { "id": "doc-034", "name": "Dr. Moreno", "department": "Endocrinología", "rota_type": "AP" },
   { "id": "doc-035", "name": "Dra. Muñoz", "department": "Reumatología", "rota_type": "AP" },
   { "id": "doc-036", "name": "Dr. Álvarez", "department": "Urología", "rota_type": "AP" },
-  { "id": "doc-037", "name": "Dra. Romero", "department": "Medicina General", "rota_type": "AP" },
-  { "id": "doc-038", "name": "Dr. Alonso", "department": "Pediatría", "rota_type": "AP" },
-  { "id": "doc-039", "name": "Dra. Gutiérrez", "department": "Cardiología", "rota_type": "AP" },
-  { "id": "doc-040", "name": "Dr. Castaño", "department": "Medicina Interna", "rota_type": "AP" },
-  { "id": "doc-041", "name": "Dra. Ibáñez", "department": "Urgencias", "rota_type": "AP" }
+  { "id": "doc-037", "name": "Dra. Romero", "department": "Medicina General", "rota_type": "AP" }
 ]
