@@ -372,6 +372,57 @@ describe('HTTP contract', () => {
     expect(nonHoliday.shift_end).toBe('22:00');
   });
 
+  describe('método de asignación (strategy)', () => {
+    it('genera con wheels y lo devuelve en la respuesta y en las lecturas posteriores', async () => {
+      const generation = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/generate',
+        payload: { year: YEAR_2026, rota_type: 'AP', pool: AP_POOL_9, strategy: 'wheels' },
+      });
+      expect(generation.statusCode).toBe(201);
+      expect(generation.json().strategy).toBe('wheels');
+
+      const byType = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AP` });
+      expect(byType.json().strategy).toBe('wheels');
+
+      const byYear = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}` });
+      expect(byYear.json()[0].strategy).toBe('wheels');
+    });
+
+    it('usa balanced por defecto', async () => {
+      const generation = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/generate',
+        payload: { year: YEAR_2026, rota_type: 'AC', pool: AC_POOL_4 },
+      });
+      expect(generation.statusCode).toBe(201);
+      expect(generation.json().strategy).toBe('balanced');
+
+      const byType = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AC` });
+      expect(byType.json().strategy).toBe('balanced');
+    });
+
+    it('trata strategy null como omitido y usa balanced', async () => {
+      const generation = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/generate',
+        payload: { year: YEAR_2026, rota_type: 'AC', pool: AC_POOL_4, strategy: null },
+      });
+      expect(generation.statusCode).toBe(201);
+      expect(generation.json().strategy).toBe('balanced');
+    });
+
+    it('rechaza una estrategia inválida con el mensaje en español', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/generate',
+        payload: { year: YEAR_2026, rota_type: 'AC', pool: AC_POOL_4, strategy: 'aleatoria' },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('el método de asignación debe ser balanced o wheels');
+    });
+  });
+
   it('returns holidays for the configured city', async () => {
     const response = await app.inject({
       method: 'GET',

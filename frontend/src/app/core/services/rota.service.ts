@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AddDoctorRequest, GenerateRequest, ReplaceRequest, RotaResponse } from '../models/rota.model';
+import { AddDoctorRequest, GenerateRequest, AssignmentStrategy, DEFAULT_STRATEGY, ReplaceRequest, RotaResponse } from '../models/rota.model';
 import { Doctor, RotaType } from '../models/doctor.model';
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +20,9 @@ export class RotaService {
     return this.http.get(`/api/v1/rota/${year}/export`, { responseType: 'blob' });
   }
 
-  generateRota(year: number, rotaType: RotaType, pool: Doctor[]): Observable<RotaResponse> {
+  generateRota(year: number, rotaType: RotaType, pool: Doctor[],
+    strategy: AssignmentStrategy = DEFAULT_STRATEGY,
+  ): Observable<RotaResponse> {
     const request: GenerateRequest = {
       year,
       rota_type: rotaType,
@@ -29,6 +31,7 @@ export class RotaService {
         name: doctor.name,
         department: doctor.department,
       })),
+      strategy,
     };
     return this.http.post<RotaResponse>('/api/v1/rota/generate', request);
   }

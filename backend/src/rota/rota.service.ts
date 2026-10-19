@@ -11,6 +11,7 @@ import { AppConfigService } from '../config/app-config.service';
 import { formatClockTime } from '../common/date.utils';
 import { HolidaysService, classifyDay, classifyYear } from '../holidays/holidays.service';
 import { InfeasiblePoolError, generateRota } from '../scheduling/assignment.service';
+import { DEFAULT_ASSIGNMENT_STRATEGY } from '../scheduling/strategies';
 import { DoctorInput } from '../scheduling/scheduling.types';
 import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
@@ -57,6 +58,7 @@ export class RotaService {
         request.pool,
         dayClassifications,
         dayBeforeYear,
+        request.strategy ?? DEFAULT_ASSIGNMENT_STRATEGY,
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => {
@@ -77,6 +79,7 @@ export class RotaService {
             generatedAt: new Date(),
             pool: request.pool,
             doctorsPerDay: rota.doctorsPerDay,
+            strategy: rota.strategy,
           }),
         );
 

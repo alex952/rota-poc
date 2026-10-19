@@ -1,5 +1,10 @@
-import { IsArray, IsIn, IsInt, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+
+import {
+  ASSIGNMENT_STRATEGY_IDS,
+  AssignmentStrategyId,
+} from '../../scheduling/strategies/assignment-strategy';
 
 export class DoctorInputDto {
   @IsString({ message: 'el identificador del médico debe ser una cadena de texto' })
@@ -23,4 +28,9 @@ export class GenerateRotaDto {
   @ValidateNested({ each: true, message: 'cada médico del grupo debe ser un objeto válido' })
   @Type(() => DoctorInputDto)
   pool!: DoctorInputDto[];
+
+  // Método de asignación; si se omite, el servicio usa 'balanced'.
+  @IsOptional()
+  @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser balanced o wheels' })
+  strategy?: AssignmentStrategyId;
 }

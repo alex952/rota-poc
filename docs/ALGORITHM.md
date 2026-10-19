@@ -186,6 +186,26 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 
 ---
 
+## Estrategia de ruedas (wheels)
+
+Alternativa a la selección equilibrada, elegida con `strategy: "wheels"` en `POST /rota/generate`. Replica cómo se hacen hoy los cuadrantes a mano. Duraciones, `doctors_per_day`, verificación de factibilidad, estadísticas y avisos son los mismos; sólo cambia quién hace cada día. La estrategia `balanced` descrita arriba sigue siendo la predeterminada y no cambia.
+
+**Ruedas.** Hay cuatro ruedas independientes: laborables, sábados, domingos y festivos. Un día va a la rueda de festivos si su fecha es un festivo oficial (`publicHoliday`), aunque caiga en sábado o domingo; si no, a la de domingos si es domingo, a la de sábados si es sábado y a la de laborables en otro caso.
+
+**Orden.** Cada rueda recorre el grupo en el orden de la lista recibida con su propio puntero. Todas arrancan en el primer médico (índice 0) cada año; no hay estado entre años. Cada asignación avanza el puntero de su rueda. Si un día requiere 2 (segundo refuerzo AP en festivo consecutivo) se toman los 2 siguientes de la rueda de festivos.
+
+**Día de descanso: saltar y conservar turno.** Un médico no está descansado si hizo guardia el día anterior (en cualquier rueda del mismo tipo de rota) o ya ha sido elegido ese mismo día. Al llenar un día se consideran primero, en orden FIFO, los médicos pendientes de esa rueda y después la rueda desde su puntero. Al médico de la rueda que no está descansado se le salta, el puntero avanza y se anota una deuda en la cola de pendientes de esa rueda. Cada salto genera una deuda, aunque el médico ya tuviera otras: la cola admite al mismo médico varias veces (FIFO de turnos debidos). Elegir a un médico desde la cola consume UNA deuda, y un médico nunca sale dos veces el mismo día aunque acumule varias.
+
+**Descanso blando.** Si en todo el grupo no hay suficientes descansados para cubrir el día, se completa con no descansados en el orden de la rueda (pendientes primero). Esos huecos no generan deuda nueva. Esta rama es inalcanzable desde `generateRota`: el tamaño mínimo del grupo (2 × pico de cobertura) garantiza siempre suficientes descansados, y sólo existe por robustez ante llamadas directas a la estrategia. Si aun así no hay suficientes médicos distintos se lanza `InfeasiblePoolError` con el mismo mensaje que `balanced`.
+
+**Compromisos.** El reparto por rueda es exacto (±1) mientras no haya choques; los choques se compensan con la cola de pendientes, pero no se optimiza el equilibrio global de horas, por lo que los avisos de horas pueden aparecer con más frecuencia que con `balanced`.
+
+### Limitación conocida: resonancia
+
+Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables da un número exacto de vueltas por semana y el mismo médico cae siempre en el mismo día de la semana. Caso típico: un grupo de 5 (o un múltiplo de 5 con 5 laborables por semana y sin festivos entre semana) hace que la rueda de laborables dé una vuelta exacta cada semana, de modo que el viernes lo hace siempre el mismo médico. Ese médico no está descansado el sábado, así que la rueda de sábados lo salta cada vez que le toca y sólo acumula deuda: no puede recuperarla mientras dure la resonancia, y sus sábados quedan en cero (con AC de 5 médicos y 2026 sin festivos, el que hace todos los viernes no hace ningún sábado). La resonancia se rompe cuando un festivo entre semana o un cambio de tamaño de grupo desplaza la fase; entonces el médico deudor encadena los turnos debidos en los sábados siguientes. Es una limitación conocida del método de ruedas, documentada por una prueba; `balanced` no la sufre porque elige por recuento.
+
+---
+
 ## Compromisos y Limitaciones
 
 - **Codicioso, no óptimo.** El algoritmo selecciona los mejores candidatos localmente cada día. Para grupos de 4 o más médicos esto produce calendarios bien equilibrados. Para grupos muy pequeños (2-3 médicos), se necesitaría un solver de programación por restricciones (p. ej., Google OR-Tools) para garantizar la optimalidad.

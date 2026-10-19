@@ -1,5 +1,11 @@
 import { addDays, compareIsoDates, getIsoWeekday, toIsoDate } from '../common/date.utils';
+import { InfeasiblePoolError } from './errors';
 import { calculateStats } from './stats.service';
+import {
+  AssignmentStrategyId,
+  DEFAULT_ASSIGNMENT_STRATEGY,
+  getAssignmentStrategy,
+} from './strategies';
 import {
   DayAssignment,
   DayInfo,
@@ -15,7 +21,7 @@ export const AP_MAX_HOURS_YEAR = 425;
 export const AP_WEEKDAY_SATURDAY_HOURS = 7;
 export const AP_HOLIDAY_HOURS = 12;
 
-export class InfeasiblePoolError extends Error {}
+export { InfeasiblePoolError };
 
 export function apShiftDetails(dayType: DayType): {
   durationHours: number;
@@ -102,6 +108,7 @@ export function generateRota(
   pool: DoctorInput[],
   dayClassifications: DayInfo[],
   dayBeforeYear?: DayInfo,
+  strategyId: AssignmentStrategyId | null = DEFAULT_ASSIGNMENT_STRATEGY,
 ): RotaSchedule {
   const effectiveDays = dayClassifications.map((day) => effectiveDayInfo(rotaType, day));
   const targetHours = buildTargetHours(rotaType, pool);
@@ -133,99 +140,18 @@ export function generateRota(
     );
   }
 
-  const doctorIds = pool.map((doctor) => doctor.id);
-  const doctorMap = new Map(pool.map((doctor) => [doctor.id, doctor]));
-  const doctorIndex = new Map(doctorIds.map((doctorId, index) => [doctorId, index]));
-
-  const lastAssigned: Record<string, string | null> = Object.fromEntries(
-    doctorIds.map((doctorId) => [doctorId, null]),
-  );
-  const totalHours: Record<string, number> = Object.fromEntries(
-    doctorIds.map((doctorId) => [doctorId, 0]),
-  );
-  const weekdayCount: Record<string, number> = Object.fromEntries(
-    doctorIds.map((doctorId) => [doctorId, 0]),
-  );
-  const saturdayCount: Record<string, number> = Object.fromEntries(
-    doctorIds.map((doctorId) => [doctorId, 0]),
-  );
-  const holidayCount: Record<string, number> = Object.fromEntries(
-    doctorIds.map((doctorId) => [doctorId, 0]),
-  );
-
-  const dayTypeCount = (doctorId: string, dayType: DayInfo['dayType']): number => {
-    if (dayType === 'weekday') {
-      return weekdayCount[doctorId];
-    }
-    if (dayType === 'saturday') {
-      return saturdayCount[doctorId];
-    }
-    return holidayCount[doctorId];
-  };
-
-  let roundRobinPointer = 0;
-  const schedule: DayAssignment[] = [];
-
-  for (const [dayIndex, dayInfo] of effectiveDays.entries()) {
-    const currentDate = toIsoDate(dayInfo.date);
-    const previousDay = addDays(currentDate, -1);
-    const required = requiredByDay[dayIndex];
-
-    const rested: string[] = [];
-    const unrested: string[] = [];
-    for (const doctorId of doctorIds) {
-      if (lastAssigned[doctorId] === previousDay) {
-        unrested.push(doctorId);
-      } else {
-        rested.push(doctorId);
-      }
-    }
-
-    const availableToday =
-      rested.length >= required ? rested : [...rested, ...unrested];
-    if (availableToday.length < required) {
-      throw new InfeasiblePoolError(
-        `No hay suficientes médicos elegibles el ${currentDate}. El grupo es demasiado pequeño.`,
-      );
-    }
-
-    const chosen = [...availableToday]
-      .sort((left, right) => {
-        const comparisons = [
-          dayTypeCount(left, dayInfo.dayType) - dayTypeCount(right, dayInfo.dayType),
-          totalHours[left] - totalHours[right],
-          (((doctorIndex.get(left) ?? 0) - roundRobinPointer + pool.length) %
-            pool.length) -
-            (((doctorIndex.get(right) ?? 0) - roundRobinPointer + pool.length) %
-              pool.length),
-        ];
-
-        return comparisons.find((comparison) => comparison !== 0) ?? 0;
-      })
-      .slice(0, required);
-
-    roundRobinPointer = (roundRobinPointer + 1) % pool.length;
-
-    for (const doctorId of chosen) {
-      lastAssigned[doctorId] = currentDate;
-      totalHours[doctorId] += dayInfo.durationHours;
-      if (dayInfo.dayType === 'weekday') {
-        weekdayCount[doctorId] += 1;
-      } else if (dayInfo.dayType === 'saturday') {
-        saturdayCount[doctorId] += 1;
-      } else {
-        holidayCount[doctorId] += 1;
-      }
-    }
-
-    schedule.push({
-      ...dayInfo,
-      doctors: chosen.map((doctorId) => ({
-        doctorId,
-        doctorName: doctorMap.get(doctorId)?.name ?? doctorId,
-      })),
-    });
-  }
+  const assigned = getAssignmentStrategy(strategyId ?? DEFAULT_ASSIGNMENT_STRATEGY).assign({
+    pool,
+    days: effectiveDays,
+    requiredByDay,
+  });
+  const schedule: DayAssignment[] = effectiveDays.map((dayInfo, index) => ({
+    ...dayInfo,
+    doctors: assigned[index].map((doctor) => ({
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+    })),
+  }));
 
   const stats = calculateStats(schedule, pool, targetHours);
 
@@ -277,6 +203,7 @@ export function generateRota(
   return {
     year,
     rotaType,
+    strategy: strategyId ?? DEFAULT_ASSIGNMENT_STRATEGY,
     doctorsPerDay,
     schedule: [...schedule].sort((left, right) =>
       compareIsoDates(toIsoDate(left.date), toIsoDate(right.date)),

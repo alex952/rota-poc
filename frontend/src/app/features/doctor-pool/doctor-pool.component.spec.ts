@@ -128,4 +128,79 @@ describe('DoctorPoolComponent', () => {
     addButton.click();
     expect(spy).toHaveBeenCalled();
   });
+
+  describe('método de asignación', () => {
+    function setup(extra: Record<string, unknown> = {}) {
+      fixture.componentRef.setInput('doctors', mockDoctors);
+      fixture.componentRef.setInput('activeTab', 'AC');
+      for (const [k, v] of Object.entries(extra)) {
+        fixture.componentRef.setInput(k, v);
+      }
+      fixture.detectChanges();
+    }
+
+    it('debe mostrar el selector con su etiqueta y las dos opciones exactas', () => {
+      setup();
+      const label: HTMLLabelElement = fixture.nativeElement.querySelector('label.strategy-label');
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('select.strategy-select');
+      expect(label.textContent?.trim()).toBe('Método de asignación');
+      expect(label.htmlFor).toBe(select.id);
+      const options = Array.from(select.options).map((o) => [o.value, o.textContent?.trim()]);
+      expect(options).toEqual([
+        ['balanced', 'Equilibrado (predeterminado)'],
+        ['wheels', 'Ruedas (orden estricto)'],
+      ]);
+    });
+
+    it('debe reflejar el valor de entrada strategy', () => {
+      setup({ strategy: 'wheels' });
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      expect(select.value).toBe('wheels');
+    });
+
+    it('debe seleccionar balanced por defecto', () => {
+      setup();
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      expect(select.value).toBe('balanced');
+    });
+
+    it('debe emitir strategyChange al cambiar la selección', () => {
+      setup();
+      const emitted: string[] = [];
+      component.strategyChange.subscribe((v) => emitted.push(v));
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      select.value = 'wheels';
+      select.dispatchEvent(new Event('change'));
+      expect(emitted).toEqual(['wheels']);
+    });
+
+    it('debe deshabilitar el selector mientras carga', () => {
+      setup({ isLoading: true });
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      expect(select.disabled).toBe(true);
+    });
+
+    it('debe habilitar el selector cuando no carga', () => {
+      setup({ isLoading: false });
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      expect(select.disabled).toBe(false);
+    });
+
+    it('debe mostrar "Generado con: Ruedas" cuando el cuadrante se generó con ruedas', () => {
+      setup({ hasExistingRota: true, generatedStrategy: 'wheels' });
+      const note = fixture.nativeElement.querySelector('.generated-with');
+      expect(note.textContent?.trim()).toBe('Generado con: Ruedas');
+    });
+
+    it('debe mostrar "Generado con: Equilibrado" para balanced', () => {
+      setup({ hasExistingRota: true, generatedStrategy: 'balanced' });
+      const note = fixture.nativeElement.querySelector('.generated-with');
+      expect(note.textContent?.trim()).toBe('Generado con: Equilibrado');
+    });
+
+    it('no debe mostrar "Generado con" sin cuadrante', () => {
+      setup({ hasExistingRota: false, generatedStrategy: null });
+      expect(fixture.nativeElement.querySelector('.generated-with')).toBeNull();
+    });
+  });
 });

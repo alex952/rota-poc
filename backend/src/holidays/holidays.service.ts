@@ -90,10 +90,12 @@ function isHolidayForCity(holiday: HolidayApiItem, regionCode?: string): boolean
 
 export function classifyDay(date: Date, holidays: Set<Date>): DayInfo {
   const weekday = date.getUTCDay();
-  if (hasHolidayDate(holidays, date) || weekday === 0) {
+  const publicHoliday = hasHolidayDate(holidays, date);
+  if (publicHoliday || weekday === 0) {
     return {
       date,
       dayType: 'holiday',
+      publicHoliday,
       durationHours: 23,
       shiftStart: '09:00',
       shiftEnd: '08:00+1',
@@ -104,6 +106,7 @@ export function classifyDay(date: Date, holidays: Set<Date>): DayInfo {
     return {
       date,
       dayType: 'saturday',
+      publicHoliday: false,
       durationHours: 18,
       shiftStart: '15:00',
       shiftEnd: '09:00+1',
@@ -113,6 +116,7 @@ export function classifyDay(date: Date, holidays: Set<Date>): DayInfo {
   return {
     date,
     dayType: 'weekday',
+    publicHoliday: false,
     durationHours: 17,
     shiftStart: '15:00',
     shiftEnd: '08:00+1',
