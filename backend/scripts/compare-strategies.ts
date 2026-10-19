@@ -1,5 +1,5 @@
 /**
- * Compara las estrategias 'balanced' y 'wheels' sobre los mismos datos y calcula
+ * Compara las estrategias 'balanced' y 'wheels' (escalonado, la de producción) y la variante «todas desde el primero» sobre los mismos datos y calcula
  * métricas de disparidad. Uso (desde backend/):
  *   npx ts-node --transpile-only scripts/compare-strategies.ts
  * Salida: docs/strategy-comparison/results.json + tablas markdown por stdout.
@@ -26,7 +26,7 @@ import {
 } from '../src/scheduling/assignment.service';
 import { InfeasiblePoolError } from '../src/scheduling/errors';
 import { DoctorInput, RotaSchedule, RotaType } from '../src/scheduling/scheduling.types';
-import { assignWithWheels, wheelForDay, WheelId } from '../src/scheduling/strategies/wheels.strategy';
+import { assignWithWheels, staggeredInitialPointers, wheelForDay, WheelId } from '../src/scheduling/strategies/wheels.strategy';
 
 const CITY = 'Alicante';
 const YEARS = [2026, 2027];
@@ -85,9 +85,10 @@ function buildPool(rotaType: RotaType, size: number): DoctorInput[] {
   return pool;
 }
 
-// Rueda pura sin saltos: n-ésima asignación de cada rueda = pool[n mod size].
+// Rueda pura sin saltos, con el mismo arranque escalonado que wheels de producción:
+// n-ésima asignación de cada rueda = pool[(inicio + n) mod size].
 function pureWheel(s: RotaSchedule, pool: DoctorInput[]): string[][] {
-  const counters: Record<WheelId, number> = { weekday: 0, saturday: 0, sunday: 0, holiday: 0 };
+  const counters: Record<WheelId, number> = staggeredInitialPointers(pool.length);
   return s.schedule.map((day) => {
     const w = wheelForDay(day);
     const ids: string[] = [];
@@ -113,14 +114,13 @@ function withDoctors(base: RotaSchedule, pool: DoctorInput[], ids: string[][]): 
   };
 }
 
-// Ruedas escalonadas: misma lógica que wheels (saltar y conservar turno con deuda contada)
-// pero con punteros iniciales repartidos en el grupo.
-function staggeredWheels(base: RotaSchedule, pool: DoctorInput[]): string[][] {
-  const n = pool.length;
-  const offsets = { weekday: 0, saturday: Math.floor(n / 4), sunday: Math.floor((2 * n) / 4), holiday: Math.floor((3 * n) / 4) };
+// Ruedas «todas desde el primero»: misma lógica que wheels (saltar y conservar turno con
+// deuda contada) pero con los cuatro punteros iniciales en el índice 0. Es el arranque
+// que tuvo el producto antes de adoptar el escalonado.
+function fromFirstWheels(base: RotaSchedule, pool: DoctorInput[]): string[][] {
   return assignWithWheels(
     { pool, days: base.schedule, requiredByDay: base.schedule.map((d) => d.doctors.length) },
-    offsets,
+    { weekday: 0, saturday: 0, sunday: 0, holiday: 0 },
   ).map((chosen) => chosen.map((d) => d.id));
 }
 
@@ -242,8 +242,8 @@ async function main() {
             satAndSunSameDoctor: pureMetrics.weekends.satAndSunSameDoctor,
             friSatSunSameDoctor: pureMetrics.weekends.friSatSunSameDoctor,
           };
-          const staggeredSchedule = withDoctors(w, pool, staggeredWheels(w, pool));
-          entry.strategies.staggered = metrics(staggeredSchedule, pool, rotaType);
+          const fromFirstSchedule = withDoctors(w, pool, fromFirstWheels(w, pool));
+          entry.strategies.fromFirst = metrics(fromFirstSchedule, pool, rotaType);
         }
         results.push(entry);
       }
@@ -286,15 +286,15 @@ async function main() {
   table('Fines de semana: sáb+dom mismo médico / vie+sáb+dom mismo médico', (s) => `${s.weekends.satAndSunSameDoctor} / ${s.weekends.friSatSunSameDoctor}`);
   table('Huecos entre guardias: mín / media / desv. media por médico / nº huecos de 2 días', (s) => `${s.gaps.min} / ${s.gaps.mean} / ${s.gaps.meanStdPerDoctor} / ${s.gaps.gaps2days}`);
   table('Reparto mensual: media de desv. típica / máx desv. típica / mayor carga mensual (h)', (s) => `${s.monthly.meanStd} / ${s.monthly.maxStd} / ${s.monthly.maxMonthlyHours}`);
-  // --- Variantes de análisis: rueda pura y ruedas escalonadas ---
-  console.log('### Rueda pura (ruedas estrictas sin saltos, todas desde el índice 0): descanso / sáb+dom mismo médico / vie+sáb+dom mismo médico\n\n| Escenario | Violaciones de descanso | Sáb+dom mismo médico | Vie+sáb+dom mismo médico |\n|---|---|---|---|');
+  // --- Variantes de análisis: rueda pura y ruedas «todas desde el primero» ---
+  console.log('### Rueda pura (ruedas estrictas sin saltos, con el arranque escalonado): descanso / sáb+dom mismo médico / vie+sáb+dom mismo médico\n\n| Escenario | Violaciones de descanso | Sáb+dom mismo médico | Vie+sáb+dom mismo médico |\n|---|---|---|---|');
   for (const r of results) console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${r.pureWheel?.restViolations ?? 'n/d'} | ${r.pureWheel?.satAndSunSameDoctor ?? 'n/d'} | ${r.pureWheel?.friSatSunSameDoctor ?? 'n/d'} |`);
   console.log('');
   const table3 = (title: string, get: (st: any) => string) => {
-    console.log(`### Ruedas escalonadas (punteros iniciales 0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋): ${title}\n\n| Escenario | balanced | wheels | escalonadas |\n|---|---|---|---|`);
+    console.log(`### wheels (escalonado: punteros 0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) frente a «todas desde el primero» (punteros 0): ${title}\n\n| Escenario | balanced | wheels (escalonado) | todas desde el primero |\n|---|---|---|---|`);
     for (const r of results) {
       const cell = (k: string) => (!r.strategies[k] ? 'n/d' : r.strategies[k].infeasible ? 'INFEASIBLE' : get(r.strategies[k]));
-      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('balanced')} | ${cell('wheels')} | ${cell('staggered')} |`);
+      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('balanced')} | ${cell('wheels')} | ${cell('fromFirst')} |`);
     }
     console.log('');
   };
@@ -306,7 +306,7 @@ async function main() {
   table3('reparto mensual: media de desv. típica / máx desv. típica / mayor carga mensual (h)', (s) => `${s.monthly.meanStd} / ${s.monthly.maxStd} / ${s.monthly.maxMonthlyHours}`);
 
   // Distribución por médico en AC 5 y AP 5
-  const VARIANTS: [string, string][] = [['balanced', 'balanced'], ['wheels', 'wheels'], ['staggered', 'escalonadas']];
+  const VARIANTS: [string, string][] = [['balanced', 'balanced'], ['wheels', 'wheels (escalonado)'], ['fromFirst', 'todas desde el primero']];
   for (const r of results.filter((x) => x.groupSize === 5)) {
     const pool = buildPool(r.rotaType, 5);
     console.log(`### Distribución por médico, ${r.rotaType} 5 (${r.year}): sábados / domingos / festivos / horas totales\n\n| Médico | ${VARIANTS.map(([, l]) => l).join(' | ')} |\n|---|${VARIANTS.map(() => '---').join('|')}|`);

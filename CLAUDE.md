@@ -49,7 +49,7 @@ docker compose up db            # solo MySQL (para desarrollo local del backend)
 - **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health
 - **Base de datos**: MySQL 8.4 con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Componentes standalone de Angular con estado basado en signals
-- **Algoritmo**: Dos estrategias de asignación seleccionables con `strategy` en `POST /rota/generate`, en `backend/src/scheduling/strategies/`: `balanced` (predeterminada) y `wheels` (ruedas: laborables, sábados, domingos y festivos, con «saltar y conservar turno» y deuda contada). Común a ambas, en `backend/src/scheduling/assignment.service.ts`: round-robin equilibrado independiente por tipo con `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y un segundo refuerzo sólo en el segundo de dos festivos consecutivos (`doctorsForDay`).
+- **Algoritmo**: Dos estrategias de asignación seleccionables con `strategy` en `POST /rota/generate`, en `backend/src/scheduling/strategies/`: `balanced` (predeterminada) y `wheels` (ruedas: laborables, sábados, domingos y festivos, con punteros iniciales escalonados 0/⌊N/4⌋/⌊2N/4⌋/⌊3N/4⌋, «saltar y conservar turno» y deuda contada). Común a ambas, en `backend/src/scheduling/assignment.service.ts`: round-robin equilibrado independiente por tipo con `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y restricciones de equidad en `backend/src/scheduling/assignment.service.ts`. AP usa duraciones específicas vía `apShiftDetails` (7h L-S, 12h festivo) y un segundo refuerzo sólo en el segundo de dos festivos consecutivos (`doctorsForDay`).
 
 ## Configuración Principal
 
@@ -77,7 +77,7 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (71 tests actualmente)
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (74 tests actualmente)
 - Frontend: `vitest` — 131 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)

@@ -31,8 +31,8 @@ interface Wheel {
  * Estrategia de ruedas: replica el cuadrante hecho a mano.
  *
  * Hay cuatro ruedas independientes (laborables, sábados, domingos, festivos). Cada
- * una recorre el grupo en el orden de la lista recibida con su propio puntero y todas
- * arrancan en el primer médico cada año (sin estado entre años). Cada asignación
+ * una recorre el grupo en el orden de la lista recibida con su propio puntero. Los
+ * punteros arrancan escalonados (`staggeredInitialPointers`) cada año, sin estado entre años. Cada asignación
  * avanza el puntero de su rueda; si un día requiere varios médicos se toman los
  * siguientes de la rueda.
  *
@@ -56,14 +56,33 @@ export const wheelsStrategy: AssignmentStrategy = {
   id: "wheels",
 
   assign(input: StrategyInput): DoctorInput[][] {
-    return assignWithWheels(input);
+    return assignWithWheels(input, staggeredInitialPointers(input.pool.length));
   },
 };
 
 /**
+ * Punteros iniciales escalonados: laborables 0, sábados ⌊N/4⌋, domingos ⌊2N/4⌋ y
+ * festivos ⌊3N/4⌋ (N = tamaño del grupo).
+ *
+ * Si todas las ruedas arrancaran desde el primer médico, la cabeza de la lista
+ * recibiría a la vez el primer turno de todas las ruedas y, a partir de ahí, el +1
+ * de cada rueda coincidiría sobre los mismos médicos. Repartir los orígenes reparte
+ * también esa carga (ver docs/STRATEGY_COMPARISON.md).
+ */
+export function staggeredInitialPointers(poolSize: number): Record<WheelId, number> {
+  return {
+    weekday: 0,
+    saturday: Math.floor(poolSize / 4),
+    sunday: Math.floor((2 * poolSize) / 4),
+    holiday: Math.floor((3 * poolSize) / 4),
+  };
+}
+
+/**
  * Implementación de la estrategia con punteros iniciales parametrizables. Se exporta
- * sólo para análisis y pruebas (p. ej. ruedas escalonadas en `scripts/compare-strategies.ts`);
- * por defecto todas las ruedas arrancan en el índice 0, que es lo que usa el producto.
+ * para análisis y pruebas (p. ej. la variante «todas desde el primero» en
+ * `scripts/compare-strategies.ts`); sin punteros explícitos todas las ruedas arrancan en
+ * el índice 0. El producto pasa `staggeredInitialPointers`.
  */
 export function assignWithWheels(
   { pool, days, requiredByDay }: StrategyInput,

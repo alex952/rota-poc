@@ -4,7 +4,11 @@ import { InfeasiblePoolError, generateRota } from '../../src/scheduling/assignme
 import { classifyYear } from '../../src/holidays/holidays.service';
 import { DayInfo, DoctorInput } from '../../src/scheduling/scheduling.types';
 import { toIsoDate } from '../../src/common/date.utils';
-import { wheelsStrategy } from '../../src/scheduling/strategies/wheels.strategy';
+import {
+  assignWithWheels,
+  staggeredInitialPointers,
+  wheelsStrategy,
+} from '../../src/scheduling/strategies/wheels.strategy';
 import { balancedStrategy } from '../../src/scheduling/strategies/balanced.strategy';
 import {
   ASSIGNMENT_STRATEGIES,
@@ -44,7 +48,47 @@ function run(days: DayInfo[], required: number[] = days.map(() => 1), doctors = 
     .map((chosen) => chosen.map((doctor) => doctor.id));
 }
 
+// Mecánica pura de las ruedas: punteros explícitos a 0 (no el arranque escalonado del producto).
+function runFromZero(days: DayInfo[], required: number[] = days.map(() => 1), doctors = pool): string[][] {
+  return assignWithWheels(
+    { pool: doctors, days, requiredByDay: required },
+    { weekday: 0, saturday: 0, sunday: 0, holiday: 0 },
+  ).map((chosen) => chosen.map((doctor) => doctor.id));
+}
+
+function poolOf(size: number): DoctorInput[] {
+  return Array.from({ length: size }, (_, i) => ({
+    id: `M${i}`,
+    name: `Dr. M${i}`,
+    department: 'Medicina General',
+  }));
+}
+
 describe('Estrategia de ruedas (wheels)', () => {
+  describe('arranque escalonado', () => {
+    it('staggeredInitialPointers reparte los punteros: 0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋', () => {
+      expect(staggeredInitialPointers(4)).toEqual({ weekday: 0, saturday: 1, sunday: 2, holiday: 3 });
+      expect(staggeredInitialPointers(17)).toEqual({ weekday: 0, saturday: 4, sunday: 8, holiday: 12 });
+    });
+
+    it.each([4, 17])('con N=%i cada rueda hace su primer turno en su índice inicial', (n) => {
+      const doctors = poolOf(n);
+      const pointers = staggeredInitialPointers(n);
+      // Lunes laborable, sábado, domingo no festivo y festivo entre semana, sin días consecutivos.
+      const days = [day('2026-01-12'), day('2026-01-17'), day('2026-01-25'), day('2026-02-04', true)];
+      const result = run(days, undefined, doctors);
+      expect(result).toEqual([
+        [`M${pointers.weekday}`],
+        [`M${pointers.saturday}`],
+        [`M${pointers.sunday}`],
+        [`M${pointers.holiday}`],
+      ]);
+      expect(result[1]).toEqual([`M${Math.floor(n / 4)}`]);
+      expect(result[2]).toEqual([`M${Math.floor((2 * n) / 4)}`]);
+      expect(result[3]).toEqual([`M${Math.floor((3 * n) / 4)}`]);
+    });
+  });
+
   it('un identificador desconocido lanza un error en español', () => {
     expect(() => getAssignmentStrategy('aleatoria' as never)).toThrow(
       'Método de asignación desconocido: aleatoria',
@@ -62,12 +106,12 @@ describe('Estrategia de ruedas (wheels)', () => {
     const days = ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09'].map((d) =>
       day(d),
     );
-    expect(run(days)).toEqual([['A'], ['B'], ['C'], ['D'], ['A']]);
+    expect(runFromZero(days)).toEqual([['A'], ['B'], ['C'], ['D'], ['A']]);
   });
 
-  it('las ruedas son independientes: el primer sábado lo hace el índice 0', () => {
+  it('las ruedas son independientes (punteros a 0): el primer sábado lo hace el índice 0', () => {
     const days = ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-10'].map((d) => day(d));
-    expect(run(days)).toEqual([['A'], ['B'], ['C'], ['A']]);
+    expect(runFromZero(days)).toEqual([['A'], ['B'], ['C'], ['A']]);
   });
 
   it('un festivo en sábado o domingo va a la rueda de festivos; un domingo normal, a la de domingos', () => {
@@ -79,7 +123,7 @@ describe('Estrategia de ruedas (wheels)', () => {
       day('2026-01-11'), // domingo -> rueda domingos (B)
       day('2026-01-17'), // sábado normal -> rueda de sábados (A)
     ];
-    expect(run(days)).toEqual([['A'], ['A'], ['B'], ['C'], ['B'], ['A']]);
+    expect(runFromZero(days)).toEqual([['A'], ['A'], ['B'], ['C'], ['B'], ['A']]);
   });
 
   it('salta y conserva el turno: el saltado es el primero en el siguiente turno de su rueda', () => {
@@ -95,7 +139,7 @@ describe('Estrategia de ruedas (wheels)', () => {
       '2026-01-09',
       '2026-01-10',
     ].map((d) => day(d));
-    expect(run(days)).toEqual([
+    expect(runFromZero(days)).toEqual([
       ['A'],
       ['B'], // sábado: A (le tocaba) hizo el viernes, se salta
       ['A'], // domingo: índice 0 de la rueda de domingos
@@ -134,7 +178,7 @@ describe('Estrategia de ruedas (wheels)', () => {
       // 9), acumulando dos deudas. En la semana 10 un festivo desplaza la fase y E queda
       // libre: debe recuperar sus dos turnos seguidos (semanas 10 y 11), no sólo uno.
       const days = weeks(12, 9);
-      const assigned = run(days, days.map(() => 1), five);
+      const assigned = runFromZero(days, days.map(() => 1), five);
       const saturdayDoctors = days
         .map((d, index) => (d.date.getUTCDay() === 6 ? assigned[index][0] : null))
         .filter((id) => id !== null);
@@ -147,7 +191,7 @@ describe('Estrategia de ruedas (wheels)', () => {
       const days = weeks(12, 9);
       // El sábado de la semana 10 (E con dos deudas) requiere 2 médicos.
       const required = days.map((d, index) => (index === 9 * 6 + 5 ? 2 : 1));
-      const assigned = run(days, required, five);
+      const assigned = runFromZero(days, required, five);
       const chosen = assigned[9 * 6 + 5];
       expect(chosen).toHaveLength(2);
       expect(new Set(chosen).size).toBe(2);
@@ -159,7 +203,10 @@ describe('Estrategia de ruedas (wheels)', () => {
       // exacta cada semana, así que el viernes lo hace siempre el mismo médico. Como
       // el descanso le impide hacer el sábado, la rueda de sábados lo salta una y otra
       // vez y sólo acumula deuda: nunca llega a recuperarla mientras dure la resonancia.
-      // Se documenta como limitación conocida del método (ver docs/ALGORITHM.md).
+      // Se documenta como limitación conocida del método (ver docs/ALGORITHM.md). El arranque
+      // escalonado de producción sólo desplaza la fase de la rueda de sábados: el viernes sigue
+      // siendo siempre el mismo médico y el descanso le sigue impidiendo el sábado, así que la
+      // limitación se mantiene.
       const rota = generateRota(
         YEAR_2026,
         'AC',
@@ -186,7 +233,7 @@ describe('Estrategia de ruedas (wheels)', () => {
   it('el segundo refuerzo AP toma los dos siguientes de la rueda de festivos', () => {
     const days = [day('2026-01-06', true), day('2026-01-07', true)];
     const fivePool = [...pool, { id: 'E', name: 'Dr. E', department: 'Medicina General' }];
-    expect(run(days, [1, 2], fivePool)).toEqual([['A'], ['B', 'C']]);
+    expect(runFromZero(days, [1, 2], fivePool)).toEqual([['A'], ['B', 'C']]);
   });
 
   it('descanso blando: completa con no descansados en orden de rueda y sin generar deudas', () => {
@@ -194,7 +241,7 @@ describe('Estrategia de ruedas (wheels)', () => {
     const days = [day('2026-01-05'), day('2026-01-06'), day('2026-01-07')];
     // Día 2: sólo C descansado; se completa con A (siguiente de la rueda).
     // Día 3: sin deudas pendientes, la rueda continúa tras el último tomado.
-    const result = run(days, [2, 2, 1], three);
+    const result = runFromZero(days, [2, 2, 1], three);
     expect(result[0]).toEqual(['A', 'B']);
     expect(result[1]).toEqual(['C', 'A']);
     expect(result[2]).toHaveLength(1);
@@ -223,7 +270,7 @@ describe('Estrategia de ruedas (wheels)', () => {
       '2026-01-16',
     ];
     const counts = new Map<string, number>();
-    for (const [id] of run(dates.map((d) => day(d))).map((chosen) => chosen)) {
+    for (const [id] of runFromZero(dates.map((d) => day(d))).map((chosen) => chosen)) {
       counts.set(id, (counts.get(id) ?? 0) + 1);
     }
     const values = [...counts.values()];
