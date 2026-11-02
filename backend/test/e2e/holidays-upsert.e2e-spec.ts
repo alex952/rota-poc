@@ -46,7 +46,8 @@ describe('Holiday upsert idempotency', () => {
       where: { year: YEAR_2026, city: CITY },
       order: { date: 'ASC' },
     });
-    expect(stored).toHaveLength(HOLIDAY_API_RESPONSE.length);
+    // La API simulada no trae el 24 ni el 31 de diciembre: se añaden como festivos especiales.
+    expect(stored).toHaveLength(HOLIDAY_API_RESPONSE.length + 2);
 
     const dates = stored.map((holiday) => holiday.date);
     expect(new Set(dates).size).toBe(dates.length);
@@ -72,7 +73,7 @@ describe('Holiday upsert idempotency', () => {
     expect(rowsForSharedDate[0].name).toBe('Festivo local del hospital');
 
     const stored = await holidaysService.getHolidays(YEAR_2026, CITY);
-    expect(stored).toHaveLength(HOLIDAY_API_RESPONSE.length);
+    expect(stored).toHaveLength(HOLIDAY_API_RESPONSE.length + 2);
     expect(stored.find((holiday) => holiday.date === sharedDate)?.source).toBe('manual');
   });
 });

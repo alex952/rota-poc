@@ -79,7 +79,7 @@ El frontend espera:
 
 - `/api/v1/config` para el banner de ciudad
 - `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
-- `/api/v1/rota/generate` para devolver una respuesta completa de rota persistida
+- `/api/v1/rota/generate` para generar y persistir a la vez los cuadrantes AC y AP (`[AC, AP]`) con un único botón
 - `/api/v1/rota/:year/:rotaType/replace` para devolver la rota actualizada tras la sustitución
 - `/api/v1/rota/:year/export` para descargar el libro de Excel del año (respuesta binaria; el cuerpo de los errores también llega como `Blob` y se decodifica en `App.onExportRota`)
 - `/api/v1/rota/:year/:rotaType/add` para devolver la rota actualizada tras añadir un médico a una guardia
@@ -96,4 +96,7 @@ El frontend espera:
 
 | Criterio | Pruebas |
 |----------|---------|
-| CA-3.9.1 | `backend/test/e2e/rota-export.e2e-spec.ts` (contrato HTTP, hojas, filas, sólo AC, sustitución), `frontend/src/app/core/services/rota.service.spec.ts` (`exportRotas`), `frontend/src/app/app.spec.ts` (botón, descarga, errores en español) |
+| CA-3.1.1, CA-3.1.9, CA-3.1.14–3.1.16 | `backend/test/unit/assignment.spec.ts` (`generateRotas`, `refuerzosForDay`, guardia AP y refuerzos), `backend/test/e2e/app.e2e-spec.ts` (generación conjunta, papeles, médico en los dos grupos, validación) |
+| CA-3.1.17 | `backend/test/unit/holidays.spec.ts` (festivos especiales, caché antigua, borrado), `backend/test/e2e/app.e2e-spec.ts`, `backend/test/e2e/holidays-upsert.e2e-spec.ts` |
+| CA-3.6.2–3.6.4, CA-3.6.9, CA-3.6.10 | `frontend/src/app/app.spec.ts` (botón único, confirmación, notificaciones), `frontend/src/app/features/calendar/day-cell.component.spec.ts` (bloques AC/AP/REFUERZO, `(AC)`, festivo especial) |
+| CA-3.9.1 | `backend/test/e2e/rota-export.e2e-spec.ts` (contrato HTTP, hojas, filas, refuerzos y «(AC)», sustitución), `frontend/src/app/core/services/rota.service.spec.ts` (`exportRotas`), `frontend/src/app/app.spec.ts` (botón, descarga, errores en español) |

@@ -40,6 +40,10 @@ export class RotaAssignmentEntity {
   @Column({ name: 'doctor_id', type: 'varchar', length: 50 })
   doctorId!: string;
 
+  // 'guardia' o 'refuerzo'. Un AC con refuerzo lo tiene en su propio cuadrante, con horario AP.
+  @Column({ type: 'varchar', length: 20, default: 'guardia' })
+  role!: string;
+
   @ManyToOne(() => RotaEntity, (rota) => rota.assignments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rota_id' })
   rota!: RotaEntity;

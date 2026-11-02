@@ -20,11 +20,11 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | Término | Definición |
 |---------|-----------|
 | **Atención Continuada (AC)** | Guardia principal del día. Grupo de médicos separado. Mínimo 1.620 horas/año (135h/mes de media) por médico. |
-| **Atención Primaria (AP)** | Refuerzo diario de la guardia AC. Grupo de médicos separado. Máximo 425 horas/año por médico. |
-| **Rota** | El calendario de guardias del año, generado de forma independiente por tipo de servicio. |
+| **Atención Primaria (AP)** | Grupo de médicos separado que cubre cada día la **guardia AP** y los **refuerzos**. Máximo 425 horas/año por médico. |
+| **Rota** | El calendario de guardias del año de un tipo de servicio (AC o AP). Los dos se generan juntos con una sola acción. |
 | **Pool** | El conjunto de médicos disponibles para la asignación de guardias en un año determinado. AC y AP tienen grupos **separados** — un médico pertenece a un solo grupo. |
 | **Festivo** | Un día festivo público (nacional, autonómico o local) para la ciudad del hospital en España. |
-| **doctors_per_day** | Cobertura base: **1 médico/día** para AC y AP. AP se dobla a 2 médicos sólo en un festivo precedido de otro festivo. No se calcula automáticamente. |
+| **Cobertura diaria** | Cada día: **1 guardia AC, 1 guardia AP y 1 refuerzo**. Hay **2 refuerzos** en los festivos especiales de sanidad y en el segundo de dos festivos consecutivos. El refuerzo lo cubre AP, salvo que un AC necesite horas ese mes (RN-12). `doctors_per_day` vale siempre 1. |
 
 ---
 
@@ -42,20 +42,22 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
   | Rota / rol | Lunes–Viernes | Sábado | Domingo / Festivo |
   |------------|---------------|--------|--------------------|
   | AC (primary) | 17 h (15:00 → 08:00+1) | 18 h (15:00 → 09:00+1) | 23 h (09:00 → 08:00+1) |
-  | AP (refuerzo del día) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h (10:00 → 22:00); × 2 médicos en el segundo festivo consecutivo |
+  | AP: guardia AP y refuerzos (también el refuerzo de un AC) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h (10:00 → 22:00) |
 - RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
-- RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo.
+- RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Los dos cuadrantes se generan **juntos, con una sola acción**: AC primero y después AP, porque los refuerzos que hace un AC se descuentan de los de AP.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
-- RN-7: La cobertura primary base es **siempre 1 médico por día**, tanto para AC como para AP. La única cobertura adicional es el segundo AP en un festivo precedido de otro festivo. Si el pool AC es demasiado grande para que todos alcancen su mínimo (o el pool AP demasiado pequeño para respetar su máximo de 425h) con esa cobertura, el cuadrante se genera igualmente y la respuesta incluye el aviso "El grupo … es demasiado grande …" (AC) o "El grupo … es demasiado pequeño …" (AP) con el número de médicos que incumplen y las horas que faltan o sobran en total.
-- RN-8: **Día de descanso post-guardia** — un médico que está de guardia el día D **no está disponible** para asignación el día D+1. Los días de descanso aplican **por tipo de rota únicamente** (los descansos de AC no afectan a AP y viceversa, ya que los grupos son separados). Restricción blanda para grupos con menos de 4 médicos.
+- RN-7: La cobertura diaria es fija: **1 guardia AC, 1 guardia AP y 1 refuerzo**, o **2 refuerzos** en un festivo especial de sanidad (RN-13) o en un festivo precedido de otro festivo (los domingos cuentan como festivo); un festivo especial que además sigue a otro festivo sigue teniendo 2. Si el pool AC es demasiado grande para que todos alcancen su mínimo (o el pool AP demasiado pequeño para respetar su máximo de 425h) con esa cobertura, el cuadrante se genera igualmente y la respuesta incluye el aviso "El grupo … es demasiado grande …" (AC) o "El grupo … es demasiado pequeño …" (AP) con el número de médicos que incumplen y las horas que faltan o sobran en total.
+- RN-8: **Día de descanso post-guardia** — un médico que está de guardia o de refuerzo el día D **no está disponible** para asignación el día D+1 dentro de su grupo, y nadie hace guardia y refuerzo el mismo día. Los descansos de AC no afectan a AP y viceversa. La excepción es el refuerzo de un AC (RN-12), que se coloca a propósito el día anterior a su guardia. Restricción blanda para grupos muy pequeños.
 - RN-9: Las asignaciones de guardia deben tener **máxima variación de grupo** — el algoritmo usa un puntero round-robin deslizante para evitar que el mismo subconjunto de médicos sea asignado siempre junto.
 - RN-10: Si un festivo cae en sábado, se clasifica como **festivo** (turno de 23h para AC, 12h para AP), no como sábado. La clasificación de festivo siempre tiene prioridad.
-- RN-11: **AP en festivos**: el turno AP de un festivo dura 12 h (10:00 → 22:00). El algoritmo asigna **2 médicos AP primary** sólo cuando hay **dos festivos consecutivos**, y únicamente en el **segundo** (un festivo cuyo día anterior también es festivo; los domingos cuentan como festivo). Ambos cuentan como asignación primaria a efectos de equidad y horas. **En el resto de días —incluidos los festivos aislados y el primero de una serie— AP asigna exactamente 1 médico** (7 h en laborable/sábado, 12 h en festivo), independientemente del tamaño del pool. Si el pool es demasiado grande para que todos los médicos cumplan 425 h con esa cobertura, el cuadrante se genera igualmente con un aviso.
+- RN-11: **Guardia AP y refuerzos**: la guardia AP y cada refuerzo duran 7 h (15:00 → 22:00) de lunes a sábado y 12 h (10:00 → 22:00) en festivo. Guardias y refuerzos se reparten por separado para que cada médico AP haga un número parecido de cada uno.
+- RN-12: **Refuerzo de un AC por horas mensuales**: si un médico AC no llega a **135 h en un mes**, cubre refuerzos (con horario AP) el **día anterior a alguna de sus guardias de ese mes**, tantos como necesite para llegar a 135 h y mientras haya hueco: el día anterior debe estar en el mismo mes, no ser su día de descanso y tener aún un refuerzo libre. Cada refuerzo AC sustituye a un refuerzo AP de ese día. Si no hay hueco suficiente, el cuadrante se genera con el aviso «No hay hueco para más refuerzos y algunos médicos AC quedan por debajo de 135h en el mes: …».
+- RN-13: **Festivos especiales de sanidad**: el 24, 25 y 31 de diciembre y el 1 y 6 de enero se añaden siempre al obtener los festivos del año, se marcan como especiales (`special: true`) y no se pueden desmarcar. Cuentan como festivo a todos los efectos (AC 23 h desde las 09:00, AP 12 h) y llevan siempre 2 refuerzos.
 #### Criterios de Aceptación
 
 | ID | Criterio |
 |----|---------|
-| CA-3.1.1 | **Dado** un grupo válido de médicos, un tipo de rota (AC o AP) y un año objetivo, **cuando** se llama al endpoint de generación de rota, **entonces** se devuelve un calendario completo de 365/366 días con `doctors_per_day` médicos asignados por día. |
+| CA-3.1.1 | **Dados** los grupos AC y AP y un año objetivo, **cuando** se llama una sola vez al endpoint de generación, **entonces** se devuelven los dos cuadrantes completos de 365/366 días: cada día con 1 guardia AC, 1 guardia AP y sus refuerzos, cada médico con su papel (`guardia` o `refuerzo`). |
 | CA-3.1.2 | **Dada** una rota AC generada, **cuando** se suman las horas individuales de cada médico, **entonces** todos los médicos tienen >= 1.620 horas/año si el pool es factible; si no, la rota se genera con un aviso y las horas faltantes en las estadísticas. |
 | CA-3.1.3 | **Dada** una rota AP generada, **cuando** se suman las horas individuales de cada médico, **entonces** ningún médico supera 425 horas/año si el pool es factible; si no, la rota se genera con un aviso y las horas que sobran en las estadísticas. |
 | CA-3.1.4 | **Dada** una rota generada, **cuando** se comparan las horas totales entre médicos, **entonces** la diferencia entre el médico con más horas y el médico con menos horas se minimiza (objetivo: <= 1 turno de diferencia por tipo de día). |
@@ -63,13 +65,15 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.1.6 | **Dada** una rota generada, **cuando** se inspeccionan los sábados, **entonces** usan la duración de turno de 18 horas (15:00→09:00+1). |
 | CA-3.1.7 | **Dada** una rota generada, **cuando** se inspeccionan los días laborables (Lun-Vie, no festivos), **entonces** usan la duración de turno de 17 horas (15:00→08:00+1). |
 | CA-3.1.8 | **Dado** un año, **cuando** se genera la rota, **entonces** el sistema obtiene y clasifica correctamente los festivos públicos para la ciudad configurada. |
-| CA-3.1.9 | **Dados** grupos separados de AC y AP, **entonces** los médicos pertenecen a un solo grupo y las rotas se generan de forma independiente por tipo. |
+| CA-3.1.9 | **Dados** grupos separados de AC y AP, **entonces** los médicos pertenecen a un solo grupo (un médico en los dos grupos se rechaza con 400) y los dos cuadrantes se generan en la misma petición. |
 | CA-3.1.10 | **Dado** que un médico está de guardia el día D, **entonces** ese médico no tiene asignación el día D+1 dentro del mismo tipo de rota (día de descanso solo por tipo). |
 | CA-3.1.11 | **Dada** una rota generada, **cuando** se examinan qué médicos son asignados juntos en diferentes días, **entonces** el algoritmo varía las agrupaciones (ningún grupo fijo de médicos es siempre asignado junto). |
 | CA-3.1.12 | **Dado** un festivo que cae en sábado, **entonces** ese día se clasifica como festivo (turno de 23h), no como sábado (18h). |
 | CA-3.1.13 | **Dado** un grupo de médicos, **cuando** el algoritmo se ejecuta, **entonces** la cobertura primary base es exactamente 1 médico/día. Si el pool excede la capacidad anual de cobertura, la rota se genera igualmente y la respuesta incluye un aviso en `warnings`. |
-| CA-3.1.14 | **Dada** una rota AP generada, **cuando** se inspeccionan los festivos, **entonces** todos usan turnos de 12 h (10:00→22:00), los festivos precedidos de otro festivo tienen **2 médicos AP primary asignados** y el resto de festivos tiene 1. |
-| CA-3.1.15 | **Dada** una rota AP generada, **cuando** se inspeccionan los laborables y sábados, **entonces** cada día tiene 1 médico AP asignado con turno de 7 h (15:00→22:00). |
+| CA-3.1.14 | **Dados** los cuadrantes generados, **cuando** se inspeccionan los festivos, **entonces** la guardia AP y los refuerzos usan turnos de 12 h (10:00→22:00), los festivos especiales y los festivos precedidos de otro festivo tienen **2 refuerzos** y el resto de festivos tiene 1. |
+| CA-3.1.15 | **Dados** los cuadrantes generados, **cuando** se inspeccionan los laborables y sábados, **entonces** cada día tiene 1 guardia AP y 1 refuerzo, ambos de 7 h (15:00→22:00).
+| CA-3.1.16 | **Dado** un médico AC con menos de 135 h en un mes, **entonces** hace refuerzos con horario AP el día anterior a alguna de sus guardias de ese mes hasta llegar a 135 h, y esos refuerzos se descuentan de los de AP; si no hay hueco, el cuadrante incluye un aviso. |
+| CA-3.1.17 | **Dado** cualquier año, **cuando** se obtienen sus festivos, **entonces** incluyen el 24, 25 y 31 de diciembre y el 1 y 6 de enero marcados como especiales, y eliminar uno devuelve 400 «Los festivos especiales de sanidad no se pueden eliminar». |
 
 ---
 
@@ -98,7 +102,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 |----|---------|
 | CA-3.3.1 | **Dada** una rota almacenada y una solicitud de sustitución válida (fecha, médico antiguo, médico nuevo), **cuando** se realiza la sustitución, **entonces** la asignación para esa fecha refleja el nuevo médico. |
 | CA-3.3.2 | **Dada** una sustitución, **cuando** se recalculan las estadísticas de la rota, **entonces** los totales de horas reflejan el cambio. |
-| CA-3.3.3 | **Dada** una rota AP con festivo y 2 médicos AP, **cuando** se reemplaza uno de los dos, **entonces** el otro permanece y el nuevo aparece en el día. |
+| CA-3.3.3 | **Dado** un día con guardia AP y refuerzos, **cuando** se sustituye un refuerzo, **entonces** la guardia AP permanece y el nuevo médico aparece como refuerzo (sustituir conserva el papel). |
 
 ---
 
@@ -140,14 +144,14 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | ID | Criterio |
 |----|---------|
 | CA-3.6.1 | **Dada** la carga de la interfaz, **cuando** existe una rota para el año seleccionado, **entonces** el calendario muestra todas las asignaciones para cada día de cada mes. |
-| CA-3.6.2 | **Dada** la carga de la interfaz, **cuando** no existe rota para el año seleccionado, **entonces** el calendario está vacío y el botón de generar muestra "Generar cuadrante {AC|AP}" (según la pestaña activa). |
-| CA-3.6.3 | **Dada** una rota existente, **entonces** el botón de generar muestra "Regenerar cuadrante {AC|AP}" (según la pestaña activa). |
-| CA-3.6.4 | **Dado** que el usuario hace clic en "Regenerar cuadrante {AC|AP}", **entonces** aparece un diálogo de confirmación advirtiendo que la rota actual será reemplazada antes de continuar. |
+| CA-3.6.2 | **Dada** la carga de la interfaz, **cuando** no existe cuadrante para el año seleccionado, **entonces** el calendario está vacío y el único botón de generar muestra "Generar cuadrante" en las dos pestañas. |
+| CA-3.6.3 | **Dado** un cuadrante existente, **entonces** el botón de generar muestra "Regenerar cuadrante". |
+| CA-3.6.4 | **Dado** que el usuario hace clic en "Regenerar cuadrante", **entonces** aparece un diálogo de confirmación advirtiendo que los cuadrantes AC y AP actuales serán reemplazados antes de continuar. |
 | CA-3.6.5 | **Dada** la interfaz, **entonces** hay un selector de año visible que por defecto muestra el año actual. |
 | CA-3.6.6 | **Dado** que el usuario cambia el año, **entonces** el calendario recarga los datos del año seleccionado. |
 | CA-3.6.7 | **Dada** la carga de la interfaz, **entonces** el nombre de la ciudad configurada se muestra en la interfaz. |
-| CA-3.6.9 | **Dada** una celda de calendario con AP asignados, **entonces** cada médico AP se muestra con el prefijo `R:` para indicar su rol de refuerzo del día. |
-| CA-3.6.10 | **Dado** un segundo festivo consecutivo con 2 médicos AP asignados, **entonces** la celda del calendario muestra ambos médicos AP, cada uno con prefijo `R:`. |
+| CA-3.6.9 | **Dada** una celda de calendario, **entonces** muestra tres bloques: `AC` (guardia AC), `AP` (guardia AP) y `REFUERZO`, con cada refuerzo prefijado con `R:`; el refuerzo de un médico AC aparece con el sufijo `(AC)`. |
+| CA-3.6.10 | **Dado** un día con 2 refuerzos, **entonces** la celda muestra ambos en el bloque `REFUERZO`, cada uno con prefijo `R:`. Un festivo especial de sanidad se distingue con un estilo propio y una estrella, y su menú contextual indica que no se puede desmarcar. |
 
 ---
 
@@ -163,7 +167,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.7.2 | **Dada** una tarjeta de médico, **entonces** muestra el nombre y el departamento del médico. |
 | CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento). |
 | CA-3.7.4 | **Dadas** las tarjetas de médico, **entonces** se pueden arrastrar y soltar en las celdas del calendario con guardia; al soltar se abre un diálogo para **añadir** el médico a la guardia del día o **sustituir** a uno de los ya asignados. Si el médico ya está asignado ese día se muestra un aviso y no se abre el diálogo. |
-| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico" y "Generar cuadrante {AC|AP}" / "Regenerar cuadrante {AC|AP}" son visibles. |
+| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico" y "Generar cuadrante" / "Regenerar cuadrante" son visibles. |
 
 ---
 
@@ -189,7 +193,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 | ID | Criterio |
 |----|---------|
-| CA-3.9.1 | **Dado** un año con al menos un cuadrante generado, **cuando** el usuario pulsa «Exportar a Excel», **entonces** se descarga `cuadrante-guardias-<año>.xlsx` con una hoja `Cuadrante` (una fila por día, con médico, horario y horas de AC y AP) y una hoja de estadísticas por cada tipo de cuadrante existente (`Estadísticas AC`, `Estadísticas AP`). Si no hay ningún cuadrante, el botón está deshabilitado y el endpoint devuelve 404 con un mensaje en español. |
+| CA-3.9.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Exportar a Excel», **entonces** se descarga `cuadrante-guardias-<año>.xlsx` con una hoja `Cuadrante` (una fila por día, con médico, horario y horas de la guardia AC, de la guardia AP y de los refuerzos, marcando con «(AC)» los que cubre un médico AC) y una hoja de estadísticas por tipo (`Estadísticas AC`, `Estadísticas AP`) con la columna `Refuerzos`. Si no hay ningún cuadrante, el botón está deshabilitado y el endpoint devuelve 404 con un mensaje en español. |
 
 ---
 
@@ -205,19 +209,19 @@ Lo siguiente queda explícitamente **fuera del alcance** de esta PoC:
 - Deshacer/rehacer cambios de rota
 - Sistema de notificaciones (email/SMS)
 - Diseño adaptable para móviles (solo escritorio es aceptable)
-- Despliegue en producción (solo entornos locales y basados en Docker)
+- Despliegue en producción (solo entornos locales y basados en Docker). Sí hay integración continua: build y tests de backend y frontend en cada PR (`.github/workflows/ci.yml`)
 
 ---
 
 ## 5. Supuestos
 
 1. Los médicos pertenecen al grupo AC o al grupo AP, no a ambos. Los grupos se gestionan por separado.
-2. La cobertura base es **1 médico/día** para ambos tipos de rota. AP se dobla a 2 médicos sólo en un festivo precedido de otro festivo. Esta cobertura es fija, no se calcula automáticamente.
+2. La cobertura diaria es fija: 1 guardia AC, 1 guardia AP y 1 refuerzo (2 en festivos especiales y en el segundo de dos festivos consecutivos). No se calcula automáticamente.
 3. La ciudad del hospital para la resolución de festivos es **configurable a nivel de aplicación** (configuración estática establecida antes de ejecutar la aplicación), compartida por el backend y el frontend.
 4. El archivo de configuración estático de médicos es un archivo JSON simple incluido con el frontend, donde cada médico especifica su `rota_type` (AC o AP).
 5. "Equitativo" significa minimizar la diferencia máxima en horas totales y en recuento por tipo de día entre todos los médicos dentro de un tipo de rota.
-6. Un médico de guardia el día D tiene un día de descanso obligatorio en D+1 dentro del mismo tipo de rota. Los descansos de AC no afectan a AP y viceversa.
-7. Los límites de horas son **restricciones blandas**: los médicos de AC deben alcanzar 1.620h/año (135h/mes × 12) y los médicos de AP no pueden superar 425h/año; si no se cumplen, el cuadrante se genera con un aviso.
+6. Un médico de guardia o refuerzo el día D tiene un día de descanso en D+1 dentro de su grupo. Los descansos de AC no afectan a AP y viceversa; el refuerzo de un AC se coloca el día anterior a su guardia.
+7. Los límites de horas son **restricciones blandas**: los médicos de AC deben alcanzar 135h cada mes (1.620h/año), completándolas con refuerzos si hace falta, y los médicos de AP no pueden superar 425h/año; si no se cumplen, el cuadrante se genera con un aviso.
 
 ---
 
@@ -227,11 +231,11 @@ Estas eran inicialmente preguntas abiertas, ahora resueltas con aportaciones de 
 
 | # | Pregunta | Resolución |
 |---|---------|------------|
-| DR-1 | ¿Deben AC y AP compartir un único grupo de médicos? | **No.** AC y AP tienen grupos separados. Un médico pertenece a un solo grupo. Las rotas se generan de forma independiente por tipo. |
+| DR-1 | ¿Deben AC y AP compartir un único grupo de médicos? | **No.** AC y AP tienen grupos separados. Un médico pertenece a un solo grupo. Los dos cuadrantes se generan juntos. |
 | DR-2 | ¿Para qué ciudad española específica se deben resolver los festivos? ¿Debe ser configurable? | **Configurable a nivel de aplicación.** La ciudad es una configuración estática a nivel de aplicación establecida antes de ejecutar la aplicación. Se aplica tanto al backend (resolución de festivos) como al frontend (mostrado en la interfaz). |
 | DR-3 | ¿Hay un número máximo de días de guardia consecutivos para un médico? | **Implícito mediante la regla de día de descanso.** Un médico de guardia el día D descansa el D+1, por lo que las guardias consecutivas son imposibles. Además, las asignaciones deben ser lo más dispersas posible. |
 | DR-4 | ¿Los festivos que caen en sábado deben usar horas de sábado o de festivo? | **El festivo tiene prioridad.** Un sábado que es festivo público usa el turno de festivo de 23 horas, no el turno de sábado de 18 horas. |
 | DR-5 | ¿AngularJS (1.x, EOL) vs Angular (v19+)? | **Angular v19+.** Se usará el framework moderno y mantenido activamente. |
-| DR-6 | ¿Cuántos médicos por día por tipo de rota? | **Cobertura base fija: 1 médico/día** para AC y AP. AP se dobla a 2 médicos sólo en un festivo precedido de otro festivo. No es un parámetro de usuario. |
+| DR-6 | ¿Cuántos médicos por día? | **Cobertura fija:** 1 guardia AC, 1 guardia AP y 1 refuerzo; 2 refuerzos en festivos especiales de sanidad y en el segundo de dos festivos consecutivos. No es un parámetro de usuario. |
 | DR-7 | ¿Los límites de horas son restricciones blandas o duras? | **Restricciones blandas.** Si un médico de AC no alcanza el mínimo o uno de AP supera el máximo, el cuadrante se genera con un aviso y las estadísticas muestran la desviación. |
 | DR-8 | ¿Las horas mínimas de AC son anuales o mensuales? | **Promedio mensual.** Los médicos de AC necesitan 135h/mes × 12 = 1.620h/año. El algoritmo valida el total anual. |

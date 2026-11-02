@@ -1,7 +1,7 @@
 import { addDays, toIsoDate } from "../../common/date.utils";
 import { InfeasiblePoolError } from "../errors";
 import { DayInfo, DoctorInput } from "../scheduling.types";
-import { AssignmentStrategy, StrategyInput } from "./assignment-strategy";
+import { AssignmentStrategy, StrategyInput, splitSlots } from "./assignment-strategy";
 
 export type WheelId = "weekday" | "saturday" | "sunday" | "holiday";
 
@@ -83,29 +83,59 @@ export function staggeredInitialPointers(poolSize: number): Record<WheelId, numb
  * para análisis y pruebas (p. ej. la variante «todas desde el primero» en
  * `scripts/compare-strategies.ts`); sin punteros explícitos todas las ruedas arrancan en
  * el índice 0. El producto pasa `staggeredInitialPointers`.
+ *
+ * Guardias y refuerzos tienen cada uno su juego de cuatro ruedas. Las de refuerzo
+ * arrancan desplazadas ⌊N/2⌋ respecto a las de guardia, para que la guardia y el
+ * refuerzo de un mismo día no recaigan en médicos contiguos de la lista. Cada día se
+ * cubren primero las guardias y después los refuerzos; un médico elegido para la
+ * guardia no está disponible para el refuerzo de ese día.
+ *
+ * `breakWeeklyResonance` (activada por defecto) aplica la corrección de la
+ * resonancia semanal; ver `startsFullWorkWeek`.
  */
 export function assignWithWheels(
-  { pool, days, requiredByDay }: StrategyInput,
+  input: StrategyInput,
   initialPointers: Partial<Record<WheelId, number>> = {},
+  { breakWeeklyResonance = true }: { breakWeeklyResonance?: boolean } = {},
 ): DoctorInput[][] {
+  const { pool, days } = input;
   const size = pool.length;
   const doctorById = new Map(pool.map((doctor) => [doctor.id, doctor]));
-  const start = (wheel: WheelId): number =>
-    (initialPointers[wheel] ?? 0) % size;
-  const wheels: Record<WheelId, Wheel> = {
-    weekday: { pointer: start("weekday"), pending: [] },
-    saturday: { pointer: start("saturday"), pending: [] },
-    sunday: { pointer: start("sunday"), pending: [] },
-    holiday: { pointer: start("holiday"), pending: [] },
+  const buildWheels = (offset: number): Record<WheelId, Wheel> => {
+    const start = (wheel: WheelId): number =>
+      ((initialPointers[wheel] ?? 0) + offset) % size;
+    return {
+      weekday: { pointer: start("weekday"), pending: [] },
+      saturday: { pointer: start("saturday"), pending: [] },
+      sunday: { pointer: start("sunday"), pending: [] },
+      holiday: { pointer: start("holiday"), pending: [] },
+    };
+  };
+  const wheelsByRole = {
+    guardia: buildWheels(0),
+    refuerzo: buildWheels(Math.floor(size / 2)),
   };
   const lastAssigned = new Map<string, string>();
   const result: DoctorInput[][] = [];
 
   for (const [dayIndex, day] of days.entries()) {
+    // Corrección de la resonancia: con tantos médicos como laborables tiene la semana, la
+    // rueda de laborables da una vuelta exacta cada semana y cada médico cae siempre el
+    // mismo día (el del viernes no llega nunca al sábado). Como se hace a mano, el lunes
+    // de cada semana de 5 laborables se salta un puesto SIN apuntar deuda: el saltado
+    // hace el viernes, así que nadie pierde guardias y el día de cada uno va rotando.
+    if (breakWeeklyResonance && size === WORKDAYS_PER_WEEK && startsFullWorkWeek(days, dayIndex)) {
+      for (const role of ["guardia", "refuerzo"] as const) {
+        const wheel = wheelsByRole[role].weekday;
+        wheel.pointer = (wheel.pointer + 1) % size;
+      }
+    }
+
     const currentDate = toIsoDate(day.date);
     const previousDate = addDays(currentDate, -1);
-    const required = requiredByDay[dayIndex];
-    const wheel = wheels[wheelForDay(day)];
+    const slots = splitSlots(input, dayIndex);
+    const required = slots.guardia + slots.refuerzo;
+    const wheelId = wheelForDay(day);
     const isRested = (doctorId: string): boolean =>
       lastAssigned.get(doctorId) !== previousDate;
 
@@ -115,38 +145,40 @@ export function assignWithWheels(
       );
     }
 
-    const restedCount = pool.filter((doctor) => isRested(doctor.id)).length;
     const chosen: string[] = [];
+    const fill = (wheel: Wheel, count: number): void => {
+      const target = chosen.length + count;
+      const isFree = (doctorId: string): boolean =>
+        isRested(doctorId) && !chosen.includes(doctorId);
+      const freeCount = pool.filter((doctor) => isFree(doctor.id)).length;
 
-    if (restedCount >= required) {
-      // Primero la deuda de la rueda (FIFO): sólo quien esté descansado y aún no
-      // elegido hoy; cada elección consume una única deuda (la más antigua suya).
-      for (const doctorId of [...wheel.pending]) {
-        if (
-          chosen.length < required &&
-          isRested(doctorId) &&
-          !chosen.includes(doctorId)
-        ) {
-          chosen.push(doctorId);
-          wheel.pending.splice(wheel.pending.indexOf(doctorId), 1);
+      if (freeCount >= count) {
+        // Primero la deuda de la rueda (FIFO): sólo quien esté descansado y aún no
+        // elegido hoy; cada elección consume una única deuda (la más antigua suya).
+        for (const doctorId of [...wheel.pending]) {
+          if (chosen.length < target && isFree(doctorId)) {
+            chosen.push(doctorId);
+            wheel.pending.splice(wheel.pending.indexOf(doctorId), 1);
+          }
         }
-      }
-      // Después la rueda; quien no pueda salir hoy se salta y suma una deuda.
-      for (let step = 0; chosen.length < required && step < size; step += 1) {
-        const doctorId = pool[wheel.pointer].id;
-        wheel.pointer = (wheel.pointer + 1) % size;
-        if (isRested(doctorId) && !chosen.includes(doctorId)) {
-          chosen.push(doctorId);
-        } else {
-          wheel.pending.push(doctorId);
+        // Después la rueda; quien no pueda salir hoy se salta y suma una deuda.
+        for (let step = 0; chosen.length < target && step < size; step += 1) {
+          const doctorId = pool[wheel.pointer].id;
+          wheel.pointer = (wheel.pointer + 1) % size;
+          if (isFree(doctorId)) {
+            chosen.push(doctorId);
+          } else {
+            wheel.pending.push(doctorId);
+          }
         }
+        if (chosen.length < target) {
+          throw new InfeasiblePoolError(
+            `No hay suficientes médicos elegibles el ${currentDate}. El grupo es demasiado pequeño.`,
+          );
+        }
+        return;
       }
-      if (chosen.length < required) {
-        throw new InfeasiblePoolError(
-          `No hay suficientes médicos elegibles el ${currentDate}. El grupo es demasiado pequeño.`,
-        );
-      }
-    } else {
+
       // Orden de rueda: pendientes primero y luego la rueda desde su puntero.
       // `offset` es la distancia al puntero (null si viene de la cola de pendientes).
       const candidates: { id: string; offset: number | null }[] = [
@@ -156,14 +188,14 @@ export function assignWithWheels(
           offset,
         })),
       ];
-      const seen = new Set<string>();
+      const seen = new Set<string>(chosen);
       const ordered = candidates.filter(
         (entry) => !seen.has(entry.id) && seen.add(entry.id),
       );
       const picks = [
         ...ordered.filter((entry) => isRested(entry.id)),
         ...ordered.filter((entry) => !isRested(entry.id)),
-      ].slice(0, required);
+      ].slice(0, count);
 
       let furthest = -1;
       for (const pick of picks) {
@@ -175,6 +207,11 @@ export function assignWithWheels(
         }
       }
       wheel.pointer = (wheel.pointer + furthest + 1) % size;
+    };
+
+    fill(wheelsByRole.guardia[wheelId], slots.guardia);
+    if (slots.refuerzo > 0) {
+      fill(wheelsByRole.refuerzo[wheelId], slots.refuerzo);
     }
 
     for (const doctorId of chosen) {
@@ -186,4 +223,29 @@ export function assignWithWheels(
   }
 
   return result;
+}
+
+const WORKDAYS_PER_WEEK = 5;
+
+/**
+ * Cierto si `days[index]` es un lunes y los cinco días siguientes del calendario (lunes a
+ * viernes) son laborables que van a la rueda de laborables. Una semana con un festivo entre
+ * semana ya descoloca la rueda por sí sola, y una semana partida (fin de año) no se toca.
+ */
+export function startsFullWorkWeek(days: DayInfo[], index: number): boolean {
+  const monday = days[index];
+  if (!monday || monday.date.getUTCDay() !== 1) {
+    return false;
+  }
+  for (let offset = 0; offset < WORKDAYS_PER_WEEK; offset += 1) {
+    const candidate = days[index + offset];
+    if (
+      !candidate ||
+      toIsoDate(candidate.date) !== addDays(toIsoDate(monday.date), offset) ||
+      wheelForDay(candidate) !== "weekday"
+    ) {
+      return false;
+    }
+  }
+  return true;
 }

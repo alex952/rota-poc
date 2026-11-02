@@ -144,31 +144,82 @@ describe('DayCellComponent', () => {
     expect(assignments).toBeTruthy();
   });
 
-  it('renderiza los AP como refuerzos del día con prefijo "R: "', () => {
-    const holidayAssignment: MergedDayAssignment = {
-      date: '2026-01-01',
-      day_type: 'holiday',
-      shift_start: '10:00',
-      shift_end: '22:00',
-      duration_hours: 12,
-      acDoctors: [{ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' }],
-      apDoctors: [
-        { doctor_id: 'doc-011', doctor_name: 'Dr. Navarro' },
-        { doctor_id: 'doc-012', doctor_name: 'Dr. Torres' },
-      ],
-    };
+  const fullDay: MergedDayAssignment = {
+    date: '2026-12-24',
+    day_type: 'holiday',
+    shift_start: '09:00',
+    shift_end: '08:00+1',
+    duration_hours: 23,
+    acDoctors: [
+      { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia', role: 'guardia' },
+      { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez', role: 'refuerzo' },
+    ],
+    apDoctors: [
+      { doctor_id: 'doc-011', doctor_name: 'Dr. Navarro', role: 'guardia' },
+      { doctor_id: 'doc-012', doctor_name: 'Dr. Torres', role: 'refuerzo' },
+    ],
+  };
 
-    fixture.componentRef.setInput('day', 1);
-    fixture.componentRef.setInput('assignment', holidayAssignment);
-    fixture.componentRef.setInput('dayType', 'holiday');
-    fixture.detectChanges();
-
-    const apPills = fixture.nativeElement.querySelectorAll('.ap-section .doctor-pill');
-    expect(apPills.length).toBe(2);
-    for (const pill of apPills) {
-      expect(pill.classList.contains('ap-refuerzo')).toBe(true);
+  function render(assignment: MergedDayAssignment, inputs: Record<string, unknown> = {}) {
+    fixture.componentRef.setInput('day', 24);
+    fixture.componentRef.setInput('assignment', assignment);
+    fixture.componentRef.setInput('dayType', assignment.day_type);
+    for (const [name, value] of Object.entries(inputs)) {
+      fixture.componentRef.setInput(name, value);
     }
-    expect(apPills[0].textContent).toContain('Dr. Navarro');
-    expect(apPills[1].textContent).toContain('Dr. Torres');
+    fixture.detectChanges();
+  }
+
+  it('separa guardia AC, guardia AP y refuerzos del día', () => {
+    render(fullDay);
+
+    const ac = fixture.nativeElement.querySelectorAll('.ac-section .doctor-pill');
+    const ap = fixture.nativeElement.querySelectorAll('.ap-section .doctor-pill');
+    const refuerzos = fixture.nativeElement.querySelectorAll('.refuerzo-section .doctor-pill');
+
+    expect([...ac].map((pill: Element) => pill.textContent!.trim())).toEqual(['Dr. Garcia']);
+    expect([...ap].map((pill: Element) => pill.textContent!.trim())).toEqual(['Dr. Navarro']);
+    expect([...refuerzos].map((pill: Element) => pill.textContent!.trim())).toEqual([
+      'Dr. Torres',
+      'Dr. Lopez (AC)',
+    ]);
+    expect(fixture.nativeElement.querySelector('.refuerzo-section .section-header').textContent.trim()).toBe(
+      'REFUERZO',
+    );
+  });
+
+  it('prefija los refuerzos con "R: " y distingue el refuerzo de un AC', () => {
+    render(fullDay);
+
+    const refuerzos: Element[] = [...fixture.nativeElement.querySelectorAll('.refuerzo-section .doctor-pill')];
+    for (const pill of refuerzos) {
+      expect(pill.classList.contains('refuerzo')).toBe(true);
+    }
+    // Cada refuerzo lleva el color de su grupo: AP verde, AC azul.
+    expect(refuerzos[0].classList.contains('refuerzo-ap')).toBe(true);
+    expect(refuerzos[0].classList.contains('refuerzo-ac')).toBe(false);
+    expect(refuerzos[1].classList.contains('refuerzo-ac')).toBe(true);
+    expect(refuerzos[1].classList.contains('refuerzo-ap')).toBe(false);
+    expect(refuerzos[1].getAttribute('title')).toBe(
+      'Refuerzo de un médico AC para completar sus horas del mes',
+    );
+    // La guardia AP ya no lleva el prefijo de refuerzo.
+    expect(fixture.nativeElement.querySelector('.ap-section .doctor-pill').classList.contains('refuerzo')).toBe(false);
+  });
+
+  it('sin papel explícito trata a todos como guardia', () => {
+    render(mockAssignment);
+    expect(fixture.nativeElement.querySelector('.refuerzo-section')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.ap-section').textContent).toContain('Dr. Lopez');
+  });
+
+  it('marca los festivos especiales de sanidad por encima de los manuales', () => {
+    render(fullDay, { isSpecialHoliday: true, isManualHoliday: true });
+
+    const cell = fixture.nativeElement.querySelector('.day-cell');
+    expect(cell.classList.contains('day-holiday-special')).toBe(true);
+    expect(cell.classList.contains('day-holiday-manual')).toBe(false);
+    expect(cell.getAttribute('title')).toBe('Festivo especial de sanidad');
+    expect(component.effectiveDayType()).toBe('holiday-special');
   });
 });

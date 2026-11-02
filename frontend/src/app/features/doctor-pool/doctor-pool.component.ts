@@ -73,7 +73,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
           @if (isLoading()) {
             <span class="btn-spinner"></span>
           }
-          {{ hasExistingRota() ? 'Regenerar cuadrante ' + activeTab() : 'Generar cuadrante ' + activeTab() }}
+          {{ hasExistingRota() ? 'Regenerar cuadrante' : 'Generar cuadrante' }}
         </button>
         @if (generatedStrategy(); as generated) {
           <p class="generated-with">Generado con: {{ shortLabels[generated] }}</p>

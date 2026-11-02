@@ -13,9 +13,12 @@ export interface DoctorIn {
   department: string;
 }
 
+export type ShiftRole = 'guardia' | 'refuerzo';
+
 export interface DoctorRef {
   doctor_id: string;
   doctor_name: string;
+  role: ShiftRole;
 }
 
 export interface DayInfo {
@@ -45,6 +48,7 @@ export interface DoctorStats {
   shifts_weekday: number;
   shifts_saturday: number;
   shifts_sunday_holiday: number;
+  shifts_refuerzo: number;
 }
 
 export interface StatsResponse {
@@ -75,6 +79,7 @@ export interface RotaResponse {
 export interface HolidayItem {
   date: string;
   name: string;
+  special?: boolean;
 }
 
 export interface HolidaysResponse {

@@ -1,0 +1,708 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Las ruedas de guardia</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Maqueta: una columna de lectura; el simulador ocupa el ancho completo como pieza central,
+   las cuatro ruedas en rejilla 4×1 (2×2 en móvil) y el calendario debajo. Colores de la app:
+   azul AC, verde AP, naranja refuerzo, tinta azul marino. */
+:root {
+  --bg: #f4f5fa;
+  --surface: #ffffff;
+  --surface-2: #eceef6;
+  --ink: #161a3a;
+  --muted: #5b6080;
+  --line: #d9dcea;
+  --navy: #1a237e;
+  --ac: #1565c0;
+  --ap: #2e7d32;
+  --ref: #e65100;
+  --ref-soft: #fff3e0;
+  --debt: #c62828;
+  --debt-soft: #fdecec;
+  --seg-s: 52%;
+  --seg-l: 78%;
+  --seg-ink: #1a1d33;
+  --w-weekday: #1565c0;
+  --w-saturday: #b7791f;
+  --w-sunday: #c2185b;
+  --w-holiday: #6a1b9a;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1120; --surface: #171b2f; --surface-2: #20253d; --ink: #e9ebf7; --muted: #a2a7c6;
+    --line: #2d3352; --navy: #9fa8ff; --ac: #64a8ff; --ap: #6cc070; --ref: #ffa25c; --ref-soft: #3a2614;
+    --debt: #ff7b7b; --debt-soft: #3a1c22; --seg-s: 45%; --seg-l: 42%; --seg-ink: #f2f3fb;
+    --w-weekday: #64a8ff; --w-saturday: #f0b84e; --w-sunday: #ff6fa8; --w-holiday: #c48bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1120; --surface: #171b2f; --surface-2: #20253d; --ink: #e9ebf7; --muted: #a2a7c6;
+  --line: #2d3352; --navy: #9fa8ff; --ac: #64a8ff; --ap: #6cc070; --ref: #ffa25c; --ref-soft: #3a2614;
+  --debt: #ff7b7b; --debt-soft: #3a1c22; --seg-s: 45%; --seg-l: 42%; --seg-ink: #f2f3fb;
+  --w-weekday: #64a8ff; --w-saturday: #f0b84e; --w-sunday: #ff6fa8; --w-holiday: #c48bff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.page { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Cabecera */
+header { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 32px; align-items: end; }
+header .lede { font-size: 1.15rem; color: var(--muted); margin-top: 16px; }
+.legend-wheels { display: grid; gap: 10px; }
+.legend-row { display: grid; grid-template-columns: 14px 8.5rem minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 0.95rem; }
+.legend-row .dot { width: 14px; height: 14px; border-radius: 50%; align-self: center; }
+.legend-row b { font-family: var(--font-display); }
+.legend-row span:last-child { color: var(--muted); }
+
+/* Simulador */
+.sim { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 22px; }
+.sim-top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 4px; gap: 4px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 600 0.9rem var(--font-body); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 0.9rem var(--font-body); padding: 9px 14px; border-radius: 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: var(--navy); color: var(--surface); border-color: var(--navy); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.1); background: var(--navy); }
+button:focus-visible { outline: 3px solid var(--ac); outline-offset: 2px; }
+.sim-pickers { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.month-pick { display: inline-flex; gap: 8px; align-items: center; font: 600 0.85rem var(--font-body); color: var(--muted); }
+.month-pick select { font: 600 0.9rem var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+.note { color: var(--muted); font-size: 0.92rem; }
+.summary { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 18px; }
+.sum-wrap { overflow-x: auto; }
+.sum { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 0.9rem; }
+.sum th, .sum td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.sum th { font: 600 0.72rem var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.sum th:first-child, .sum td:first-child { text-align: left; }
+.sum td.skips { color: var(--debt); font-weight: 700; }
+.sum td.zero { color: var(--muted); font-weight: 400; }
+.counter { color: var(--muted); font-size: 0.85rem; min-width: 7.5rem; text-align: right; }
+
+.sim-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 24px; }
+.wheels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.wheel { border: 2px solid transparent; border-radius: 14px; padding: 10px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color .3s, background-color .3s, opacity .3s; opacity: 0.55; }
+.wheel.active { border-color: var(--wc); background: var(--surface-2); opacity: 1; }
+.wheel svg { width: 100%; max-width: 190px; height: auto; display: block; }
+.wheel-name { font-family: var(--font-display); font-weight: 700; color: var(--wc); font-size: 0.95rem; }
+.seg-path { stroke: var(--surface); stroke-width: 1.5; transition: stroke .3s; }
+.seg-path.picked { stroke: var(--ink); stroke-width: 3; }
+.seg-label { font: 600 8.5px var(--font-mono); fill: var(--seg-ink); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.needle { transition: transform .7s cubic-bezier(.3,.9,.3,1); transform-origin: 100px 100px; }
+.needle.g line { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.needle.g path { fill: var(--ink); }
+.needle.r line { stroke: var(--ref); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 5 4; }
+.needle.r path { fill: var(--ref); }
+.hub { fill: var(--surface); stroke: var(--line); }
+.hub-text { font: 700 11px var(--font-mono); fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
+.debts { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 2.4rem; }
+.debt-row { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-items: center; font-size: 0.72rem; }
+.debt-row .tag { color: var(--muted); font-family: var(--font-mono); }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: hsl(var(--h) var(--seg-s) var(--seg-l)); color: var(--seg-ink); white-space: nowrap; }
+.chip.debt { box-shadow: inset 0 0 0 1.5px var(--debt); }
+.none { color: var(--muted); font-size: 0.75rem; }
+
+.day-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.day-head { display: flex; flex-direction: column; gap: 4px; }
+.day-date { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.day-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font: 600 0.75rem var(--font-mono); padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.pill.w { color: var(--surface); background: var(--wc); }
+.pill.special { color: var(--surface); background: var(--w-holiday); }
+.assigned { display: flex; flex-direction: column; gap: 6px; }
+.assigned-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; align-items: center; font-size: 0.9rem; }
+.assigned-row .role { font: 700 0.72rem var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.role.g { color: var(--ink); }
+.role.r { color: var(--ref); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 8px; font-size: 0.92rem; line-height: 1.45; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); animation: rise .35s ease both; }
+.steps li .ic { font: 700 0.85rem var(--font-mono); width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; color: var(--surface); }
+.ic.turno { background: var(--ap); }
+.ic.salto { background: var(--debt); }
+.ic.deuda { background: var(--navy); }
+.ic.blando { background: var(--w-saturday); }
+.ic.giro { background: var(--w-holiday); }
+.steps li.giro { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--w-holiday); }
+.steps li.salto { background: var(--debt-soft); }
+@keyframes rise { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.cal-wrap { overflow-x: auto; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(84px, 1fr)); gap: 6px; min-width: 620px; }
+.cal .dow { font: 600 0.72rem var(--font-mono); color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: .08em; }
+.cell { border: 1px solid var(--line); border-radius: 10px; padding: 6px; min-height: 76px; display: flex; flex-direction: column; gap: 3px; background: var(--surface); cursor: pointer; text-align: left; font: inherit; color: inherit; border-top: 4px solid var(--wc); }
+.cell.future { opacity: .45; }
+.cell.current { outline: 3px solid var(--navy); outline-offset: 1px; }
+.cell .n { font: 700 0.8rem var(--font-mono); display: flex; justify-content: space-between; }
+.cell .n .star { color: var(--w-holiday); }
+.cell .chip { font-size: 0.68rem; padding: 0 6px; }
+.cell .chip.r { box-shadow: inset 0 0 0 1.5px var(--ref); }
+.cell .chip.r::before { content: "R:"; font-family: var(--font-mono); opacity: .8; }
+
+/* Reglas */
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 32px; }
+.rule { display: flex; flex-direction: column; gap: 8px; }
+.rule .k { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.rule p { color: var(--muted); font-size: 0.97rem; }
+.rule p b { color: var(--ink); }
+.split { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 32px; align-items: center; }
+.split svg { width: 100%; max-width: 260px; height: auto; }
+.start-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; margin-top: 16px; }
+.start-item { display: flex; gap: 8px; align-items: center; font-size: 0.93rem; }
+.start-item .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+
+/* Resonancia */
+.reso { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.reso-fig { margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.reso-fig figcaption { font-size: 0.92rem; color: var(--muted); }
+.reso-fig figcaption b { color: var(--ink); font-family: var(--font-display); }
+.reso-grid .c.giro { outline: 2px dashed var(--w-holiday); outline-offset: -4px; }
+.reso-explain { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.reso-stats { display: flex; flex-direction: column; gap: 10px; }
+.reso-stats table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.reso-stats th, .reso-stats td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.reso-stats th { font: 600 0.72rem var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.reso-stats th:first-child, .reso-stats td:first-child { text-align: left; }
+.reso-stats td.bad { color: var(--debt); font-weight: 700; }
+.reso-grid { display: grid; grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr)); gap: 4px; font-size: 0.75rem; }
+.reso-grid .h { font: 600 0.7rem var(--font-mono); color: var(--muted); text-align: center; text-transform: uppercase; }
+.reso-grid .wk { font: 600 0.7rem var(--font-mono); color: var(--muted); align-self: center; }
+.reso-grid .c { border-radius: 6px; padding: 6px 2px; text-align: center; font-weight: 700; background: hsl(var(--h) var(--seg-s) var(--seg-l)); color: var(--seg-ink); }
+.reso-grid .c.fri { box-shadow: inset 0 0 0 2px var(--debt); }
+.callout { border-left: 4px solid var(--debt); padding: 4px 0 4px 16px; display: flex; flex-direction: column; gap: 10px; }
+.callout p { color: var(--muted); }
+.callout p b { color: var(--ink); }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  header, .sim-body, .split, .reso, .reso-explain { grid-template-columns: minmax(0, 1fr); }
+  .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .wheels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rules { grid-template-columns: minmax(0, 1fr); }
+  .sim { padding: 16px; }
+  .counter { text-align: left; }
+  .start-list { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .needle, .wheel, .seg-path { transition: none; }
+  .steps li { animation: none; }
+}
+</style>
+
+<div class="page">
+  <header>
+    <div>
+      <p class="eyebrow">Método de asignación «Ruedas»</p>
+      <h1>Las ruedas de guardia</h1>
+      <p class="lede">El método «Ruedas» reparte las guardias igual que el cuadrante hecho a mano: cada tipo de día tiene su propia rueda con todos los médicos en el orden de la lista, y un puntero que avanza un puesto con cada guardia. A quien le toca y no puede, se le salta y se le guarda el turno.</p>
+    </div>
+    <div class="legend-wheels" aria-label="Qué días van a cada rueda">
+      <div class="legend-row" style="--wc: var(--w-weekday)"><span class="dot" style="background: var(--w-weekday)"></span><b>Laborables</b><span>lunes a viernes</span></div>
+      <div class="legend-row"><span class="dot" style="background: var(--w-saturday)"></span><b>Sábados</b><span>sábados que no son festivo</span></div>
+      <div class="legend-row"><span class="dot" style="background: var(--w-sunday)"></span><b>Domingos</b><span>domingos que no son festivo</span></div>
+      <div class="legend-row"><span class="dot" style="background: var(--w-holiday)"></span><b>Festivos</b><span>festivos oficiales y especiales, aunque caigan en fin de semana</span></div>
+    </div>
+  </header>
+
+  <section class="sim" aria-labelledby="sim-title">
+    <div class="sim-top">
+      <div>
+        <p class="eyebrow">Simulación paso a paso</p>
+        <h2 id="sim-title">Así gira cada día</h2>
+      </div>
+      <div class="sim-pickers">
+        <div class="seg" role="group" aria-label="Grupo">
+          <button type="button" data-sc="ac4" aria-pressed="true">AC · 4 médicos</button>
+          <button type="button" data-sc="ac5" aria-pressed="false">AC · 5 médicos</button>
+          <button type="button" data-sc="ap" aria-pressed="false">AP · guardia y refuerzo</button>
+        </div>
+        <label class="month-pick" for="month">Mes
+          <select id="month"></select>
+        </label>
+      </div>
+    </div>
+    <div class="controls">
+      <button type="button" class="btn" id="b-first" aria-label="Volver al primer día">⏮</button>
+      <button type="button" class="btn" id="b-prev">◀ Anterior</button>
+      <button type="button" class="btn primary" id="b-play">▶ Reproducir</button>
+      <button type="button" class="btn" id="b-next">Siguiente ▶</button>
+      <span class="counter mono" id="counter"></span>
+    </div>
+    <div class="sim-body">
+      <div class="wheels" id="wheels"></div>
+      <div class="day-panel" aria-live="polite">
+        <div class="day-head">
+          <div class="day-date" id="day-date"></div>
+          <div class="day-meta" id="day-meta"></div>
+        </div>
+        <div class="assigned" id="assigned"></div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+    </div>
+    <div class="cal-wrap"><div class="cal" id="cal"></div></div>
+    <p class="note" id="sc-note"></p>
+    <div class="summary">
+      <h3 id="sum-title">Resumen del año 2026</h3>
+      <div class="sum-wrap"><table class="sum" id="sum"></table></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="rules-title" style="display:flex;flex-direction:column;gap:28px">
+    <div>
+      <p class="eyebrow">Las reglas</p>
+      <h2 id="rules-title">Seis reglas que explican cualquier cuadrante</h2>
+    </div>
+    <div class="split">
+      <svg id="stagger" viewBox="0 0 200 200" role="img" aria-label="Rueda de 17 médicos AP con los cuatro punteros de inicio"></svg>
+      <div>
+        <h3>Los punteros no arrancan todos en el primero</h3>
+        <p style="color:var(--muted);margin-top:8px">Si las cuatro ruedas empezaran por el primer médico de la lista, ese médico haría a la vez el primer laborable, el primer sábado, el primer domingo y el primer festivo. Cada rueda arranca un cuarto de vuelta más allá: laborables en 0, sábados en ⌊N/4⌋, domingos en ⌊2N/4⌋ y festivos en ⌊3N/4⌋. Con el grupo AP real de 17 médicos:</p>
+        <div class="start-list" id="start-list"></div>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="rule"><span class="k">El orden</span><h3>La lista manda</h3><p>Cada rueda recorre los médicos <b>en el orden del grupo</b> y vuelve a empezar al llegar al final. Cada guardia avanza el puntero un puesto.</p></div>
+      <div class="rule"><span class="k">El salto</span><h3>Saltar y conservar el turno</h3><p>Si al que le toca <b>trabajó el día anterior</b> (en cualquier rueda) o ya tiene una plaza hoy, se le salta, el puntero sigue y se le apunta <b>una deuda</b> en esa rueda. Cada salto apunta una deuda nueva.</p></div>
+      <div class="rule"><span class="k">La deuda</span><h3>La deuda se cobra primero</h3><p>Antes de mirar el puntero, la rueda revisa sus deudas <b>de la más antigua a la más reciente</b>. El primero que ya haya descansado sale y cancela una de sus deudas.</p></div>
+      <div class="rule"><span class="k">Los papeles</span><h3>Guardia y refuerzo, dos juegos</h3><p>En AP la guardia y el refuerzo tienen <b>cada uno sus cuatro ruedas</b>. Las de refuerzo empiezan media vuelta más allá (⌊N/2⌋). Primero se cubre la guardia; quien la hace ya no puede ser refuerzo ese día.</p></div>
+      <div class="rule"><span class="k">El hueco</span><h3>Descanso blando</h3><p>Si no hay bastantes médicos descansados para cubrir el día, se completa con los que no han descansado, siguiendo el orden de la rueda. Esos huecos <b>no apuntan deuda</b>. Con grupos normales no ocurre.</p></div>
+      <div class="rule"><span class="k">Sin memoria</span><h3>Cada año empieza de cero</h3><p>Los punteros vuelven a su posición escalonada el 1 de enero y las deudas no pasan de un año a otro.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="reso-title" style="display:flex;flex-direction:column;gap:24px">
+    <div>
+      <p class="eyebrow">5 médicos · el caso especial</p>
+      <h2 id="reso-title">La resonancia: cuando la rueda va al compás de la semana</h2>
+    </div>
+    <div class="reso">
+      <figure class="reso-fig">
+        <figcaption><b>Sin corrección</b> · el viernes siempre es del mismo</figcaption>
+        <div class="reso-grid" id="reso-before" role="table" aria-label="Cinco semanas de guardias AC con cinco médicos, sin corrección"></div>
+      </figure>
+      <figure class="reso-fig">
+        <figcaption><b>Con el giro del lunes</b> · el día de cada uno rota</figcaption>
+        <div class="reso-grid" id="reso-after" role="table" aria-label="Cinco semanas de guardias AC con cinco médicos, con corrección"></div>
+      </figure>
+    </div>
+    <div class="reso-explain">
+      <div class="callout" id="reso-text"></div>
+      <div class="reso-stats" id="reso-stats"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Simulación generada en el navegador con la misma lógica que <code>backend/src/scheduling/strategies/wheels.strategy.ts</code>. Festivos de 2026 en Alicante (Comunidad Valenciana) y festivos especiales de sanidad. Grupos de ejemplo tomados del grupo de médicos de la aplicación.</p>
+  </footer>
+</div>
+
+<script>
+// ---------- Lógica: port de assignWithWheels con registro de eventos ----------
+const WHEELS = ['weekday', 'saturday', 'sunday', 'holiday'];
+const WHEEL_NAME = { weekday: 'Laborables', saturday: 'Sábados', sunday: 'Domingos', holiday: 'Festivos' };
+const WHEEL_VAR = { weekday: '--w-weekday', saturday: '--w-saturday', sunday: '--w-sunday', holiday: '--w-holiday' };
+const stagger = (N) => ({ weekday: 0, saturday: Math.floor(N / 4), sunday: Math.floor((2 * N) / 4), holiday: Math.floor((3 * N) / 4) });
+
+// ¿Empieza en days[i] una semana de lunes a viernes, consecutiva y toda de laborables?
+const wheelIdOf = (day) => (day.publicHoliday ? 'holiday' : day.weekday === 0 ? 'sunday' : day.weekday === 6 ? 'saturday' : 'weekday');
+function startsFullWorkWeek(days, i) {
+  if (!days[i] || days[i].weekday !== 1) return false;
+  const monday = Date.parse(days[i].iso + 'T00:00:00Z');
+  for (let k = 0; k < 5; k++) {
+    const d = days[i + k];
+    if (!d || Date.parse(d.iso + 'T00:00:00Z') !== monday + k * 86400000 || wheelIdOf(d) !== 'weekday') return false;
+  }
+  return true;
+}
+
+function simulate(pool, days, { breakWeeklyResonance = true } = {}) {
+  const N = pool.length, st = stagger(N);
+  const mk = (off) => Object.fromEntries(WHEELS.map((w) => [w, { start: (st[w] + off) % N, pointer: (st[w] + off) % N, pending: [], turns: 0 }]));
+  const wheels = { guardia: mk(0), refuerzo: mk(Math.floor(N / 2)) };
+  const snap = () => JSON.parse(JSON.stringify(wheels));
+  const last = new Map(), steps = [];
+  const initial = snap();
+  for (const [dayIndex, day] of days.entries()) {
+    const wid = wheelIdOf(day);
+    const rested = (d) => last.get(d) !== day.prev;
+    const chosen = [], roles = {}, events = [];
+    // Corrección de la resonancia: con 5 médicos, el lunes de cada semana de 5 laborables
+    // la rueda de laborables salta un puesto sin apuntar deuda (guardia y refuerzo).
+    if (breakWeeklyResonance && N === 5 && startsFullWorkWeek(days, dayIndex)) {
+      for (const role of ['guardia', 'refuerzo']) {
+        const w = wheels[role].weekday;
+        if (role === 'guardia' || day.refuerzos > 0) events.push({ role, kind: 'giro', doctor: pool[w.pointer] });
+        w.pointer = (w.pointer + 1) % N; w.turns++;
+      }
+    }
+    const fill = (role, count) => {
+      const wheel = wheels[role][wid];
+      const target = chosen.length + count;
+      const free = (d) => rested(d) && !chosen.includes(d);
+      if (pool.filter(free).length >= count) {
+        for (const d of [...wheel.pending]) {
+          if (chosen.length < target && free(d)) {
+            chosen.push(d); roles[d] = role; wheel.pending.splice(wheel.pending.indexOf(d), 1);
+            events.push({ role, kind: 'deuda', doctor: d });
+          }
+        }
+        for (let s = 0; chosen.length < target && s < N; s++) {
+          const d = pool[wheel.pointer]; wheel.pointer = (wheel.pointer + 1) % N; wheel.turns++;
+          if (free(d)) { chosen.push(d); roles[d] = role; events.push({ role, kind: 'turno', doctor: d }); }
+          else { wheel.pending.push(d); events.push({ role, kind: 'salto', doctor: d, reason: chosen.includes(d) ? 'hoy' : 'ayer' }); }
+        }
+        return;
+      }
+      const cands = [...wheel.pending.map((id) => ({ id, off: null })), ...pool.map((_, off) => ({ id: pool[(wheel.pointer + off) % N], off }))];
+      const seen = new Set(chosen);
+      const ord = cands.filter((e) => !seen.has(e.id) && seen.add(e.id));
+      const picks = [...ord.filter((e) => rested(e.id)), ...ord.filter((e) => !rested(e.id))].slice(0, count);
+      let far = -1;
+      for (const p of picks) {
+        chosen.push(p.id); roles[p.id] = role; events.push({ role, kind: 'blando', doctor: p.id });
+        if (p.off === null) wheel.pending.splice(wheel.pending.indexOf(p.id), 1); else far = Math.max(far, p.off);
+      }
+      wheel.pointer = (wheel.pointer + far + 1) % N; wheel.turns += far + 1;
+    };
+    fill('guardia', day.guardias);
+    if (day.refuerzos > 0) fill('refuerzo', day.refuerzos);
+    for (const d of chosen) last.set(d, day.iso);
+    steps.push({ day, wheelId: wid, chosen: chosen.map((d) => ({ doctor: d, role: roles[d] })), events, state: snap() });
+  }
+  return { initial, steps };
+}
+
+const HOLIDAYS_2026 = ['2026-01-01', '2026-01-06', '2026-03-19', '2026-04-03', '2026-04-06', '2026-05-01', '2026-06-24', '2026-08-15', '2026-10-09', '2026-10-12', '2026-12-08', '2026-12-24', '2026-12-25', '2026-12-31'];
+const SPECIAL = ['01-01', '01-06', '12-24', '12-25', '12-31'];
+const isSpecial = (iso) => SPECIAL.includes(iso.slice(5));
+
+function buildDays(startIso, endIso, holidays, withRefuerzos) {
+  const days = [];
+  for (let d = new Date(startIso + 'T00:00:00Z'); d.toISOString().slice(0, 10) <= endIso; d.setUTCDate(d.getUTCDate() + 1)) {
+    const p = new Date(d); p.setUTCDate(p.getUTCDate() - 1);
+    const iso = d.toISOString().slice(0, 10), prev = p.toISOString().slice(0, 10);
+    const weekday = d.getUTCDay();
+    const pub = holidays.includes(iso) || isSpecial(iso);
+    const hol = pub || weekday === 0;
+    const prevHol = holidays.includes(prev) || isSpecial(prev) || p.getUTCDay() === 0;
+    const special = isSpecial(iso);
+    days.push({ iso, prev, weekday, n: d.getUTCDate(), publicHoliday: pub, special, guardias: 1, refuerzos: withRefuerzos ? (special || (hol && prevHol) ? 2 : 1) : 0 });
+  }
+  return days;
+}
+
+// ---------- Escenarios ----------
+const AC_POOL = ['García', 'López', 'Martínez', 'Fernández'];
+const AP_POOL = ['Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano', 'Blanco'];
+const AP_17 = ['Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano', 'Blanco', 'Sánchez', 'Pérez', 'Gómez', 'Ruiz', 'Jiménez', 'Moreno', 'Muñoz', 'Álvarez', 'Romero'];
+
+const AC_5 = [...AC_POOL, 'Ruiz'];
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function yearScenario(pool, withRef, month, startAt, note) {
+  const sim = simulate(pool, buildDays('2026-01-01', '2026-12-31', HOLIDAYS_2026, withRef));
+  return { pool, withRef, sim, month, startAt, note };
+}
+const SCENARIOS = {
+  ac4: yearScenario(AC_POOL, false, 3, 19,
+    'Grupo AC real de 4 médicos, sólo guardias, año 2026 completo. Con 4 médicos los saltos son raros: aparecen alrededor de los festivos. En marzo, el jueves 19 es San José y el viernes 20 a López le toca pero trabajó el jueves.'),
+  ac5: yearScenario(AC_5, false, 2, 1,
+    'El mismo grupo AC con un quinto médico. Con 5 médicos la rueda de laborables daría una vuelta exacta por semana y cada médico caería siempre el mismo día. Para evitarlo, cada lunes de semana completa la rueda gira un puesto sin deuda (paso morado ↷). Ver «La resonancia» más abajo.'),
+  ap: yearScenario(AP_POOL, true, 1, 0,
+    'Ejemplo AP con 8 médicos, guardia y refuerzo. Aguja sólida: guardia. Aguja discontinua naranja: refuerzo. Los festivos especiales (1 y 6 de enero, 24, 25 y 31 de diciembre) llevan dos refuerzos.'),
+};
+
+// Días visibles y estado de partida del mes elegido (lo que dejan los meses anteriores)
+function view(sc) {
+  const mm = String(sc.month).padStart(2, '0');
+  const first = sc.sim.steps.findIndex((s) => s.day.iso.slice(5, 7) === mm);
+  const steps = sc.sim.steps.filter((s) => s.day.iso.slice(5, 7) === mm);
+  return { steps, initial: first > 0 ? sc.sim.steps[first - 1].state : sc.sim.initial };
+}
+
+// ---------- Dibujo de una rueda ----------
+const SVGNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+const hueOf = (i, N) => Math.round((i * 360) / N + 200) % 360;
+const polar = (r, deg) => { const a = ((deg - 90) * Math.PI) / 180; return [100 + r * Math.cos(a), 100 + r * Math.sin(a)]; };
+const short = (name) => name.normalize('NFD').replace(/[̀-ͯ]/g, '') === name ? name.slice(0, 3) : name.slice(0, 3);
+
+function ringSegments(svg, pool, rOut, rIn, labels = true) {
+  const N = pool.length, step = 360 / N, segs = [];
+  pool.forEach((name, i) => {
+    const a0 = i * step, a1 = (i + 1) * step;
+    const [x0, y0] = polar(rOut, a0), [x1, y1] = polar(rOut, a1), [x2, y2] = polar(rIn, a1), [x3, y3] = polar(rIn, a0);
+    const large = step > 180 ? 1 : 0;
+    const p = el('path', { d: `M${x0} ${y0}A${rOut} ${rOut} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${rIn} ${rIn} 0 ${large} 0 ${x3} ${y3}Z`, class: 'seg-path', style: `fill: hsl(${hueOf(i, N)} var(--seg-s) var(--seg-l))` }, svg);
+    el('title', {}, p).textContent = 'Dr. ' + name;
+    if (labels) {
+      const [lx, ly] = polar((rOut + rIn) / 2, a0 + step / 2);
+      el('text', { x: lx, y: ly, class: 'seg-label', style: N <= 8 ? 'font-size: 11.5px' : '' }, svg).textContent = short(name);
+    }
+    segs.push(p);
+  });
+  return segs;
+}
+
+function needle(svg, cls, len) {
+  const g = el('g', { class: `needle ${cls}` }, svg);
+  el('line', { x1: 100, y1: 100, x2: 100, y2: 100 - len }, g);
+  el('path', { d: `M100 ${100 - len - 9}L94 ${100 - len + 2}L106 ${100 - len + 2}Z` }, g);
+  return g;
+}
+
+// ---------- Estado de la interfaz ----------
+let current = 'ac', idx = 0, timer = null;
+const $ = (id) => document.getElementById(id);
+const fmtDate = (iso) => new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+let wheelEls = {};
+
+function chip(name, pool, extra = '') {
+  const i = pool.indexOf(name);
+  return `<span class="chip ${extra}" style="--h:${hueOf(i, pool.length)}">${name}</span>`;
+}
+
+function buildWheels() {
+  const sc = SCENARIOS[current];
+  const box = $('wheels'); box.innerHTML = ''; wheelEls = {};
+  for (const w of WHEELS) {
+    const wrap = document.createElement('div');
+    wrap.className = 'wheel'; wrap.style.setProperty('--wc', `var(${WHEEL_VAR[w]})`);
+    wrap.innerHTML = `<span class="wheel-name">${WHEEL_NAME[w]}</span>`;
+    const svg = el('svg', { viewBox: '0 0 200 200', role: 'img', 'aria-label': `Rueda de ${WHEEL_NAME[w].toLowerCase()}` });
+    wrap.appendChild(svg);
+    const segs = ringSegments(svg, sc.pool, 92, 62);
+    const r = sc.withRef ? needle(svg, 'r', 44) : null;
+    const g = needle(svg, 'g', 52);
+    el('circle', { cx: 100, cy: 100, r: 13, class: 'hub' }, svg);
+    const debts = document.createElement('div'); debts.className = 'debts';
+    wrap.appendChild(debts);
+    box.appendChild(wrap);
+    wheelEls[w] = { wrap, segs, g, r, debts };
+  }
+}
+
+function angleOf(wstate, N) { return ((wstate.start + wstate.turns) * 360) / N + 180 / N; }
+
+function render() {
+  const sc = SCENARIOS[current], N = sc.pool.length, v = view(sc);
+  const total = v.steps.length;
+  const step = idx > 0 ? v.steps[idx - 1] : null;
+  const state = step ? step.state : v.initial;
+  $('counter').textContent = `Día ${idx} de ${total}`;
+  $('b-prev').disabled = idx === 0; $('b-first').disabled = idx === 0;
+  $('b-next').disabled = idx === total;
+
+  for (const w of WHEELS) {
+    const we = wheelEls[w];
+    we.wrap.classList.toggle('active', !!step && step.wheelId === w);
+    we.g.style.transform = `rotate(${angleOf(state.guardia[w], N)}deg)`;
+    if (we.r) we.r.style.transform = `rotate(${angleOf(state.refuerzo[w], N)}deg)`;
+    const picked = step && step.wheelId === w ? step.chosen.map((c) => c.doctor) : [];
+    we.segs.forEach((s, i) => s.classList.toggle('picked', picked.includes(sc.pool[i])));
+    const rows = [['guardia', 'G']].concat(sc.withRef ? [['refuerzo', 'R']] : []);
+    we.debts.innerHTML = rows.map(([role, t]) => {
+      const p = state[role][w].pending;
+      return `<div class="debt-row"><span class="tag">${sc.withRef ? t + ' ' : ''}deuda</span>${p.length ? p.map((d) => chip(d, sc.pool, 'debt')).join('') : '<span class="none">—</span>'}</div>`;
+    }).join('');
+  }
+
+  if (!step) {
+    $('day-date').textContent = `Antes del 1 de ${MONTHS[sc.month - 1]}`;
+    $('day-meta').innerHTML = `<span class="pill">${sc.month === 1 ? 'Ruedas en su posición inicial' : 'Ruedas como las dejó el mes anterior'}</span>`;
+    $('assigned').innerHTML = '';
+    $('steps').innerHTML = `<li><span class="ic deuda">i</span><span>Las agujas señalan a quién le toca en cada rueda. Pulse <b>Siguiente</b> para avanzar un día.</span></li>`;
+  } else {
+    const d = step.day;
+    $('day-date').textContent = cap(fmtDate(d.iso));
+    $('day-meta').innerHTML = `<span class="pill w" style="--wc: var(${WHEEL_VAR[step.wheelId]})">Rueda de ${WHEEL_NAME[step.wheelId].toLowerCase()}</span>` +
+      (d.special ? '<span class="pill special">Festivo especial</span>' : '') +
+      (sc.withRef ? `<span class="pill">${d.refuerzos} refuerzo${d.refuerzos > 1 ? 's' : ''}</span>` : '');
+    const g = step.chosen.filter((c) => c.role === 'guardia'), r = step.chosen.filter((c) => c.role === 'refuerzo');
+    $('assigned').innerHTML = `<div class="assigned-row"><span class="role g">Guardia</span><span>${g.map((c) => chip(c.doctor, sc.pool)).join(' ')}</span></div>` +
+      (r.length ? `<div class="assigned-row"><span class="role r">Refuerzo</span><span>${r.map((c) => chip(c.doctor, sc.pool)).join(' ')}</span></div>` : '');
+    const papel = (role) => (role === 'guardia' ? 'la guardia' : 'el refuerzo');
+    const txt = (e) => {
+      const who = `<b>Dr. ${e.doctor}</b>`;
+      if (e.kind === 'turno') return [`✓`, `Le toca a ${who} en la rueda: hace ${papel(e.role)}.`];
+      if (e.kind === 'deuda') return [`↺`, `${who} tenía una deuda en esta rueda y ya ha descansado: cobra su turno antes que nadie y hace ${papel(e.role)}.`];
+      if (e.kind === 'giro') return [`↷`, `Semana de 5 laborables con 5 médicos: la rueda gira un puesto y se salta a ${who} <b>sin deuda</b>, para que el día de cada uno vaya rotando. Normalmente le tocará el viernes de esta semana.`];
+      if (e.kind === 'salto') return [`✕`, e.reason === 'hoy'
+        ? `Le toca a ${who}, pero ya tiene plaza hoy: se le salta y se le apunta una deuda.`
+        : `Le toca a ${who}, pero trabajó ayer: se le salta y se le apunta una deuda.`];
+      return [`!`, `No hay bastantes médicos descansados: ${who} completa el día sin descanso.`];
+    };
+    $('steps').innerHTML = step.events.map((e) => {
+      const [ic, t] = txt(e);
+      return `<li class="${e.kind}"><span class="ic ${e.kind}" aria-hidden="true">${ic}</span><span>${sc.withRef ? `<span class="role ${e.role[0]}">${e.role === 'guardia' ? 'Guardia' : 'Refuerzo'} · </span>` : ''}${t}</span></li>`;
+    }).join('');
+  }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const sc = { ...SCENARIOS[current], ...view(SCENARIOS[current]) };
+  const cal = $('cal');
+  const dows = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  let html = dows.map((d) => `<div class="dow">${d}</div>`).join('');
+  const lead = (sc.steps[0].day.weekday + 6) % 7;
+  html += '<div></div>'.repeat(lead);
+  sc.steps.forEach((s, i) => {
+    const done = i < idx;
+    const chips = done ? s.chosen.map((c) => chip(c.doctor, sc.pool, c.role === 'refuerzo' ? 'r' : '')).join('') : '';
+    html += `<button type="button" class="cell ${done ? '' : 'future'} ${i === idx - 1 ? 'current' : ''}" data-i="${i + 1}" style="--wc: var(${WHEEL_VAR[s.wheelId]})" aria-label="${fmtDate(s.day.iso)}"><span class="n"><span>${s.day.n}</span>${s.day.special ? '<span class="star" title="Festivo especial">★</span>' : ''}</span>${chips}</button>`;
+  });
+  cal.innerHTML = html;
+}
+
+const total = () => view(SCENARIOS[current]).steps.length;
+function go(i) { idx = Math.max(0, Math.min(total(), i)); render(); }
+function stop() { clearInterval(timer); timer = null; $('b-play').textContent = '▶ Reproducir'; }
+function play() {
+  if (timer) return stop();
+  if (idx >= total()) idx = 0;
+  $('b-play').textContent = '⏸ Pausa';
+  timer = setInterval(() => { if (idx >= total()) return stop(); go(idx + 1); }, 1500);
+}
+function renderSummary() {
+  const sc = SCENARIOS[current];
+  const rows = Object.fromEntries(sc.pool.map((d) => [d, { weekday: 0, saturday: 0, sunday: 0, holiday: 0, g: 0, r: 0, skips: 0 }]));
+  for (const s of sc.sim.steps) {
+    for (const c of s.chosen) { if (c.role === 'guardia') { rows[c.doctor][s.wheelId]++; rows[c.doctor].g++; } else rows[c.doctor].r++; }
+    for (const e of s.events) if (e.kind === 'salto') rows[e.doctor].skips++;
+  }
+  const cols = sc.withRef ? [['g', 'Guardias'], ['r', 'Refuerzos']] : WHEELS.map((w) => [w, WHEEL_NAME[w]]);
+  $('sum-title').textContent = `Resumen del año 2026 · ${sc.pool.length} médicos ${sc.withRef ? 'AP' : 'AC'}`;
+  $('sum').innerHTML = `<thead><tr><th>Médico</th>${cols.map(([, n]) => `<th>${n}</th>`).join('')}<th>${sc.withRef ? '' : 'Total'}</th><th>Veces saltado</th></tr></thead><tbody>` +
+    sc.pool.map((d) => {
+      const r = rows[d];
+      return `<tr><td>${chip(d, sc.pool)}</td>${cols.map(([k]) => `<td>${r[k]}</td>`).join('')}<td>${sc.withRef ? '' : r.g}</td><td class="skips ${r.skips ? '' : 'zero'}">${r.skips}</td></tr>`;
+    }).join('') + '</tbody>';
+}
+
+function setScenario(name, month) {
+  stop(); current = name;
+  const sc = SCENARIOS[name];
+  if (month) { sc.month = month; idx = 0; } else idx = sc.startAt;
+  document.querySelectorAll('[data-sc]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sc === name)));
+  $('month').value = String(sc.month);
+  $('sc-note').textContent = sc.note;
+  buildWheels();
+  renderSummary();
+  // Colocar agujas sin animación al cambiar de escenario
+  document.querySelectorAll('.needle').forEach((n) => (n.style.transition = 'none'));
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('.needle').forEach((n) => (n.style.transition = ''))));
+}
+
+$('b-next').addEventListener('click', () => { stop(); go(idx + 1); });
+$('b-prev').addEventListener('click', () => { stop(); go(idx - 1); });
+$('b-first').addEventListener('click', () => { stop(); go(0); });
+$('b-play').addEventListener('click', play);
+document.querySelectorAll('[data-sc]').forEach((b) => b.addEventListener('click', () => setScenario(b.dataset.sc)));
+$('month').innerHTML = MONTHS.map((m, i) => `<option value="${i + 1}">${cap(m)}</option>`).join('');
+$('month').addEventListener('change', (e) => setScenario(current, Number(e.target.value)));
+$('cal').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) { stop(); go(Number(c.dataset.i)); } });
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input,textarea,select')) return;
+  if (e.key === 'ArrowRight') { stop(); go(idx + 1); }
+  if (e.key === 'ArrowLeft') { stop(); go(idx - 1); }
+});
+
+// ---------- Punteros escalonados con el grupo AP real ----------
+(function drawStagger() {
+  const svg = $('stagger'), N = AP_17.length, st = stagger(N);
+  ringSegments(svg, AP_17, 92, 66);
+  for (const w of WHEELS) {
+    const ang = (st[w] * 360) / N + 180 / N;
+    const g = el('g', { transform: `rotate(${ang} 100 100)` }, svg);
+    el('line', { x1: 100, y1: 100, x2: 100, y2: 46, style: `stroke: var(${WHEEL_VAR[w]}); stroke-width: 3.5; stroke-linecap: round` }, g);
+    el('path', { d: 'M100 37L94 48L106 48Z', style: `fill: var(${WHEEL_VAR[w]})` }, g);
+  }
+  el('circle', { cx: 100, cy: 100, r: 12, class: 'hub' }, svg);
+  el('text', { x: 100, y: 100, class: 'hub-text' }, svg).textContent = 'N=17';
+  $('start-list').innerHTML = WHEELS.map((w) =>
+    `<div class="start-item"><span class="dot" style="background: var(${WHEEL_VAR[w]})"></span><span><b>${WHEEL_NAME[w]}</b> · puesto <span class="mono">${st[w]}</span> · Dr. ${AP_17[st[w]]}</span></div>`).join('');
+})();
+
+// ---------- Resonancia: 5 médicos AC, antes y después de la corrección ----------
+(function drawResonance() {
+  const pool = AC_5;
+  const weeks = buildDays('2026-02-02', '2026-03-08', HOLIDAYS_2026, false);
+  const grid = (id, sim) => {
+    let html = '<div></div>' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<div class="h">${d}</div>`).join('');
+    sim.steps.forEach((s, i) => {
+      if (i % 7 === 0) html += `<div class="wk">Sem. ${i / 7 + 1}</div>`;
+      const d = s.chosen[0].doctor;
+      const giro = s.events.some((e) => e.kind === 'giro');
+      html += `<div class="c ${s.day.weekday === 5 ? 'fri' : ''} ${giro ? 'giro' : ''}" style="--h:${hueOf(pool.indexOf(d), pool.length)}" title="Dr. ${d}${giro ? ' · la rueda giró un puesto este lunes' : ''}">${d.slice(0, 3)}</div>`;
+    });
+    $(id).innerHTML = html;
+  };
+  const before = simulate(pool, weeks, { breakWeeklyResonance: false });
+  grid('reso-before', before);
+  grid('reso-after', simulate(pool, weeks));
+
+  const fridays = (sim) => sim.steps.filter((s) => s.day.weekday === 5 && s.wheelId === 'weekday').map((s) => s.chosen[0].doctor);
+  const beforeFridays = fridays(before);
+  const fridayDoc = beforeFridays[0];
+
+  // Año 2026 completo, con y sin corrección
+  const year = buildDays('2026-01-01', '2026-12-31', HOLIDAYS_2026, false);
+  const stats = (opts) => {
+    const sim = simulate(pool, year, opts), fr = fridays(sim);
+    const per = Object.fromEntries(pool.map((d) => [d, { fri: 0, tot: 0 }]));
+    fr.forEach((d) => per[d].fri++);
+    sim.steps.forEach((s) => per[s.chosen[0].doctor].tot++);
+    let streak = 0, best = 0;
+    fr.forEach((d, i) => { streak = d === fr[i - 1] ? streak + 1 : 1; best = Math.max(best, streak); });
+    return { per, best };
+  };
+  const off = stats({ breakWeeklyResonance: false }), on = stats({});
+  const maxFri = (st) => Math.max(...pool.map((d) => st.per[d].fri));
+  $('reso-stats').innerHTML = `<h3>Año 2026 completo · viernes por médico</h3>
+    <table><thead><tr><th>Médico</th><th>Sin corrección</th><th>Con giro</th><th>Guardias totales (con giro)</th></tr></thead><tbody>
+    ${pool.map((d) => `<tr><td>${chip(d, pool)}</td><td class="${off.per[d].fri === maxFri(off) ? 'bad' : ''}">${off.per[d].fri}</td><td>${on.per[d].fri}</td><td>${on.per[d].tot}</td></tr>`).join('')}
+    <tr><td>Máx. viernes seguidos</td><td class="bad">${off.best}</td><td>${on.best}</td><td></td></tr></tbody></table>`;
+
+  $('reso-text').innerHTML = `
+    <h3>Con 5 médicos, el Dr. ${fridayDoc} haría todos los viernes</h3>
+    <p>Con <b>5 médicos y 5 laborables por semana</b>, la rueda de laborables da exactamente una vuelta cada semana: cada médico cae siempre el mismo día. A quien le toca el viernes le correspondería descansar el sábado, así que la rueda de sábados lo salta una y otra vez. En 2026 eso son <b>${maxFri(off)} viernes</b> para un mismo médico, <b>${off.best} seguidos</b>.</p>
+    <p><b>La corrección, como se hace a mano:</b> el lunes de cada semana con 5 laborables, la rueda de laborables gira un puesto y se salta al que le tocaba <b>sin apuntarle deuda</b> (los lunes con borde discontinuo). Ese médico hace el viernes de esa misma semana, así que nadie pierde guardias, y el día de cada uno va rotando.</p>
+    <p>No se gira en semanas con un festivo entre semana, que ya descolocan la rueda por sí solas. Sólo se aplica con exactamente 5 médicos: con 4 o 17 el cuadrante no cambia. La estrategia «Equilibrado» no tiene este problema.</p>`;
+})();
+
+setScenario('ac4');
+</script>

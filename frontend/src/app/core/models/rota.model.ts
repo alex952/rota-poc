@@ -1,8 +1,13 @@
 import { RotaType } from './doctor.model';
 
+/** Guardia: plaza principal del grupo. Refuerzo: plaza adicional con horario AP. */
+export type ShiftRole = 'guardia' | 'refuerzo';
+
 export interface DoctorRef {
   doctor_id: string;
   doctor_name: string;
+  /** Ausente en respuestas antiguas: se trata como guardia */
+  role?: ShiftRole;
 }
 
 /** Método de asignación de guardias */
@@ -41,6 +46,7 @@ export interface DoctorStats {
   shifts_weekday: number;
   shifts_saturday: number;
   shifts_sunday_holiday: number;
+  shifts_refuerzo?: number;
 }
 
 export interface StatsResponse {
@@ -62,8 +68,8 @@ export interface RotaResponse {
 
 export interface GenerateRequest {
   year: number;
-  rota_type: RotaType;
-  pool: { id: string; name: string; department: string }[];
+  ac_pool: { id: string; name: string; department: string }[];
+  ap_pool: { id: string; name: string; department: string }[];
   strategy: AssignmentStrategy;
 }
 
@@ -85,6 +91,8 @@ export interface MergedDayAssignment {
   shift_start: string;
   shift_end: string;
   duration_hours: number;
+  /** Todos los médicos AC del día (guardia y, si los hay, refuerzos), con su papel */
   acDoctors: DoctorRef[];
+  /** Todos los médicos AP del día (guardia y refuerzos), con su papel */
   apDoctors: DoctorRef[];
 }

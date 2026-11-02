@@ -5,14 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { AppConfigService } from '../config/app-config.service';
 import { formatClockTime } from '../common/date.utils';
 import { HolidaysService, classifyDay, classifyYear } from '../holidays/holidays.service';
-import { InfeasiblePoolError, generateRota } from '../scheduling/assignment.service';
+import { InfeasiblePoolError, generateRotas } from '../scheduling/assignment.service';
 import { DEFAULT_ASSIGNMENT_STRATEGY } from '../scheduling/strategies';
-import { DoctorInput } from '../scheduling/scheduling.types';
+import { DoctorInput, RotaSchedule } from '../scheduling/scheduling.types';
 import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
@@ -42,6 +42,15 @@ export class RotaService {
   }
 
   async generate(request: GenerateRotaDto) {
+    const sharedIds = request.ac_pool
+      .map((doctor) => doctor.id)
+      .filter((doctorId) => request.ap_pool.some((doctor) => doctor.id === doctorId));
+    if (sharedIds.length > 0) {
+      throw new BadRequestException(
+        `Un médico sólo puede pertenecer a un grupo: ${sharedIds.join(', ')} está en AC y en AP.`,
+      );
+    }
+
     try {
       const dayClassifications = classifyYear(
         request.year,
@@ -52,73 +61,24 @@ export class RotaService {
         new Date(Date.UTC(request.year - 1, 11, 31)),
         await this.holidayDates(request.year - 1),
       );
-      const rota = generateRota(
+      const rotas = generateRotas(
         request.year,
-        request.rota_type,
-        request.pool,
+        request.ac_pool,
+        request.ap_pool,
         dayClassifications,
         dayBeforeYear,
         request.strategy ?? DEFAULT_ASSIGNMENT_STRATEGY,
       );
 
-      const persisted = await this.dataSource.transaction(async (manager) => {
-        const existing = await manager.findOne(RotaEntity, {
-          where: { year: request.year, rotaType: request.rota_type },
-        });
-        if (existing) {
-          await manager.delete(RotaAssignmentEntity, { rotaId: existing.id });
-          await manager.delete(RotaDoctorEntity, { rotaId: existing.id });
-          await manager.delete(RotaEntity, { id: existing.id });
-        }
+      const persisted = await this.dataSource.transaction(async (manager) => [
+        await this.persistRota(manager, request.year, rotas.ac, request.ac_pool),
+        await this.persistRota(manager, request.year, rotas.ap, request.ap_pool),
+      ]);
 
-        const savedRota = await manager.save(
-          manager.create(RotaEntity, {
-            year: request.year,
-            rotaType: request.rota_type,
-            city: this.appConfigService.city,
-            generatedAt: new Date(),
-            pool: request.pool,
-            doctorsPerDay: rota.doctorsPerDay,
-            strategy: rota.strategy,
-          }),
-        );
-
-        await manager.save(
-          RotaDoctorEntity,
-          request.pool.map((doctor) =>
-            manager.create(RotaDoctorEntity, {
-              rotaId: savedRota.id,
-              doctorId: doctor.id,
-              name: doctor.name,
-              department: doctor.department,
-            }),
-          ),
-        );
-
-        await manager.save(
-          RotaAssignmentEntity,
-          rota.schedule.flatMap((day) =>
-            day.doctors.map((doctor) =>
-              manager.create(RotaAssignmentEntity, {
-                rotaId: savedRota.id,
-                date: day.date.toISOString().slice(0, 10),
-                dayType: day.dayType,
-                shiftStart: formatClockTime(day.shiftStart),
-                shiftEnd: formatClockTime(day.shiftEnd),
-                durationHours: day.durationHours,
-                doctorId: doctor.doctorId,
-              }),
-            ),
-          ),
-        );
-
-        return manager.findOneOrFail(RotaEntity, {
-          where: { id: savedRota.id },
-          relations: { assignments: true, doctors: true },
-        });
-      });
-
-      return { ...this.responseMapper.toResponse(persisted), warnings: rota.warnings };
+      return [
+        { ...this.responseMapper.toResponse(persisted[0]), warnings: rotas.ac.warnings },
+        { ...this.responseMapper.toResponse(persisted[1]), warnings: rotas.ap.warnings },
+      ];
     } catch (error) {
       if (error instanceof InfeasiblePoolError) {
         throw new BadRequestException(error.message);
@@ -129,6 +89,69 @@ export class RotaService {
       const message = error instanceof Error ? error.message : String(error);
       throw new BadGatewayException(`No se han podido obtener los festivos de ${request.year}: ${message}`);
     }
+  }
+
+  private async persistRota(
+    manager: EntityManager,
+    year: number,
+    rota: RotaSchedule,
+    pool: DoctorInput[],
+  ): Promise<RotaEntity> {
+    const existing = await manager.findOne(RotaEntity, {
+      where: { year, rotaType: rota.rotaType },
+    });
+    if (existing) {
+      await manager.delete(RotaAssignmentEntity, { rotaId: existing.id });
+      await manager.delete(RotaDoctorEntity, { rotaId: existing.id });
+      await manager.delete(RotaEntity, { id: existing.id });
+    }
+
+    const savedRota = await manager.save(
+      manager.create(RotaEntity, {
+        year,
+        rotaType: rota.rotaType,
+        city: this.appConfigService.city,
+        generatedAt: new Date(),
+        pool,
+        doctorsPerDay: rota.doctorsPerDay,
+        strategy: rota.strategy,
+      }),
+    );
+
+    await manager.save(
+      RotaDoctorEntity,
+      pool.map((doctor) =>
+        manager.create(RotaDoctorEntity, {
+          rotaId: savedRota.id,
+          doctorId: doctor.id,
+          name: doctor.name,
+          department: doctor.department,
+        }),
+      ),
+    );
+
+    await manager.save(
+      RotaAssignmentEntity,
+      rota.schedule.flatMap((day) =>
+        day.doctors.map((doctor) =>
+          manager.create(RotaAssignmentEntity, {
+            rotaId: savedRota.id,
+            date: day.date.toISOString().slice(0, 10),
+            dayType: day.dayType,
+            shiftStart: formatClockTime(doctor.shiftStart ?? day.shiftStart),
+            shiftEnd: formatClockTime(doctor.shiftEnd ?? day.shiftEnd),
+            durationHours: doctor.durationHours ?? day.durationHours,
+            doctorId: doctor.doctorId,
+            role: doctor.role ?? 'guardia',
+          }),
+        ),
+      ),
+    );
+
+    return manager.findOneOrFail(RotaEntity, {
+      where: { id: savedRota.id },
+      relations: { assignments: true, doctors: true },
+    });
   }
 
   async getByType(year: number, rotaType: string, doctorId?: string) {
@@ -243,8 +266,11 @@ export class RotaService {
         );
       }
 
-      // La guardia nueva hereda tipo de día y horario de la fila más antigua del día.
-      const template = dayAssignments.reduce((first, candidate) =>
+      // En AC se añade una guardia y en AP un refuerzo. La fila nueva hereda tipo de día y
+      // horario de la fila más antigua del día con ese papel (o de la más antigua del día).
+      const role = rotaType === 'AP' ? 'refuerzo' : 'guardia';
+      const sameRole = dayAssignments.filter((candidate) => candidate.role === role);
+      const template = (sameRole.length > 0 ? sameRole : dayAssignments).reduce((first, candidate) =>
         candidate.id < first.id ? candidate : first,
       );
       await assignmentRepository.save(
@@ -256,6 +282,7 @@ export class RotaService {
           shiftEnd: template.shiftEnd,
           durationHours: template.durationHours,
           doctorId: request.doctor_id,
+          role,
         }),
       );
 

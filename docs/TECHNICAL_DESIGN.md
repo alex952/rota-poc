@@ -39,7 +39,7 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `GET /health` devuelve `{ status: "ok" }`
 - `GET /api/v1/config` devuelve la ciudad configurada
 - `GET /api/v1/holidays/:year` devuelve los festivos cacheados u obtenidos para la ciudad configurada
-- `POST /api/v1/rota/generate` genera y persiste un tipo de rota. Cuerpo `{ year, rota_type, pool, strategy? }`; `strategy` es opcional (`balanced` por defecto, o `wheels`) y un valor distinto responde 400 con «el método de asignación debe ser balanced o wheels». La respuesta (`RotaResponse`) incluye `strategy`, igual que `GET /rota/:year/:rotaType` y `GET /rota/:year`; sustituir o añadir un médico no la cambia
+- `POST /api/v1/rota/generate` genera y persiste **los dos cuadrantes del año** en una transacción. Cuerpo `{ year, ac_pool, ap_pool, strategy? }`; responde `[RotaResponse AC, RotaResponse AP]`, cada uno con sus `warnings`. Un médico presente en los dos grupos responde 400. `strategy` es opcional (`balanced` por defecto, o `wheels`) y un valor distinto responde 400 con «el método de asignación debe ser balanced o wheels». La respuesta (`RotaResponse`) incluye `strategy`, igual que `GET /rota/:year/:rotaType` y `GET /rota/:year`; sustituir o añadir un médico no la cambia. Cada médico de `schedule[].doctors` lleva `role` (`guardia` o `refuerzo`) y las estadísticas, `shifts_refuerzo`
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
 - `GET /api/v1/rota/:year/export` descarga un libro de Excel (`cuadrante-guardias-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
@@ -70,8 +70,9 @@ Particularidades de MySQL 8.4:
 El algoritmo de rota se mantiene deliberadamente fuera de los decoradores NestJS y las preocupaciones de transporte.
 
 - La clasificación de días se deriva de los domingos más la caché de festivos. El `DayInfo` resultante representa la duración del **día calendario** (la usada por AC).
-- `doctorsPerDay` es una **constante fija de 1 médico/día** (valor base) y se complementa con `doctorsForDay(rotaType, base, day, previousDay)` para los casos donde la cobertura del día varía. AP dobla a 2 sólo en un festivo cuyo día anterior también es festivo.
-- AC y AP se generan de forma independiente. Las **duraciones de turno AP** son distintas de las del día calendario: 7 h en laborable/sábado, 12 h en festivo. Se aplican vía `apShiftDetails(dayType)` y se persisten en `RotaAssignmentEntity.durationHours`.
+- `doctorsPerDay` vale siempre 1. La cobertura diaria la fija `refuerzosForDay(day, previousDay)`: 1 refuerzo, o 2 en un festivo especial de sanidad o en un festivo cuyo día anterior también es festivo. AC tiene 1 guardia/día; AP, 1 guardia + los refuerzos que no haya reservado un AC.
+- AC y AP se generan juntos (`generateRotas`): AC, después los refuerzos AC por déficit mensual (`planAcRefuerzos`) y por último AP. Las **duraciones AP** (guardia AP y todos los refuerzos) son distintas de las del día calendario: 7 h en laborable/sábado, 12 h en festivo. Se aplican vía `apShiftDetails(dayType)` (`scheduling/shifts.ts`) y se persisten en `RotaAssignmentEntity.durationHours`; el papel va en `RotaAssignmentEntity.role`. El refuerzo AC se guarda en el cuadrante AC con su propio horario.
+- `holidays.is_special` marca los festivos especiales de sanidad (24, 25 y 31 dic, 1 y 6 ene). `HolidaysService` los añade siempre al obtener los festivos de un año (también en cachés anteriores a la regla) y no deja eliminarlos. La migración 007 añade `rota_assignments.role` (las filas AP existentes pasan a `refuerzo`) y `holidays.is_special`.
 - En el segundo festivo consecutivo AP se persisten **dos filas** para la misma fecha, con distinto `doctor_id`.
 - Las estadísticas se recalculan a partir de las asignaciones persistidas para garantizar la consistencia de la respuesta.
 
@@ -79,7 +80,7 @@ Consulta [ALGORITHM.md](./ALGORITHM.md) para el conjunto de reglas detallado.
 
 ### Método de asignación (patrón Strategy)
 
-`generateRota(año, tipo, grupo, días, díaAnterior?, strategyId = 'balanced')` conserva todo lo común (duraciones efectivas, `doctorsForDay`, viabilidad, estadísticas y avisos) y delega sólo la selección en una `AssignmentStrategy` (`backend/src/scheduling/strategies/`): `assign({ pool, days, requiredByDay }) => DoctorInput[][]`. Estrategias registradas: `balanced` (round-robin equilibrado, el comportamiento de siempre) y `wheels` (ruedas). `DayInfo.publicHoliday` distingue un festivo oficial de un domingo, que comparten `dayType: 'holiday'`.
+`generateRotas(año, grupoAC, grupoAP, días, díaAnterior?, strategyId = 'balanced')` conserva todo lo común (duraciones efectivas, `refuerzosForDay`, refuerzos AC, viabilidad, estadísticas y avisos) y delega sólo la selección en una `AssignmentStrategy` (`backend/src/scheduling/strategies/`): `assign({ pool, days, requiredByDay, refuerzosByDay? }) => DoctorInput[][]`, donde cada día devuelve primero las guardias y después los refuerzos. Estrategias registradas: `balanced` (round-robin equilibrado por papel y tipo de día) y `wheels` (ruedas, con un juego por papel). `DayInfo.publicHoliday` distingue un festivo oficial de un domingo, que comparten `dayType: 'holiday'`; `DayInfo.specialHoliday` marca los festivos especiales.
 
 ## Integración con el Frontend
 
@@ -93,7 +94,7 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 ### Renderizado del calendario
 
 - **Sección AC** muestra el médico AC del día.
-- **Sección AP** muestra los médicos AP del día con prefijo visual `R:` (vía pseudo-elemento `::before`). En el segundo festivo consecutivo aparecen los dos médicos AP, ambos con `R:`.
+- La celda tiene tres bloques: **AC** (guardia AC), **AP** (guardia AP) y **REFUERZO**, con cada refuerzo prefijado `R:` (pseudo-elemento `::before`); el bloque es naranja y cada refuerzo lleva el color de su grupo (verde AP, azul AC, que además lleva el sufijo `(AC)`). Un festivo especial lleva la clase `day-holiday-special` (estrella y borde morado), y su menú contextual no permite desmarcarlo.
 
 ## Desarrollo Local
 

@@ -94,9 +94,13 @@ Las horas totales del año dependen sólo del calendario y del número de guardi
 
 Cambiar de método no arregla un grupo mal dimensionado.
 
-### 7. Limitación conocida de las Ruedas: resonancia
+### 7. Resonancia con 5 médicos: corregida con un salto semanal
 
-Si el tamaño del grupo encaja con la cadencia semanal, puede darse un choque estructural. Por ejemplo, con 5 médicos y semanas de 5 laborables, el mismo médico hace todos los viernes, nunca está descansado el sábado y su turno de sábado se aplaza. La regla de saltos acumula esas deudas y las salda en cuanto un festivo desfasa la rueda de laborables. Con los festivos reales, la diferencia en sábados queda en ±1 a final de año. Está documentado en `docs/ALGORITHM.md` y cubierto por un test.
+Si el tamaño del grupo encaja con la cadencia semanal, puede darse un choque estructural. Con 5 médicos y semanas de 5 laborables, la rueda de laborables da una vuelta exacta cada semana y el mismo médico hace todos los viernes: en AC 5 · 2026, 25 viernes, 15 de ellos seguidos.
+
+La estrategia `wheels` lo corrige como se hace a mano: con exactamente 5 médicos, el lunes de cada semana de 5 laborables salta un puesto de la rueda de laborables sin apuntar deuda. Los viernes quedan en 8–11 por médico, con como mucho 2 seguidos, sin quitar guardias a nadie. El resto de tamaños de grupo no cambia. Detalle en `docs/ALGORITHM.md`.
+
+> Las cifras de las tablas anteriores (`results.json`) se generaron antes de esta corrección y de los festivos especiales de sanidad; sólo cambian para los escenarios de 5 médicos.
 
 ## Decisiones pendientes para el servicio
 

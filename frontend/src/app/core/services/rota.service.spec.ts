@@ -88,45 +88,39 @@ describe('RotaService', () => {
     req.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
   });
 
-  it('should generate rota via POST /api/v1/rota/generate with rota_type', () => {
-    const pool: Doctor[] = [
+  it('genera AC y AP con un único POST /api/v1/rota/generate', () => {
+    const acPool: Doctor[] = [
       { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
       { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
     ];
+    const apPool: Doctor[] = [
+      { id: 'doc-021', name: 'Dr. Navarro', department: 'Urgencias', rota_type: 'AP' },
+    ];
 
-    service.generateRota(2026, 'AC', pool).subscribe((rota) => {
-      expect(rota.year).toBe(2026);
-      expect(rota.rota_type).toBe('AC');
+    service.generateRotas(2026, acPool, apPool).subscribe((rotas) => {
+      expect(rotas.map((rota) => rota.rota_type)).toEqual(['AC', 'AP']);
     });
 
     const req = httpTesting.expectOne('/api/v1/rota/generate');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body.rota_type).toBe('AC');
-    expect(req.request.body.pool).toEqual([
-      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
-      { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
-    ]);
-    req.flush(mockRotaResponse);
+    expect(req.request.body).toEqual({
+      year: 2026,
+      ac_pool: [
+        { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General' },
+        { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
+      ],
+      ap_pool: [{ id: 'doc-021', name: 'Dr. Navarro', department: 'Urgencias' }],
+      strategy: 'balanced',
+    });
+    req.flush([mockRotaResponse, { ...mockRotaResponse, rota_type: 'AP' }]);
   });
 
   it('debe enviar la estrategia elegida en el POST de generación', () => {
-    const pool: Doctor[] = [
-      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
-    ];
-
-    service.generateRota(2026, 'AC', pool, 'wheels').subscribe();
+    service.generateRotas(2026, [], [], 'wheels').subscribe();
 
     const req = httpTesting.expectOne('/api/v1/rota/generate');
     expect(req.request.body.strategy).toBe('wheels');
-    req.flush(mockRotaResponse);
-  });
-
-  it('debe enviar la estrategia balanced por defecto en el POST de generación', () => {
-    service.generateRota(2026, 'AC', []).subscribe();
-
-    const req = httpTesting.expectOne('/api/v1/rota/generate');
-    expect(req.request.body.strategy).toBe('balanced');
-    req.flush(mockRotaResponse);
+    req.flush([]);
   });
 
   it('should replace doctor via PATCH /api/v1/rota/{year}/{type}/replace', () => {

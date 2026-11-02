@@ -56,6 +56,7 @@ export class App implements OnInit {
 
   readonly manualHolidayDates = computed(() => this.holidaysService.manualHolidayDates());
   readonly allHolidayDates = computed(() => this.holidaysService.allHolidayDates());
+  readonly specialHolidayDates = computed(() => this.holidaysService.specialHolidayDates());
 
   // Dual rota state
   protected readonly acSchedule = signal<DayAssignment[]>([]);
@@ -70,9 +71,9 @@ export class App implements OnInit {
   protected readonly acStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
   protected readonly apStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
   protected readonly generatedStrategy = computed<AssignmentStrategy | null>(() => {
-    const tab = this.activePoolTab();
-    if (!(tab === 'AC' ? this.hasAcRota() : this.hasApRota())) return null;
-    return tab === 'AC' ? this.acStrategy() : this.apStrategy();
+    if (this.hasAcRota()) return this.acStrategy();
+    if (this.hasApRota()) return this.apStrategy();
+    return null;
   });
 
   // Drag-and-drop replacement state
@@ -85,10 +86,8 @@ export class App implements OnInit {
       : this.doctorPoolService.apDoctors();
   });
 
-  protected readonly hasExistingRota = computed(() => {
-    const tab = this.activePoolTab();
-    return tab === 'AC' ? this.hasAcRota() : this.hasApRota();
-  });
+  // Se generan juntos: basta con que exista uno para pedir confirmación.
+  protected readonly hasExistingRota = computed(() => this.hasAcRota() || this.hasApRota());
 
   protected readonly activeStats = computed(() => {
     const tab = this.activePoolTab();
@@ -133,7 +132,7 @@ export class App implements OnInit {
   );
 
   protected readonly confirmMessage = computed(() =>
-    `El cuadrante ${this.activePoolTab()} actual de ${this.selectedYear()} se sustituirá por uno nuevo. Esta acción no se puede deshacer. ¿Desea continuar?`
+    `Los cuadrantes AC y AP actuales de ${this.selectedYear()} se sustituirán por unos nuevos. Esta acción no se puede deshacer. ¿Desea continuar?`
   );
 
   ngOnInit(): void {
@@ -430,24 +429,29 @@ export class App implements OnInit {
   }
 
   private doGenerateRota(): void {
-    const tab = this.activePoolTab();
-    const pool = this.doctorPoolService.getDoctorsByType(tab);
+    const acPool = this.doctorPoolService.getDoctorsByType('AC');
+    const apPool = this.doctorPoolService.getDoctorsByType('AP');
     const year = this.selectedYear();
     this.loading.set(true);
     this.isGenerating.set(true);
-    this.rotaService.generateRota(year, tab, pool, this.selectedStrategy()).subscribe({
-      next: (rota) => {
-        this.applyRota(rota);
+    this.rotaService.generateRotas(year, acPool, apPool, this.selectedStrategy()).subscribe({
+      next: (rotas) => {
+        for (const rota of rotas) {
+          this.applyRota(rota);
+        }
         this.loading.set(false);
         this.isGenerating.set(false);
-        if (rota.warnings?.length) {
+        const warnings = rotas.flatMap((rota) =>
+          (rota.warnings ?? []).map((warning) => `${rota.rota_type}: ${warning}`),
+        );
+        if (warnings.length) {
           this.notificationService.show(
-            `Cuadrante ${tab} generado con advertencias:\n${rota.warnings.join('\n')}`,
+            `Cuadrantes AC y AP generados con advertencias:\n${warnings.join('\n')}`,
             'warning'
           );
         } else {
           this.notificationService.show(
-            `Cuadrante ${tab} generado correctamente para ${year}`,
+            `Cuadrantes AC y AP generados correctamente para ${year}`,
             'success'
           );
         }
@@ -457,7 +461,7 @@ export class App implements OnInit {
         this.loading.set(false);
         this.isGenerating.set(false);
         this.notificationService.show(
-          this.extractErrorMessage(err, `No se ha podido generar el cuadrante ${tab}`),
+          this.extractErrorMessage(err, 'No se han podido generar los cuadrantes'),
           'error'
         );
       },

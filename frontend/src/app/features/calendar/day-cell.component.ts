@@ -28,6 +28,8 @@ export interface DayContextMenuEvent {
       [class.day-saturday]="effectiveDayType() === 'saturday'"
       [class.day-holiday]="effectiveDayType() === 'holiday'"
       [class.day-holiday-manual]="effectiveDayType() === 'holiday-manual'"
+      [class.day-holiday-special]="effectiveDayType() === 'holiday-special'"
+      [attr.title]="effectiveDayType() === 'holiday-special' ? 'Festivo especial de sanidad' : null"
       [class.drop-target]="assignment() !== null"
       [class.zoomable]="zoomable()"
       cdkDropList
@@ -39,19 +41,33 @@ export interface DayContextMenuEvent {
       <span class="day-number">{{ day() }}</span>
       @if (assignment()) {
         <div class="assignments" data-testid="day-assignments">
-          @if (assignment()!.acDoctors.length > 0) {
+          @if (acGuardias().length > 0) {
             <div class="ac-section" title="Atención Continuada">
               <span class="section-header">AC</span>
-              @for (doc of assignment()!.acDoctors; track doc.doctor_id) {
+              @for (doc of acGuardias(); track doc.doctor_id) {
                 <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
               }
             </div>
           }
-          @if (assignment()!.apDoctors.length > 0) {
-            <div class="ap-section" title="Atención Primaria (refuerzo del día)">
+          @if (apGuardias().length > 0) {
+            <div class="ap-section" title="Atención Primaria">
               <span class="section-header">AP</span>
-              @for (doc of assignment()!.apDoctors; track doc.doctor_id) {
-                <span class="doctor-pill ap-refuerzo clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+              @for (doc of apGuardias(); track doc.doctor_id) {
+                <span class="doctor-pill clickable" (click)="onDoctorClick($event, doc)">{{ doc.doctor_name }}</span>
+              }
+            </div>
+          }
+          @if (refuerzos().length > 0) {
+            <div class="refuerzo-section" title="Refuerzos del día">
+              <span class="section-header">REFUERZO</span>
+              @for (ref of refuerzos(); track ref.doctor.doctor_id) {
+                <span
+                  class="doctor-pill refuerzo clickable"
+                  [class.refuerzo-ac]="ref.fromAc"
+                  [class.refuerzo-ap]="!ref.fromAc"
+                  [attr.title]="ref.fromAc ? 'Refuerzo de un médico AC para completar sus horas del mes' : null"
+                  (click)="onDoctorClick($event, ref.doctor)"
+                >{{ ref.doctor.doctor_name }}@if (ref.fromAc) { (AC)}</span>
               }
             </div>
           }
@@ -112,6 +128,22 @@ export interface DayContextMenuEvent {
       background: #f8bbd0;
     }
 
+    /* outline y no box-shadow: el box-shadow de :hover lo taparía */
+    .day-holiday-special {
+      background: #f3e5f5;
+      outline: 2px solid #8e24aa;
+      outline-offset: -2px;
+    }
+
+    .day-holiday-special .day-number::after {
+      content: '★';
+      position: absolute;
+      top: -1px;
+      right: 2px;
+      font-size: 0.7rem;
+      color: #8e24aa;
+    }
+
     .day-holiday-manual .day-number::after {
       content: '';
       position: absolute;
@@ -128,14 +160,14 @@ export interface DayContextMenuEvent {
       font-weight: 600;
       font-size: 0.8rem;
       color: #333;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
       position: relative;
     }
 
     .assignments {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
       flex: 1;
       min-height: 0;
       overflow-y: auto;
@@ -143,18 +175,21 @@ export interface DayContextMenuEvent {
       padding-right: 2px;
     }
 
+    /* Compacto: en los meses de seis semanas cabe un día con dos refuerzos sin scroll */
     .ac-section,
-    .ap-section {
+    .ap-section,
+    .refuerzo-section {
       display: flex;
       flex-direction: column;
       gap: 1px;
-      padding: 2px 3px;
+      padding: 1px 3px;
       border-radius: 3px;
     }
 
     .section-header {
       font-weight: 700;
       font-size: 0.6rem;
+      line-height: 1.15;
       opacity: 0.7;
       letter-spacing: 0.03em;
     }
@@ -185,7 +220,7 @@ export interface DayContextMenuEvent {
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      line-height: 1.4;
+      line-height: 1.3;
     }
 
     .ac-section .doctor-pill {
@@ -198,7 +233,26 @@ export interface DayContextMenuEvent {
       color: #1b5e20;
     }
 
-    .ap-section .doctor-pill.ap-refuerzo::before {
+    .refuerzo-section {
+      background: #fff3e0;
+    }
+
+    .refuerzo-section .section-header {
+      color: #e65100;
+    }
+
+    /* Cada refuerzo conserva el color de su grupo: verde AP, azul AC */
+    .refuerzo-section .doctor-pill.refuerzo-ap {
+      background: #c8e6c9;
+      color: #1b5e20;
+    }
+
+    .refuerzo-section .doctor-pill.refuerzo-ac {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+
+    .refuerzo-section .doctor-pill.refuerzo::before {
       content: 'R: ';
       font-weight: 700;
       opacity: 0.75;
@@ -222,13 +276,39 @@ export class DayCellComponent {
   readonly date = input<string>('');
   readonly zoomable = input<boolean>(true);
   readonly isManualHoliday = input<boolean>(false);
+  readonly isSpecialHoliday = input<boolean>(false);
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
   readonly daySelected = output<string>();
   readonly dayContextMenu = output<DayContextMenuEvent>();
 
+  readonly acGuardias = computed(() =>
+    (this.assignment()?.acDoctors ?? []).filter((doctor) => doctor.role !== 'refuerzo'),
+  );
+
+  readonly apGuardias = computed(() =>
+    (this.assignment()?.apDoctors ?? []).filter((doctor) => doctor.role !== 'refuerzo'),
+  );
+
+  /** Refuerzos del día: primero los AP y después los que cubre un médico AC */
+  readonly refuerzos = computed(() => {
+    const assignment = this.assignment();
+    if (!assignment) return [];
+    return [
+      ...assignment.apDoctors
+        .filter((doctor) => doctor.role === 'refuerzo')
+        .map((doctor) => ({ doctor, fromAc: false })),
+      ...assignment.acDoctors
+        .filter((doctor) => doctor.role === 'refuerzo')
+        .map((doctor) => ({ doctor, fromAc: true })),
+    ];
+  });
+
   readonly effectiveDayType = computed<string>(() => {
+    if (this.isSpecialHoliday()) {
+      return 'holiday-special';
+    }
     if (this.isManualHoliday()) {
       return 'holiday-manual';
     }

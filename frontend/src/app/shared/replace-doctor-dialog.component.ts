@@ -16,12 +16,12 @@ export interface ReplaceDoctorChoice {
         <p class="dialog-subtitle">
           Elija cómo desea asignarlo
         </p>
-        <button class="btn-add" data-testid="add-doctor-option" (click)="added.emit()">Añadir a la guardia</button>
+        <button class="btn-add" data-testid="add-doctor-option" (click)="added.emit()">{{ addLabel() }}</button>
         <p class="replace-label">O sustituir a:</p>
         <div class="doctor-buttons">
           @for (doc of doctors(); track doc.doctor_id) {
             <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name })">
-              Sustituir a {{ doc.doctor_name }}
+              Sustituir a {{ doc.doctor_name }}{{ doc.role === 'refuerzo' ? ' (refuerzo)' : '' }}
             </button>
           }
         </div>
@@ -138,6 +138,8 @@ export class ReplaceDoctorDialogComponent {
   readonly date = input.required<string>();
   readonly doctorName = input.required<string>();
   readonly doctors = input.required<DoctorRef[]>();
+  /** En AC se añade una guardia; en AP, un refuerzo */
+  readonly addLabel = input<string>('Añadir a la guardia');
 
   readonly selected = output<ReplaceDoctorChoice>();
   readonly added = output<void>();

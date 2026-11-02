@@ -8,7 +8,11 @@ import {
 } from '../common/date.utils';
 import { buildTargetHours } from '../scheduling/assignment.service';
 import { calculateStats } from '../scheduling/stats.service';
-import { DayAssignment as DomainDayAssignment, DoctorInput } from '../scheduling/scheduling.types';
+import {
+  DayAssignment as DomainDayAssignment,
+  DoctorInput,
+  ShiftRole,
+} from '../scheduling/scheduling.types';
 import { AssignmentStrategyId } from '../scheduling/strategies/assignment-strategy';
 import { RotaResponse, RotaType, StatsResponse } from './rota.types';
 import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
@@ -44,6 +48,7 @@ export class RotaResponseMapper {
         shifts_weekday: doctor.shiftsWeekday,
         shifts_saturday: doctor.shiftsSaturday,
         shifts_sunday_holiday: doctor.shiftsSundayHoliday,
+        shifts_refuerzo: doctor.shiftsRefuerzo,
       })),
     };
 
@@ -76,7 +81,8 @@ export class RotaResponseMapper {
     return [...grouped.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([date, rows]) => {
-        const first = rows[0];
+        // El horario del día es el de la guardia; un refuerzo AC lleva el suyo propio.
+        const first = rows.find((row) => row.role !== 'refuerzo') ?? rows[0];
 
         return {
           date: fromIsoDate(date),
@@ -87,6 +93,10 @@ export class RotaResponseMapper {
           doctors: rows.map((assignment) => ({
             doctorId: assignment.doctorId,
             doctorName: doctorMap.get(assignment.doctorId)?.name ?? assignment.doctorId,
+            role: (assignment.role ?? 'guardia') as ShiftRole,
+            durationHours: assignment.durationHours,
+            shiftStart: formatClockTime(assignment.shiftStart),
+            shiftEnd: formatShiftEnd(assignment.shiftStart, assignment.shiftEnd),
           })),
         };
       });
@@ -102,6 +112,7 @@ export class RotaResponseMapper {
       doctors: day.doctors.map((doctor) => ({
         doctor_id: doctor.doctorId,
         doctor_name: doctor.doctorName,
+        role: doctor.role ?? 'guardia',
       })),
     }));
   }

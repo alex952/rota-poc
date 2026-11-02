@@ -28,6 +28,25 @@ describe('ReplaceDoctorDialogComponent', () => {
     ]);
   });
 
+  it('usa la etiqueta de añadir recibida y marca los refuerzos', () => {
+    const fixture = createDialog();
+    fixture.componentRef.setInput('addLabel', 'Añadir como refuerzo');
+    fixture.componentRef.setInput('doctors', [
+      { doctor_id: 'doc-011', doctor_name: 'Dr. Navarro', role: 'guardia' },
+      { doctor_id: 'doc-012', doctor_name: 'Dr. Torres', role: 'refuerzo' },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('[data-testid="add-doctor-option"]')?.textContent?.trim()).toBe(
+      'Añadir como refuerzo',
+    );
+    expect(Array.from(el.querySelectorAll('.btn-doctor')).map((b) => b.textContent?.trim())).toEqual([
+      'Sustituir a Dr. Navarro',
+      'Sustituir a Dr. Torres (refuerzo)',
+    ]);
+  });
+
   it('emite added al pulsar Añadir', () => {
     const fixture = createDialog();
     let added = 0;

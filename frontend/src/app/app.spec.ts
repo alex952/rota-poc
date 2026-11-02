@@ -53,6 +53,27 @@ const mockAcRotaResponse: RotaResponse = {
   warnings: [],
 };
 
+const mockApRotaResponse: RotaResponse = {
+  ...mockAcRotaResponse,
+  rota_type: 'AP',
+  schedule: [
+    {
+      date: '2026-01-01',
+      day_type: 'holiday',
+      shift_start: '10:00',
+      shift_end: '22:00',
+      duration_hours: 12,
+      doctors: [
+        { doctor_id: 'doc-011', doctor_name: 'Dr. Navarro', role: 'guardia' },
+        { doctor_id: 'doc-012', doctor_name: 'Dr. Torres', role: 'refuerzo' },
+      ],
+    },
+  ],
+  stats: { doctors: [] },
+};
+
+const generatedRotas = [mockAcRotaResponse, mockApRotaResponse];
+
 describe('App', () => {
   let httpTesting: HttpTestingController;
 
@@ -74,6 +95,7 @@ describe('App', () => {
     city?: string;
     doctors?: Doctor[];
     rotas?: RotaResponse[] | null;
+    holidays?: unknown[];
   }) {
     const city = options?.city ?? 'Madrid';
     const doctors = options?.doctors ?? mockDoctors;
@@ -95,8 +117,27 @@ describe('App', () => {
     }
 
     const holidaysReq = httpTesting.expectOne(`/api/v1/holidays/${currentYear}`);
-    holidaysReq.flush({ year: currentYear, city, holidays: [] });
+    holidaysReq.flush({ year: currentYear, city, holidays: options?.holidays ?? [] });
   }
+
+  it('carga los festivos especiales de sanidad aparte de los manuales', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const year = new Date().getFullYear();
+    flushInitRequests({
+      rotaStatus: 404,
+      holidays: [
+        { id: 1, year, city: 'Madrid', date: `${year}-12-24`, name: 'Nochebuena', source: 'api', special: true },
+        { id: 2, year, city: 'Madrid', date: `${year}-03-16`, name: 'Festivo Manual', source: 'manual', special: false },
+      ],
+    });
+    fixture.detectChanges();
+
+    const app = fixture.componentInstance;
+    expect([...app.specialHolidayDates()]).toEqual([`${year}-12-24`]);
+    expect([...app.manualHolidayDates()]).toEqual([`${year}-03-16`]);
+    expect([...app.allHolidayDates()].sort()).toEqual([`${year}-03-16`, `${year}-12-24`]);
+  });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
@@ -136,27 +177,33 @@ describe('App', () => {
     expect(fixture.componentInstance['activePoolTab']()).toBe('AC');
   });
 
-  it('should show Generate AC Rota when no AC rota exists', () => {
+  it('muestra un único botón «Generar cuadrante» cuando no hay cuadrantes', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 404 });
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Generar cuadrante AC');
+    expect(generateBtn.textContent.trim()).toBe('Generar cuadrante');
   });
 
-  it('should show Re-generate AC Rota when AC rota exists', () => {
+  it('muestra «Regenerar cuadrante» en ambas pestañas cuando ya hay cuadrantes', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 200, rotas: [mockAcRotaResponse] });
     fixture.detectChanges();
 
     const generateBtn = fixture.nativeElement.querySelector('.btn-generate');
-    expect(generateBtn.textContent).toContain('Regenerar cuadrante AC');
+    expect(generateBtn.textContent.trim()).toBe('Regenerar cuadrante');
+
+    fixture.componentInstance['onPoolTabChange']('AP');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.btn-generate').textContent.trim()).toBe(
+      'Regenerar cuadrante',
+    );
   });
 
-  it('should call generateRota with rota_type when generate button clicked (no existing rota)', () => {
+  it('genera AC y AP con una sola petición que lleva los dos grupos', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitRequests({ rotaStatus: 404 });
@@ -168,12 +215,14 @@ describe('App', () => {
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     expect(genReq.request.method).toBe('POST');
-    expect(genReq.request.body.rota_type).toBe('AC');
-    expect(genReq.request.body.pool.length).toBe(2); // only AC doctors
-    genReq.flush(mockAcRotaResponse);
+    expect(genReq.request.body.ac_pool.map((doctor: { id: string }) => doctor.id)).toEqual(['doc-001', 'doc-002']);
+    expect(genReq.request.body.ap_pool.map((doctor: { id: string }) => doctor.id)).toEqual(['doc-011']);
+    genReq.flush(generatedRotas);
     fixture.detectChanges();
 
     expect(fixture.componentInstance['hasAcRota']()).toBe(true);
+    expect(fixture.componentInstance['hasApRota']()).toBe(true);
+    expect(fixture.componentInstance['apSchedule']()).toEqual(mockApRotaResponse.schedule);
   });
 
   it('should show confirm dialog when re-generating', () => {
@@ -188,6 +237,9 @@ describe('App', () => {
 
     const confirmDialog = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
     expect(confirmDialog).toBeTruthy();
+    expect(confirmDialog.textContent).toContain(
+      `Los cuadrantes AC y AP actuales de ${new Date().getFullYear()} se sustituirán por unos nuevos.`,
+    );
 
     const confirmBtn = confirmDialog.querySelector('.btn-confirm');
     confirmBtn.click();
@@ -195,7 +247,7 @@ describe('App', () => {
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
     expect(genReq.request.method).toBe('POST');
-    genReq.flush(mockAcRotaResponse);
+    genReq.flush(generatedRotas);
     fixture.detectChanges();
 
     const dialogAfter = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
@@ -245,7 +297,7 @@ describe('App', () => {
     expect(btn.disabled).toBe(true);
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
-    genReq.flush(mockAcRotaResponse);
+    genReq.flush(generatedRotas);
     fixture.detectChanges();
 
     const overlayAfter = fixture.nativeElement.querySelector('.loading-overlay');
@@ -280,7 +332,7 @@ describe('App', () => {
     expect(notifications.length).toBeGreaterThan(0);
     const errorNotif = notifications.find((n) => n.type === 'error');
     expect(errorNotif).toBeTruthy();
-    expect(errorNotif!.message).toContain('No se ha podido generar el cuadrante AC');
+    expect(errorNotif!.message).toContain('No se han podido generar los cuadrantes');
     expect(errorNotif!.message).toContain('demasiado grande');
     expect(errorNotif!.message).toContain('12960h');
   });
@@ -298,14 +350,14 @@ describe('App', () => {
     fixture.detectChanges();
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
-    genReq.flush(mockAcRotaResponse);
+    genReq.flush(generatedRotas);
     fixture.detectChanges();
 
     const notifications = notificationService.notifications();
     expect(notifications.length).toBeGreaterThan(0);
     const successNotif = notifications.find((n) => n.type === 'success');
     expect(successNotif).toBeTruthy();
-    expect(successNotif!.message).toContain('Cuadrante AC generado correctamente');
+    expect(successNotif!.message).toContain('Cuadrantes AC y AP generados correctamente');
   });
 
   it('muestra un aviso, no un error, cuando el cuadrante se genera con advertencias', () => {
@@ -321,12 +373,15 @@ describe('App', () => {
     fixture.detectChanges();
 
     const genReq = httpTesting.expectOne('/api/v1/rota/generate');
-    genReq.flush({
-      ...mockAcRotaResponse,
-      warnings: [
-        'El grupo de 8 médicos es demasiado grande para AC: el objetivo de 12960h supera la capacidad anual de cobertura de 6627h. 8 médicos quedan por debajo del mínimo de 1620h; faltan 6333h en total.',
-      ],
-    });
+    genReq.flush([
+      {
+        ...mockAcRotaResponse,
+        warnings: [
+          'El grupo de 8 médicos es demasiado grande para AC: el objetivo de 12960h supera la capacidad anual de cobertura de 6627h. 8 médicos quedan por debajo del mínimo de 1620h; faltan 6333h en total.',
+        ],
+      },
+      mockApRotaResponse,
+    ]);
     fixture.detectChanges();
 
     const notifications = notificationService.notifications();
@@ -334,7 +389,8 @@ describe('App', () => {
     expect(notifications.find((n) => n.type === 'success')).toBeFalsy();
     const warningNotif = notifications.find((n) => n.type === 'warning');
     expect(warningNotif).toBeTruthy();
-    expect(warningNotif!.message).toContain('Cuadrante AC generado con advertencias');
+    expect(warningNotif!.message).toContain('Cuadrantes AC y AP generados con advertencias');
+    expect(warningNotif!.message).toContain('AC: El grupo de 8 médicos');
     expect(warningNotif!.message).toContain('faltan 6333h en total');
     expect(fixture.componentInstance['hasAcRota']()).toBe(true);
   });
@@ -624,7 +680,7 @@ describe('App', () => {
 
       const req = httpTesting.expectOne('/api/v1/rota/generate');
       expect(req.request.body.strategy).toBe('balanced');
-      req.flush(mockAcRotaResponse);
+      req.flush(generatedRotas);
     });
 
     it('debe enviar wheels tras elegirlo en el selector', () => {
@@ -638,7 +694,7 @@ describe('App', () => {
 
       const req = httpTesting.expectOne('/api/v1/rota/generate');
       expect(req.request.body.strategy).toBe('wheels');
-      req.flush({ ...mockAcRotaResponse, strategy: 'wheels' });
+      req.flush(generatedRotas.map((rota) => ({ ...rota, strategy: 'wheels' })));
     });
 
     it('debe mostrar el método con el que se generó el cuadrante', () => {
@@ -650,7 +706,7 @@ describe('App', () => {
 
       selectStrategy(fixture, 'wheels');
       generate(fixture);
-      httpTesting.expectOne('/api/v1/rota/generate').flush({ ...mockAcRotaResponse, strategy: 'wheels' });
+      httpTesting.expectOne('/api/v1/rota/generate').flush(generatedRotas.map((rota) => ({ ...rota, strategy: 'wheels' })));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.generated-with').textContent.trim()).toBe(

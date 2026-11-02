@@ -21,4 +21,8 @@ export class HolidayEntity {
 
   @Column({ type: 'varchar', length: 10, default: 'api' })
   source!: 'api' | 'manual';
+
+  // Festivo especial de sanidad (24, 25 y 31 dic, 1 y 6 ene): no se puede eliminar.
+  @Column({ name: 'is_special', type: 'boolean', default: false })
+  special!: boolean;
 }

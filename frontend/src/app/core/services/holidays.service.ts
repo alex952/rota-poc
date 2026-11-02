@@ -9,6 +9,8 @@ export interface HolidayRecord {
   date: string;
   name: string;
   source: 'api' | 'manual';
+  /** Festivo especial de sanidad (24, 25 y 31 dic, 1 y 6 ene): no se puede desmarcar */
+  special?: boolean;
 }
 
 export interface HolidaysResponse {
@@ -22,6 +24,7 @@ export class HolidaysService {
   private readonly http = inject(HttpClient);
   readonly allHolidayDates = signal<ReadonlySet<string>>(new Set<string>());
   readonly manualHolidayDates = signal<ReadonlySet<string>>(new Set<string>());
+  readonly specialHolidayDates = signal<ReadonlySet<string>>(new Set<string>());
 
   getHolidays(year: number): Observable<HolidaysResponse> {
     return this.http.get<HolidaysResponse>(`/api/v1/holidays/${year}`);
@@ -52,5 +55,8 @@ export class HolidaysService {
     );
     this.allHolidayDates.set(allDates);
     this.manualHolidayDates.set(manualDates);
+    this.specialHolidayDates.set(
+      new Set<string>(holidays.filter((h) => h.special).map((h) => h.date)),
+    );
   }
 }

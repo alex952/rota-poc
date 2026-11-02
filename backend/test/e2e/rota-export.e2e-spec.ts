@@ -3,7 +3,7 @@ import { Workbook, Worksheet } from 'exceljs';
 
 import {
   AC_POOL_4,
-  AP_POOL_9,
+  AP_POOL_17,
   HOLIDAY_API_RESPONSE,
   YEAR_2026,
 } from '../helpers/fixtures';
@@ -18,9 +18,12 @@ const CABECERA_CUADRANTE = [
   'Médico AC',
   'Horario AC',
   'Horas AC',
-  'Refuerzo AP',
+  'Médico AP',
   'Horario AP',
   'Horas AP',
+  'Refuerzos',
+  'Horario refuerzo',
+  'Horas refuerzo',
 ];
 
 describe('Exportación del cuadrante a Excel', () => {
@@ -44,15 +47,11 @@ describe('Exportación del cuadrante a Excel', () => {
     }
   });
 
-  async function generar(rotaType: 'AC' | 'AP') {
+  async function generar() {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/rota/generate',
-      payload: {
-        year: YEAR_2026,
-        rota_type: rotaType,
-        pool: rotaType === 'AC' ? AC_POOL_4 : AP_POOL_9,
-      },
+      payload: { year: YEAR_2026, ac_pool: AC_POOL_4, ap_pool: AP_POOL_17 },
     });
     expect(response.statusCode).toBe(201);
     return response.json();
@@ -89,7 +88,7 @@ describe('Exportación del cuadrante a Excel', () => {
   });
 
   it('no depende de la API externa de festivos', async () => {
-    await generar('AC');
+    await generar();
     fetchSpy.mockClear();
     fetchSpy.mockRejectedValue(new Error('sin red'));
 
@@ -100,8 +99,7 @@ describe('Exportación del cuadrante a Excel', () => {
   });
 
   it('exporta AC y AP con cabeceras HTTP, tres hojas y 365 filas', async () => {
-    await generar('AC');
-    await generar('AP');
+    await generar();
 
     const response = await exportar();
 
@@ -125,9 +123,8 @@ describe('Exportación del cuadrante a Excel', () => {
     expect(cuadrante.rowCount).toBe(366);
   });
 
-  it('la primera fila es el 1 de enero: festivo, 23 h AC, 12 h AP y un médico AP; el segundo festivo consecutivo lleva dos', async () => {
-    await generar('AC');
-    await generar('AP');
+  it('la primera fila es el 1 de enero: festivo especial, 23 h AC, 12 h AP y dos refuerzos; un laborable lleva uno', async () => {
+    await generar();
 
     const workbook = await cargarLibro((await exportar()).rawPayload);
     const cuadrante = workbook.getWorksheet('Cuadrante')!;
@@ -138,24 +135,43 @@ describe('Exportación del cuadrante a Excel', () => {
     expect((fecha as Date).toISOString()).toBe('2026-01-01T00:00:00.000Z');
     expect(fila.getCell(1).numFmt).toBe('dd/mm/yyyy');
     expect(fila.getCell(2).value).toBe('jueves');
-    expect(fila.getCell(3).value).toBe('Festivo');
+    expect(fila.getCell(3).value).toBe('Festivo especial');
     expect(fila.getCell(5).value).toBe('09:00–08:00+1');
     expect(fila.getCell(6).value).toBe(23);
+    expect(String(fila.getCell(7).value).split(', ')).toHaveLength(1);
     expect(fila.getCell(8).value).toBe('10:00–22:00');
     expect(fila.getCell(9).value).toBe(12);
+    expect(String(fila.getCell(10).value).split(', ')).toHaveLength(2);
+    expect(fila.getCell(11).value).toBe('10:00–22:00');
+    expect(fila.getCell(12).value).toBe(12);
 
-    const refuerzo = String(fila.getCell(7).value);
-    expect(refuerzo.split(', ')).toHaveLength(1);
-    expect(refuerzo).not.toContain('R:');
-
-    // Domingo 16-08, tras el festivo del sábado 15-08.
-    const segundoFestivo = String(filaDeFecha(cuadrante, '2026-08-16').getCell(7).value);
+    // Domingo 16-08, tras el festivo del sábado 15-08: también dos refuerzos.
+    const segundoFestivo = String(filaDeFecha(cuadrante, '2026-08-16').getCell(10).value);
     expect(segundoFestivo.split(', ')).toHaveLength(2);
     expect(segundoFestivo).not.toContain('R:');
+
+    const laborable = filaDeFecha(cuadrante, '2026-01-07');
+    expect(String(laborable.getCell(10).value).split(', ')).toHaveLength(1);
+    expect(laborable.getCell(11).value).toBe('15:00–22:00');
+    expect(laborable.getCell(12).value).toBe(7);
+  });
+
+  it('marca con «(AC)» los refuerzos que hace un médico AC', async () => {
+    const [ac] = await generar();
+    const dia = ac.schedule.find((day: { doctors: { role: string }[] }) =>
+      day.doctors.some((doctor) => doctor.role === 'refuerzo'),
+    );
+    const medico = dia.doctors.find((doctor: { role: string }) => doctor.role === 'refuerzo');
+
+    const workbook = await cargarLibro((await exportar()).rawPayload);
+    const fila = filaDeFecha(workbook.getWorksheet('Cuadrante')!, dia.date);
+
+    expect(String(fila.getCell(10).value)).toContain(`${medico.doctor_name} (AC)`);
+    expect(String(fila.getCell(4).value)).not.toContain(medico.doctor_name);
   });
 
   it('traduce el tipo de día y el día de la semana', async () => {
-    await generar('AC');
+    await generar();
 
     const workbook = await cargarLibro((await exportar()).rawPayload);
     const cuadrante = workbook.getWorksheet('Cuadrante')!;
@@ -172,27 +188,8 @@ describe('Exportación del cuadrante a Excel', () => {
     expect(laborable.getCell(6).value).toBe(17);
   });
 
-  it('con sólo AC las columnas AP quedan vacías y no hay hoja de estadísticas AP', async () => {
-    await generar('AC');
-
-    const workbook = await cargarLibro((await exportar()).rawPayload);
-
-    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
-      'Cuadrante',
-      'Estadísticas AC',
-    ]);
-    const cuadrante = workbook.getWorksheet('Cuadrante')!;
-    expect(cuadrante.rowCount).toBe(366);
-    const fila = cuadrante.getRow(2);
-    expect(fila.getCell(4).value).toBeTruthy();
-    expect(fila.getCell(7).value).toBeNull();
-    expect(fila.getCell(8).value).toBeNull();
-    expect(fila.getCell(9).value).toBeNull();
-  });
-
   it('las hojas de estadísticas tienen una fila por médico y las columnas esperadas', async () => {
-    await generar('AC');
-    await generar('AP');
+    await generar();
 
     const workbook = await cargarLibro((await exportar()).rawPayload);
     const estadisticas = workbook.getWorksheet('Estadísticas AC')!;
@@ -205,6 +202,7 @@ describe('Exportación del cuadrante a Excel', () => {
       'Laborables',
       'Sábados',
       'Festivos',
+      'Refuerzos',
       'Ene',
       'Feb',
       'Mar',
@@ -220,7 +218,7 @@ describe('Exportación del cuadrante a Excel', () => {
     ]);
     expect(estadisticas.getRow(1).font?.bold).toBe(true);
     expect(estadisticas.rowCount).toBe(AC_POOL_4.length + 1);
-    expect(workbook.getWorksheet('Estadísticas AP')!.rowCount).toBe(AP_POOL_9.length + 1);
+    expect(workbook.getWorksheet('Estadísticas AP')!.rowCount).toBe(AP_POOL_17.length + 1);
 
     const nombres = [2, 3, 4, 5].map((numero) => estadisticas.getRow(numero).getCell(1).value);
     expect(nombres.sort()).toEqual(AC_POOL_4.map((doctor) => doctor.name).sort());
@@ -229,7 +227,7 @@ describe('Exportación del cuadrante a Excel', () => {
     for (let numero = 2; numero <= estadisticas.rowCount; numero += 1) {
       const fila = estadisticas.getRow(numero);
       const mensuales = Array.from({ length: 12 }, (_, indice) =>
-        Number(fila.getCell(8 + indice).value),
+        Number(fila.getCell(9 + indice).value),
       );
       const sumaMensual = mensuales.reduce((acumulado, valor) => acumulado + valor, 0);
       expect(sumaMensual).toBe(fila.getCell(2).value);
@@ -239,10 +237,12 @@ describe('Exportación del cuadrante a Excel', () => {
   });
 
   it('refleja una sustitución hecha con PATCH en el fichero exportado', async () => {
-    const generado = await generar('AC');
+    const [generado] = await generar();
     const dia = generado.schedule[0];
     const antiguo = dia.doctors[0].doctor_id;
-    const nuevo = AC_POOL_4.find((doctor) => doctor.id !== antiguo)!;
+    const nuevo = AC_POOL_4.find(
+      (doctor) => !dia.doctors.some((ref: { doctor_id: string }) => ref.doctor_id === doctor.id),
+    )!;
 
     const sustitucion = await app.inject({
       method: 'PATCH',

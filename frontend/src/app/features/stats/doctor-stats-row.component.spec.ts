@@ -150,4 +150,28 @@ describe('DoctorStatsRowComponent', () => {
     expect(holidayBadge).toBeTruthy();
     expect(holidayBadge.textContent).toContain('4');
   });
+
+  it('muestra la insignia de refuerzos sólo si el médico ha hecho alguno', () => {
+    fixture.componentRef.setInput('stats', mockStats);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.shift-badge.refuerzo')).toBeNull();
+
+    fixture.componentRef.setInput('stats', { ...mockStats, shifts_refuerzo: 3 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.shift-badge.refuerzo').textContent.trim()).toBe('Ref: 3');
+  });
+
+  it('resalta en AC el mes por debajo del mínimo de 135h', () => {
+    fixture.componentRef.setInput('stats', mockStats);
+    fixture.componentRef.setInput('rotaType', 'AC');
+    fixture.componentRef.setInput('currentMonth', 2);
+    fixture.detectChanges();
+    const month = fixture.nativeElement.querySelector('.month-hours');
+    expect(month.classList.contains('negative')).toBe(true);
+    expect(month.getAttribute('title')).toBe('Mínimo mensual: 135h');
+
+    fixture.componentRef.setInput('currentMonth', 1);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.month-hours').classList.contains('negative')).toBe(false);
+  });
 });
