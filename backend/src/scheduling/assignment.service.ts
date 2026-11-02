@@ -2,6 +2,7 @@ import { addDays, compareIsoDates, getIsoWeekday, toIsoDate } from '../common/da
 import { isSanidadSpecialHoliday } from '../common/sanidad-holidays';
 import { InfeasiblePoolError } from './errors';
 import { apShiftDetails, effectiveDayInfo } from './shifts';
+import { RandomSource, shuffle } from './shuffle';
 import { calculateStats } from './stats.service';
 import {
   AssignmentStrategyId,
@@ -100,6 +101,7 @@ function assignRota(
   dayBeforeYear: DayInfo | undefined,
   strategyId: AssignmentStrategyId,
   reservedRefuerzosByDay: number[] = [],
+  random?: RandomSource,
 ): AssignedRota {
   const effectiveDays = dayClassifications.map((day) => effectiveDayInfo(rotaType, day));
 
@@ -126,8 +128,10 @@ function assignRota(
     );
   }
 
+  // La estrategia recibe el grupo barajado para que el primer médico de la rotación
+  // no sea siempre el mismo; `pool` conserva el orden original (estadísticas, persistencia).
   const assigned = getAssignmentStrategy(strategyId).assign({
-    pool,
+    pool: random ? shuffle(pool, random) : pool,
     days: effectiveDays,
     requiredByDay,
     refuerzosByDay,
@@ -316,6 +320,7 @@ function finalizeRota(rota: AssignedRota, extraWarnings: string[] = []): RotaSch
 /**
  * Genera un único cuadrante sin interacción con el otro grupo: AC sólo con su guardia
  * diaria y AP con su guardia y todos los refuerzos. El producto usa `generateRotas`.
+ * Con `random`, el grupo se baraja antes de asignar; sin él, el resultado es determinista.
  */
 export function generateRota(
   year: number,
@@ -324,6 +329,7 @@ export function generateRota(
   dayClassifications: DayInfo[],
   dayBeforeYear?: DayInfo,
   strategyId: AssignmentStrategyId | null = DEFAULT_ASSIGNMENT_STRATEGY,
+  random?: RandomSource,
 ): RotaSchedule {
   return finalizeRota(
     assignRota(
@@ -333,6 +339,8 @@ export function generateRota(
       dayClassifications,
       dayBeforeYear,
       strategyId ?? DEFAULT_ASSIGNMENT_STRATEGY,
+      [],
+      random,
     ),
   );
 }
@@ -341,7 +349,8 @@ export function generateRota(
  * Genera los cuadrantes AC y AP del año de una sola vez. Cada día hay una guardia AC,
  * una guardia AP y uno o dos refuerzos (`refuerzosForDay`). Los refuerzos los cubre AP
  * salvo los que necesita un AC para llegar a sus horas mensuales (`planAcRefuerzos`),
- * que se reservan antes de asignar AP.
+ * que se reservan antes de asignar AP. Con `random`, cada grupo se baraja antes de
+ * asignar para no empezar siempre por el mismo médico; sin él, el resultado es determinista.
  */
 export function generateRotas(
   year: number,
@@ -350,9 +359,19 @@ export function generateRotas(
   dayClassifications: DayInfo[],
   dayBeforeYear?: DayInfo,
   strategyId: AssignmentStrategyId | null = DEFAULT_ASSIGNMENT_STRATEGY,
+  random?: RandomSource,
 ): { ac: RotaSchedule; ap: RotaSchedule } {
   const strategy = strategyId ?? DEFAULT_ASSIGNMENT_STRATEGY;
-  const acRota = assignRota(year, 'AC', acPool, dayClassifications, dayBeforeYear, strategy);
+  const acRota = assignRota(
+    year,
+    'AC',
+    acPool,
+    dayClassifications,
+    dayBeforeYear,
+    strategy,
+    [],
+    random,
+  );
   const { reservedByDay, warnings } = planAcRefuerzos(acRota, dayClassifications, dayBeforeYear);
   const apRota = assignRota(
     year,
@@ -362,6 +381,7 @@ export function generateRotas(
     dayBeforeYear,
     strategy,
     reservedByDay,
+    random,
   );
 
   return { ac: finalizeRota(acRota, warnings), ap: finalizeRota(apRota) };
