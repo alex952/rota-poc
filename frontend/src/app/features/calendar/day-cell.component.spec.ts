@@ -195,8 +195,11 @@ describe('DayCellComponent', () => {
     for (const pill of refuerzos) {
       expect(pill.classList.contains('refuerzo')).toBe(true);
     }
+    // Cada refuerzo lleva el color de su grupo: AP verde, AC azul.
+    expect(refuerzos[0].classList.contains('refuerzo-ap')).toBe(true);
     expect(refuerzos[0].classList.contains('refuerzo-ac')).toBe(false);
     expect(refuerzos[1].classList.contains('refuerzo-ac')).toBe(true);
+    expect(refuerzos[1].classList.contains('refuerzo-ap')).toBe(false);
     expect(refuerzos[1].getAttribute('title')).toBe(
       'Refuerzo de un médico AC para completar sus horas del mes',
     );

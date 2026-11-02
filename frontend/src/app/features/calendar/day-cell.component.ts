@@ -64,6 +64,7 @@ export interface DayContextMenuEvent {
                 <span
                   class="doctor-pill refuerzo clickable"
                   [class.refuerzo-ac]="ref.fromAc"
+                  [class.refuerzo-ap]="!ref.fromAc"
                   [attr.title]="ref.fromAc ? 'Refuerzo de un médico AC para completar sus horas del mes' : null"
                   (click)="onDoctorClick($event, ref.doctor)"
                 >{{ ref.doctor.doctor_name }}@if (ref.fromAc) { (AC)}</span>
@@ -240,9 +241,10 @@ export interface DayContextMenuEvent {
       color: #e65100;
     }
 
-    .refuerzo-section .doctor-pill {
-      background: #ffe0b2;
-      color: #bf360c;
+    /* Cada refuerzo conserva el color de su grupo: verde AP, azul AC */
+    .refuerzo-section .doctor-pill.refuerzo-ap {
+      background: #c8e6c9;
+      color: #1b5e20;
     }
 
     .refuerzo-section .doctor-pill.refuerzo-ac {

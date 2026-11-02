@@ -94,7 +94,7 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 ### Renderizado del calendario
 
 - **Sección AC** muestra el médico AC del día.
-- La celda tiene tres bloques: **AC** (guardia AC), **AP** (guardia AP) y **REFUERZO**, con cada refuerzo prefijado `R:` (pseudo-elemento `::before`); el refuerzo de un AC lleva el sufijo `(AC)` y otro color. Un festivo especial lleva la clase `day-holiday-special` (estrella y borde morado), y su menú contextual no permite desmarcarlo.
+- La celda tiene tres bloques: **AC** (guardia AC), **AP** (guardia AP) y **REFUERZO**, con cada refuerzo prefijado `R:` (pseudo-elemento `::before`); el bloque es naranja y cada refuerzo lleva el color de su grupo (verde AP, azul AC, que además lleva el sufijo `(AC)`). Un festivo especial lleva la clase `day-holiday-special` (estrella y borde morado), y su menú contextual no permite desmarcarlo.
 
 ## Desarrollo Local
 
