@@ -49,11 +49,25 @@ function run(days: DayInfo[], required: number[] = days.map(() => 1), doctors = 
 }
 
 // Mecánica pura de las ruedas: punteros explícitos a 0 (no el arranque escalonado del producto).
-function runFromZero(days: DayInfo[], required: number[] = days.map(() => 1), doctors = pool): string[][] {
+function runFromZero(
+  days: DayInfo[],
+  required: number[] = days.map(() => 1),
+  doctors = pool,
+  options: { breakWeeklyResonance?: boolean } = {},
+): string[][] {
   return assignWithWheels(
     { pool: doctors, days, requiredByDay: required },
     { weekday: 0, saturday: 0, sunday: 0, holiday: 0 },
+    options,
   ).map((chosen) => chosen.map((doctor) => doctor.id));
+}
+
+// Días consecutivos desde `startIso`; `holidays` son fechas festivas entre semana.
+function range(startIso: string, count: number, holidays: string[] = []): DayInfo[] {
+  return Array.from({ length: count }, (_, i) => {
+    const iso = toIsoDate(addDaysUtc(startIso, i));
+    return day(iso, holidays.includes(iso));
+  });
 }
 
 function poolOf(size: number): DoctorInput[] {
@@ -178,7 +192,8 @@ describe('Estrategia de ruedas (wheels)', () => {
       // 9), acumulando dos deudas. En la semana 10 un festivo desplaza la fase y E queda
       // libre: debe recuperar sus dos turnos seguidos (semanas 10 y 11), no sólo uno.
       const days = weeks(12, 9);
-      const assigned = runFromZero(days, days.map(() => 1), five);
+      // Sin la corrección de resonancia: este test la usa para provocar las deudas.
+      const assigned = runFromZero(days, days.map(() => 1), five, { breakWeeklyResonance: false });
       const saturdayDoctors = days
         .map((d, index) => (d.date.getUTCDay() === 6 ? assigned[index][0] : null))
         .filter((id) => id !== null);
@@ -191,48 +206,85 @@ describe('Estrategia de ruedas (wheels)', () => {
       const days = weeks(12, 9);
       // El sábado de la semana 10 (E con dos deudas) requiere 2 médicos.
       const required = days.map((d, index) => (index === 9 * 6 + 5 ? 2 : 1));
-      const assigned = runFromZero(days, required, five);
+      const assigned = runFromZero(days, required, five, { breakWeeklyResonance: false });
       const chosen = assigned[9 * 6 + 5];
       expect(chosen).toHaveLength(2);
       expect(new Set(chosen).size).toBe(2);
       expect(chosen).toContain('E');
     });
 
-    it('limitación conocida (resonancia): AC de 5 médicos sin festivos, el de los viernes no hace sábados', () => {
-      // Los festivos especiales de sanidad (1 y 6 ene, 24, 25 y 31 dic) son siempre festivo:
-      // se mira el tramo del 7 de enero al 23 de diciembre, sin ningún festivo.
-      // Con 5 laborables por semana y 5 médicos la rueda de laborables da una vuelta
-      // exacta cada semana, así que el viernes lo hace siempre el mismo médico. Como
-      // el descanso le impide hacer el sábado, la rueda de sábados lo salta una y otra
-      // vez y sólo acumula deuda: nunca llega a recuperarla mientras dure la resonancia.
-      // Se documenta como limitación conocida del método (ver docs/ALGORITHM.md). El arranque
-      // escalonado de producción sólo desplaza la fase de la rueda de sábados: el viernes sigue
-      // siendo siempre el mismo médico y el descanso le sigue impidiendo el sábado, así que la
-      // limitación se mantiene.
-      const rota = generateRota(
-        YEAR_2026,
-        'AC',
-        five,
-        classifyYear(YEAR_2026, new Set()),
-        undefined,
-        'wheels',
-      );
-      const fridays = new Map<string, number>();
-      const saturdays = new Map<string, number>();
-      const window = rota.schedule.filter((entry) => {
-        const iso = toIsoDate(entry.date);
-        return iso >= '2026-01-07' && iso <= '2026-12-23';
-      });
-      for (const entry of window) {
-        const weekday = entry.date.getUTCDay();
-        const target = weekday === 5 ? fridays : weekday === 6 ? saturdays : null;
-        for (const doctor of entry.doctors) {
-          target?.set(doctor.doctorId, (target.get(doctor.doctorId) ?? 0) + 1);
-        }
+  });
+
+  describe('corrección de la resonancia con 5 médicos', () => {
+    const five = poolOf(5);
+    const ids = five.map((doctor) => doctor.id);
+
+    it('el lunes de cada semana de 5 laborables salta un puesto sin apuntar deuda', () => {
+      // Lunes 12 a viernes 23 de enero de 2026, sin festivos.
+      const days = range('2026-01-12', 12).filter((d) => d.date.getUTCDay() !== 0 && d.date.getUTCDay() !== 6);
+      // Sin corrección la semana se repetiría (M0..M4, M0..M4). Con ella, cada lunes empieza
+      // un médico más allá y el saltado (M0) no pasa por delante el martes: no hay deuda.
+      expect(runFromZero(days, undefined, five)).toEqual([
+        ['M1'], ['M2'], ['M3'], ['M4'], ['M0'],
+        ['M2'], ['M3'], ['M4'], ['M0'], ['M1'],
+      ]);
+      expect(runFromZero(days, undefined, five, { breakWeeklyResonance: false })).toEqual([
+        ['M0'], ['M1'], ['M2'], ['M3'], ['M4'],
+        ['M0'], ['M1'], ['M2'], ['M3'], ['M4'],
+      ]);
+    });
+
+    it('no salta en una semana con un festivo entre semana', () => {
+      // Miércoles 14 de enero festivo: la semana sólo tiene 4 laborables.
+      const days = range('2026-01-12', 5, ['2026-01-14']);
+      expect(runFromZero(days, undefined, five)).toEqual([['M0'], ['M1'], ['M0'], ['M2'], ['M3']]);
+    });
+
+    it('no salta si la semana no está completa en el calendario (fin de año)', () => {
+      // Lunes 28 a jueves 31 de diciembre: el viernes ya es del año siguiente.
+      const days = range('2026-12-28', 4);
+      expect(runFromZero(days, undefined, five).flat()).toEqual(['M0', 'M1', 'M2', 'M3']);
+    });
+
+    it('en un año completo reparte los viernes y nadie encadena más de 3', () => {
+      const rota = generateRota(YEAR_2026, 'AC', five, classifyYear(YEAR_2026, new Set()), undefined, 'wheels');
+      const fridays = rota.schedule.filter((entry) => entry.date.getUTCDay() === 5 && entry.dayType === 'weekday');
+      const perDoctor = ids.map((id) => fridays.filter((entry) => entry.doctors[0].doctorId === id).length);
+      expect(Math.max(...perDoctor) - Math.min(...perDoctor)).toBeLessThanOrEqual(3);
+
+      let streak = 1;
+      let longest = 1;
+      for (let i = 1; i < fridays.length; i += 1) {
+        streak = fridays[i].doctors[0].doctorId === fridays[i - 1].doctors[0].doctorId ? streak + 1 : 1;
+        longest = Math.max(longest, streak);
       }
-      expect(fridays.size).toBe(1);
-      const [fridayDoctor] = [...fridays.keys()];
-      expect(saturdays.get(fridayDoctor) ?? 0).toBe(0);
+      expect(longest).toBeLessThanOrEqual(3);
+
+      // Sin perder guardias: el total por médico sigue igual de repartido.
+      const totals = ids.map((id) => rota.schedule.filter((entry) => entry.doctors[0].doctorId === id).length);
+      expect(Math.max(...totals) - Math.min(...totals)).toBeLessThanOrEqual(2);
+    });
+
+    it('también gira la rueda de refuerzo', () => {
+      const days = range('2026-01-12', 70).filter((d) => d.date.getUTCDay() !== 0);
+      const assigned = assignWithWheels(
+        { pool: five, days, requiredByDay: days.map(() => 2), refuerzosByDay: days.map(() => 1) },
+        staggeredInitialPointers(5),
+      );
+      const fridayRefuerzos = new Set(
+        days.flatMap((d, i) => (d.date.getUTCDay() === 5 ? [assigned[i][1].id] : [])),
+      );
+      expect(fridayRefuerzos.size).toBeGreaterThanOrEqual(3);
+    });
+
+    it.each([4, 17])('con %i médicos el cuadrante es idéntico con o sin la corrección', (n) => {
+      const doctors = poolOf(n);
+      const days = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
+      const input = { pool: doctors, days, requiredByDay: days.map(() => 2), refuerzosByDay: days.map(() => 1) };
+      const pointers = staggeredInitialPointers(n);
+      expect(assignWithWheels(input, pointers)).toEqual(
+        assignWithWheels(input, pointers, { breakWeeklyResonance: false }),
+      );
     });
   });
 

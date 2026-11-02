@@ -89,10 +89,14 @@ export function staggeredInitialPointers(poolSize: number): Record<WheelId, numb
  * refuerzo de un mismo día no recaigan en médicos contiguos de la lista. Cada día se
  * cubren primero las guardias y después los refuerzos; un médico elegido para la
  * guardia no está disponible para el refuerzo de ese día.
+ *
+ * `breakWeeklyResonance` (activada por defecto) aplica la corrección de la
+ * resonancia semanal; ver `startsFullWorkWeek`.
  */
 export function assignWithWheels(
   input: StrategyInput,
   initialPointers: Partial<Record<WheelId, number>> = {},
+  { breakWeeklyResonance = true }: { breakWeeklyResonance?: boolean } = {},
 ): DoctorInput[][] {
   const { pool, days } = input;
   const size = pool.length;
@@ -115,6 +119,18 @@ export function assignWithWheels(
   const result: DoctorInput[][] = [];
 
   for (const [dayIndex, day] of days.entries()) {
+    // Corrección de la resonancia: con tantos médicos como laborables tiene la semana, la
+    // rueda de laborables da una vuelta exacta cada semana y cada médico cae siempre el
+    // mismo día (el del viernes no llega nunca al sábado). Como se hace a mano, el lunes
+    // de cada semana de 5 laborables se salta un puesto SIN apuntar deuda: el saltado
+    // hace el viernes, así que nadie pierde guardias y el día de cada uno va rotando.
+    if (breakWeeklyResonance && size === WORKDAYS_PER_WEEK && startsFullWorkWeek(days, dayIndex)) {
+      for (const role of ["guardia", "refuerzo"] as const) {
+        const wheel = wheelsByRole[role].weekday;
+        wheel.pointer = (wheel.pointer + 1) % size;
+      }
+    }
+
     const currentDate = toIsoDate(day.date);
     const previousDate = addDays(currentDate, -1);
     const slots = splitSlots(input, dayIndex);
@@ -207,4 +223,29 @@ export function assignWithWheels(
   }
 
   return result;
+}
+
+const WORKDAYS_PER_WEEK = 5;
+
+/**
+ * Cierto si `days[index]` es un lunes y los cinco días siguientes del calendario (lunes a
+ * viernes) son laborables que van a la rueda de laborables. Una semana con un festivo entre
+ * semana ya descoloca la rueda por sí sola, y una semana partida (fin de año) no se toca.
+ */
+export function startsFullWorkWeek(days: DayInfo[], index: number): boolean {
+  const monday = days[index];
+  if (!monday || monday.date.getUTCDay() !== 1) {
+    return false;
+  }
+  for (let offset = 0; offset < WORKDAYS_PER_WEEK; offset += 1) {
+    const candidate = days[index + offset];
+    if (
+      !candidate ||
+      toIsoDate(candidate.date) !== addDays(toIsoDate(monday.date), offset) ||
+      wheelForDay(candidate) !== "weekday"
+    ) {
+      return false;
+    }
+  }
+  return true;
 }

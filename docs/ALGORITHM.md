@@ -211,9 +211,19 @@ Alternativa a la selección equilibrada, elegida con `strategy: "wheels"` en `PO
 
 **Compromisos.** El reparto por rueda es exacto (±1) mientras no haya choques; los choques se compensan con la cola de pendientes, pero no se optimiza el equilibrio global de horas, por lo que los avisos de horas pueden aparecer con más frecuencia que con `balanced`.
 
-### Limitación conocida: resonancia
+### Resonancia semanal y su corrección
 
-Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables da un número exacto de vueltas por semana y el mismo médico cae siempre en el mismo día de la semana. Caso típico: un grupo de 5 (o un múltiplo de 5 con 5 laborables por semana y sin festivos entre semana) hace que la rueda de laborables dé una vuelta exacta cada semana, de modo que el viernes lo hace siempre el mismo médico. Ese médico no está descansado el sábado, así que la rueda de sábados lo salta cada vez que le toca y sólo acumula deuda: no puede recuperarla mientras dure la resonancia, y sus sábados quedan en cero (con AC de 5 médicos y 2026 sin festivos, el que hace todos los viernes no hace ningún sábado). La resonancia se rompe cuando un festivo entre semana o un cambio de tamaño de grupo desplaza la fase; entonces el médico deudor encadena los turnos debidos en los sábados siguientes. Es una limitación conocida del método de ruedas, documentada por una prueba; `balanced` no la sufre porque elige por recuento.
+Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables da un número exacto de vueltas por semana y el mismo médico cae siempre en el mismo día de la semana. Con **5 médicos** y semanas de 5 laborables, la rueda da una vuelta exacta cada semana: el viernes lo hace siempre el mismo médico, que además nunca está descansado el sábado. Sin corrección, con AC de 5 médicos en 2026 (festivos de la Comunidad Valenciana) un médico hace **25 viernes, 15 de ellos seguidos**, frente a 2–8 del resto.
+
+**Corrección** (`breakWeeklyResonance`, activada por defecto en `assignWithWheels`): si el grupo tiene **exactamente 5 médicos**, el **lunes de cada semana con 5 laborables** el puntero de la rueda de laborables avanza un puesto antes de asignar, en el juego de guardia y en el de refuerzo. Al médico saltado **no se le apunta deuda**: no es un conflicto de descanso sino un giro del orden, igual que hace a mano quien prepara el cuadrante. Se aplica todo el año, desde la primera semana completa.
+
+- En una semana completa el saltado hace el viernes, así que nadie pierde guardias: el día de cada médico va rotando semana a semana.
+- No se salta en semanas con un festivo entre semana (ya descolocan la rueda por sí solas y saltar quitaría una guardia al saltado) ni en semanas partidas por el fin de año (`startsFullWorkWeek`).
+- Resultado en el mismo caso: viernes 9/10/11/10/8 por médico, como mucho 2 seguidos, y guardias totales 71–74 (antes 72–74).
+- Con cualquier otro tamaño de grupo el cuadrante es idéntico al de antes. Un grupo de 10 tiene una resonancia de dos semanas que este salto no corrige sin quitar guardias; no hay grupos de ese tamaño y queda fuera de alcance.
+
+`balanced` no sufre la resonancia porque elige por recuento.
+
 
 ---
 
