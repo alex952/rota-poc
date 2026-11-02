@@ -1,0 +1,5584 @@
+{
+  "meta": {
+    "executedAt": "2026-10-19T13:28:46.246Z",
+    "commit": "be07f7d",
+    "city": "Alicante",
+    "holidaysSource": "hardcodeado (FALLBACK_HOLIDAYS en el script)"
+  },
+  "holidays": {
+    "2026": [
+      {
+        "date": "2026-01-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-01-06",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-03-19",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-04-02",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-04-03",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-04-06",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-05-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-08-15",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-10-09",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-10-12",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-11-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-12-06",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-12-08",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2026-12-25",
+        "name": "hardcodeado"
+      }
+    ],
+    "2027": [
+      {
+        "date": "2027-01-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-01-06",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-03-19",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-03-25",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-03-26",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-03-29",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-05-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-08-15",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-10-09",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-10-12",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-11-01",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-12-06",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-12-08",
+        "name": "hardcodeado"
+      },
+      {
+        "date": "2027-12-25",
+        "name": "hardcodeado"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "year": 2026,
+      "rotaType": "AC",
+      "groupSize": 3,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 2213.33,
+            "std": 9.74,
+            "min": 2200,
+            "max": 2223,
+            "range": 23,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 2223,
+              "doc-002": 2217,
+              "doc-003": 2200
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 83,
+                "doc-002": 84,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 17,
+              "max": 17,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 17,
+                "doc-003": 17
+              }
+            },
+            "sunday": {
+              "min": 15,
+              "max": 18,
+              "range": 3,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 18,
+                "doc-003": 15
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 6,
+              "range": 3,
+              "perDoctor": {
+                "doc-001": 5,
+                "doc-002": 3,
+                "doc-003": 6
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3,
+            "meanStdPerDoctor": 0.89,
+            "gaps2days": 114
+          },
+          "monthly": {
+            "meanStd": 11.88,
+            "maxStd": 13.68,
+            "maxMonthlyHours": 207
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        },
+        "wheels": {
+          "hours": {
+            "mean": 2213.33,
+            "std": 9.74,
+            "min": 2200,
+            "max": 2223,
+            "range": 23,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 2217,
+              "doc-002": 2200,
+              "doc-003": 2223
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 84,
+                "doc-002": 83,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 17,
+              "max": 17,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 17,
+                "doc-003": 17
+              }
+            },
+            "sunday": {
+              "min": 16,
+              "max": 17,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 16,
+                "doc-002": 17,
+                "doc-003": 17
+              }
+            },
+            "holiday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 5,
+                "doc-002": 4,
+                "doc-003": 5
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3,
+            "meanStdPerDoctor": 0.92,
+            "gaps2days": 104
+          },
+          "monthly": {
+            "meanStd": 16.42,
+            "maxStd": 20.25,
+            "maxMonthlyHours": 224
+          },
+          "assignments": 365,
+          "totalHours": 6640,
+          "skipRuleImpactDays": 74
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 2213.33,
+            "std": 33.59,
+            "min": 2177,
+            "max": 2258,
+            "range": 81,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-001": 2258,
+              "doc-002": 2205,
+              "doc-003": 2177
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 84,
+                "doc-002": 83,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 16,
+              "max": 18,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 18,
+                "doc-002": 16,
+                "doc-003": 17
+              }
+            },
+            "sunday": {
+              "min": 16,
+              "max": 17,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 17,
+                "doc-003": 16
+              }
+            },
+            "holiday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 5,
+                "doc-002": 5,
+                "doc-003": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 2.99,
+            "meanStdPerDoctor": 1,
+            "gaps2days": 120
+          },
+          "monthly": {
+            "meanStd": 14.35,
+            "maxStd": 16.78,
+            "maxMonthlyHours": 206
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        }
+      },
+      "concordancePct": 37.81,
+      "pureWheel": {
+        "restViolations": 46,
+        "satAndSunSameDoctor": 5,
+        "friSatSunSameDoctor": 2
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AC",
+      "groupSize": 4,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1660,
+            "std": 7.52,
+            "min": 1655,
+            "max": 1673,
+            "range": 18,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1673,
+              "doc-002": 1656,
+              "doc-003": 1655,
+              "doc-004": 1656
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 62,
+                "doc-003": 63,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 13,
+                "doc-003": 12,
+                "doc-004": 13
+              }
+            },
+            "sunday": {
+              "min": 11,
+              "max": 15,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 12,
+                "doc-002": 11,
+                "doc-003": 15,
+                "doc-004": 12
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 5,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 5,
+                "doc-003": 1,
+                "doc-004": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3.99,
+            "meanStdPerDoctor": 1.57,
+            "gaps2days": 80
+          },
+          "monthly": {
+            "meanStd": 10.2,
+            "maxStd": 10.56,
+            "maxMonthlyHours": 161
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1660,
+            "std": 11.2,
+            "min": 1650,
+            "max": 1679,
+            "range": 29,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1655,
+              "doc-002": 1650,
+              "doc-003": 1656,
+              "doc-004": 1679
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 63,
+                "doc-003": 62,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 12,
+                "doc-002": 13,
+                "doc-003": 13,
+                "doc-004": 13
+              }
+            },
+            "sunday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 12,
+                "doc-002": 12,
+                "doc-003": 13,
+                "doc-004": 13
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 3,
+                "doc-003": 3,
+                "doc-004": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4,
+            "meanStdPerDoctor": 1.53,
+            "gaps2days": 70
+          },
+          "monthly": {
+            "meanStd": 12.71,
+            "maxStd": 14.51,
+            "maxMonthlyHours": 172
+          },
+          "assignments": 365,
+          "totalHours": 6640,
+          "skipRuleImpactDays": 23
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1660,
+            "std": 25.87,
+            "min": 1633,
+            "max": 1696,
+            "range": 63,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-001": 1696,
+              "doc-002": 1673,
+              "doc-003": 1638,
+              "doc-004": 1633
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 63,
+                "doc-003": 62,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 13,
+                "doc-003": 12,
+                "doc-004": 13
+              }
+            },
+            "sunday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 13,
+                "doc-003": 12,
+                "doc-004": 12
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 3,
+                "doc-003": 4,
+                "doc-004": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3.98,
+            "meanStdPerDoctor": 1.6,
+            "gaps2days": 87
+          },
+          "monthly": {
+            "meanStd": 10.43,
+            "maxStd": 11.69,
+            "maxMonthlyHours": 167
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        }
+      },
+      "concordancePct": 29.59,
+      "pureWheel": {
+        "restViolations": 20,
+        "satAndSunSameDoctor": 4,
+        "friSatSunSameDoctor": 1
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AC",
+      "groupSize": 5,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1328,
+            "std": 2,
+            "min": 1324,
+            "max": 1329,
+            "range": 5,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1324,
+              "doc-002": 1329,
+              "doc-003": 1329,
+              "doc-004": 1329,
+              "synth-AC-5": 1329
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1460,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado grande para AC: el objetivo de 8100h supera la capacidad anual de cobertura de 6640h. 5 médicos quedan por debajo del mínimo de 1620h; faltan 1460h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 50,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 11,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 11,
+              "range": 3,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 11,
+                "doc-003": 10,
+                "doc-004": 11,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 4,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 2,
+                "doc-003": 3,
+                "doc-004": 2,
+                "synth-AC-5": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5,
+            "meanStdPerDoctor": 1.41,
+            "gaps2days": 30
+          },
+          "monthly": {
+            "meanStd": 9.47,
+            "maxStd": 13.91,
+            "maxMonthlyHours": 132
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1328,
+            "std": 2,
+            "min": 1324,
+            "max": 1329,
+            "range": 5,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1329,
+              "doc-002": 1329,
+              "doc-003": 1324,
+              "doc-004": 1329,
+              "synth-AC-5": 1329
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1460,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado grande para AC: el objetivo de 8100h supera la capacidad anual de cobertura de 6640h. 5 médicos quedan por debajo del mínimo de 1620h; faltan 1460h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 50,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 11,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 10,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 2,
+                "doc-004": 3,
+                "synth-AC-5": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5,
+            "meanStdPerDoctor": 2.06,
+            "gaps2days": 67
+          },
+          "monthly": {
+            "meanStd": 18.2,
+            "maxStd": 29.37,
+            "maxMonthlyHours": 154
+          },
+          "assignments": 365,
+          "totalHours": 6640,
+          "skipRuleImpactDays": 89
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1328,
+            "std": 13.02,
+            "min": 1306,
+            "max": 1347,
+            "range": 41,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1347,
+              "doc-002": 1329,
+              "doc-003": 1329,
+              "doc-004": 1329,
+              "synth-AC-5": 1306
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1460,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 50,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 11,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 10,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 3,
+                "doc-004": 3,
+                "synth-AC-5": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.96,
+            "meanStdPerDoctor": 2.02,
+            "gaps2days": 60
+          },
+          "monthly": {
+            "meanStd": 18.49,
+            "maxStd": 30.83,
+            "maxMonthlyHours": 168
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        }
+      },
+      "concordancePct": 19.45,
+      "pureWheel": {
+        "restViolations": 32,
+        "satAndSunSameDoctor": 4,
+        "friSatSunSameDoctor": 1
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AC",
+      "groupSize": 6,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1106.67,
+            "std": 6.16,
+            "min": 1094,
+            "max": 1112,
+            "range": 18,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1112,
+              "doc-002": 1094,
+              "doc-003": 1106,
+              "doc-004": 1106,
+              "synth-AC-5": 1111,
+              "synth-AC-6": 1111
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3080,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 6 médicos es demasiado grande para AC: el objetivo de 9720h supera la capacidad anual de cobertura de 6640h. 6 médicos quedan por debajo del mínimo de 1620h; faltan 3080h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 41,
+                "doc-002": 41,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 42,
+                "synth-AC-6": 42
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 9,
+                "doc-002": 8,
+                "doc-003": 9,
+                "doc-004": 9,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 7,
+              "max": 10,
+              "range": 3,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 8,
+                "doc-003": 9,
+                "doc-004": 10,
+                "synth-AC-5": 8,
+                "synth-AC-6": 7
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 4,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 1,
+                "doc-004": 0,
+                "synth-AC-5": 3,
+                "synth-AC-6": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.99,
+            "meanStdPerDoctor": 2.27,
+            "gaps2days": 34
+          },
+          "monthly": {
+            "meanStd": 9.43,
+            "maxStd": 14.1,
+            "maxMonthlyHours": 109
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1106.67,
+            "std": 17.78,
+            "min": 1071,
+            "max": 1129,
+            "range": 58,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-001": 1111,
+              "doc-002": 1106,
+              "doc-003": 1106,
+              "doc-004": 1129,
+              "synth-AC-5": 1117,
+              "synth-AC-6": 1071
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3080,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 6 médicos es demasiado grande para AC: el objetivo de 9720h supera la capacidad anual de cobertura de 6640h. 6 médicos quedan por debajo del mínimo de 1620h; faltan 3080h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 42,
+                "doc-002": 42,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 41,
+                "synth-AC-6": 41
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 9,
+                "doc-003": 9,
+                "doc-004": 9,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 8,
+                "doc-003": 8,
+                "doc-004": 9,
+                "synth-AC-5": 9,
+                "synth-AC-6": 8
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 2,
+                "doc-003": 2,
+                "doc-004": 2,
+                "synth-AC-5": 3,
+                "synth-AC-6": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.99,
+            "meanStdPerDoctor": 2.67,
+            "gaps2days": 63
+          },
+          "monthly": {
+            "meanStd": 15.78,
+            "maxStd": 19.21,
+            "maxMonthlyHours": 132
+          },
+          "assignments": 365,
+          "totalHours": 6640,
+          "skipRuleImpactDays": 44
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1106.67,
+            "std": 40.15,
+            "min": 1048,
+            "max": 1152,
+            "range": 104,
+            "cv": 0.04,
+            "perDoctor": {
+              "doc-001": 1152,
+              "doc-002": 1129,
+              "doc-003": 1152,
+              "doc-004": 1088,
+              "synth-AC-5": 1071,
+              "synth-AC-6": 1048
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3080,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 42,
+                "doc-002": 42,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 41,
+                "synth-AC-6": 41
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 9,
+                "doc-002": 9,
+                "doc-003": 9,
+                "doc-004": 8,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 9,
+                "doc-002": 8,
+                "doc-003": 9,
+                "doc-004": 8,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 3,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 3,
+                "doc-004": 2,
+                "synth-AC-5": 2,
+                "synth-AC-6": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.93,
+            "meanStdPerDoctor": 2.7,
+            "gaps2days": 69
+          },
+          "monthly": {
+            "meanStd": 22.04,
+            "maxStd": 27.91,
+            "maxMonthlyHours": 132
+          },
+          "assignments": 365,
+          "totalHours": 6640
+        }
+      },
+      "concordancePct": 19.45,
+      "pureWheel": {
+        "restViolations": 23,
+        "satAndSunSameDoctor": 1,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AP",
+      "groupSize": 5,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 584.6,
+            "std": 4.72,
+            "min": 576,
+            "max": 588,
+            "range": 12,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 583,
+              "doc-022": 588,
+              "doc-023": 576,
+              "doc-024": 588,
+              "doc-025": 588
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 798,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado pequeño para AP: la cobertura anual de 2923h supera el máximo de 425h por médico (se necesitan al menos 7 médicos). 5 médicos quedan por encima del máximo de 425h; sobran 798h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 50,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 10,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 13,
+              "range": 5,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 8,
+                "doc-023": 11,
+                "doc-024": 13,
+                "doc-025": 8
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 6,
+              "range": 5,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 6,
+                "doc-023": 2,
+                "doc-024": 1,
+                "doc-025": 6
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.94,
+            "meanStdPerDoctor": 1.54,
+            "gaps2days": 35
+          },
+          "monthly": {
+            "meanStd": 6.14,
+            "maxStd": 7.38,
+            "maxMonthlyHours": 66
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        },
+        "wheels": {
+          "hours": {
+            "mean": 584.6,
+            "std": 4.72,
+            "min": 576,
+            "max": 588,
+            "range": 12,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 576,
+              "doc-022": 583,
+              "doc-023": 588,
+              "doc-024": 588,
+              "doc-025": 588
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 798,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado pequeño para AP: la cobertura anual de 2923h supera el máximo de 425h por médico (se necesitan al menos 7 médicos). 5 médicos quedan por encima del máximo de 425h; sobran 798h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 50,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 10,
+                "doc-022": 11,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 10,
+                "doc-022": 10,
+                "doc-023": 11,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 4,
+                "doc-025": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.93,
+            "meanStdPerDoctor": 2.03,
+            "gaps2days": 67
+          },
+          "monthly": {
+            "meanStd": 9.54,
+            "maxStd": 10.75,
+            "maxMonthlyHours": 71
+          },
+          "assignments": 369,
+          "totalHours": 2923,
+          "skipRuleImpactDays": 86
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 584.6,
+            "std": 12.13,
+            "min": 576,
+            "max": 607,
+            "range": 31,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 607,
+              "doc-022": 588,
+              "doc-023": 576,
+              "doc-024": 576,
+              "doc-025": 576
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 798,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 50,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 50,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 10,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 10,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.91,
+            "meanStdPerDoctor": 1.99,
+            "gaps2days": 66
+          },
+          "monthly": {
+            "meanStd": 8.65,
+            "maxStd": 11.93,
+            "maxMonthlyHours": 71
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        }
+      },
+      "concordancePct": 19.45,
+      "pureWheel": {
+        "restViolations": 26,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AP",
+      "groupSize": 8,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 365.38,
+            "std": 2.69,
+            "min": 362,
+            "max": 369,
+            "range": 7,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 362,
+              "doc-022": 362,
+              "doc-023": 367,
+              "doc-024": 367,
+              "doc-025": 367,
+              "doc-026": 362,
+              "doc-027": 367,
+              "doc-028": 369
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 31,
+                "doc-022": 31,
+                "doc-023": 31,
+                "doc-024": 31,
+                "doc-025": 31,
+                "doc-026": 32,
+                "doc-027": 31,
+                "doc-028": 32
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 7,
+                "doc-022": 7,
+                "doc-023": 6,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 7
+              }
+            },
+            "sunday": {
+              "min": 4,
+              "max": 8,
+              "range": 4,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 6,
+                "doc-023": 6,
+                "doc-024": 8,
+                "doc-025": 8,
+                "doc-026": 5,
+                "doc-027": 8,
+                "doc-028": 6
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 4,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 2,
+                "doc-023": 3,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 3,
+                "doc-027": 1,
+                "doc-028": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.9,
+            "meanStdPerDoctor": 2.93,
+            "gaps2days": 21
+          },
+          "monthly": {
+            "meanStd": 5.74,
+            "maxStd": 7.9,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        },
+        "wheels": {
+          "hours": {
+            "mean": 365.38,
+            "std": 7.21,
+            "min": 355,
+            "max": 379,
+            "range": 24,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 362,
+              "doc-022": 362,
+              "doc-023": 362,
+              "doc-024": 362,
+              "doc-025": 374,
+              "doc-026": 367,
+              "doc-027": 379,
+              "doc-028": 355
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 32,
+                "doc-022": 32,
+                "doc-023": 31,
+                "doc-024": 31,
+                "doc-025": 31,
+                "doc-026": 31,
+                "doc-027": 31,
+                "doc-028": 31
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 6,
+                "doc-023": 7,
+                "doc-024": 7,
+                "doc-025": 7,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "sunday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 6,
+                "doc-023": 6,
+                "doc-024": 6,
+                "doc-025": 7,
+                "doc-026": 7,
+                "doc-027": 7,
+                "doc-028": 6
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 2,
+                "doc-027": 3,
+                "doc-028": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.88,
+            "meanStdPerDoctor": 3.64,
+            "gaps2days": 49
+          },
+          "monthly": {
+            "meanStd": 7.51,
+            "maxStd": 9.6,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 369,
+          "totalHours": 2923,
+          "skipRuleImpactDays": 36
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 365.38,
+            "std": 14.23,
+            "min": 355,
+            "max": 393,
+            "range": 38,
+            "cv": 0.04,
+            "perDoctor": {
+              "doc-021": 393,
+              "doc-022": 381,
+              "doc-023": 374,
+              "doc-024": 355,
+              "doc-025": 355,
+              "doc-026": 355,
+              "doc-027": 355,
+              "doc-028": 355
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 32,
+                "doc-022": 32,
+                "doc-023": 31,
+                "doc-024": 31,
+                "doc-025": 31,
+                "doc-026": 31,
+                "doc-027": 31,
+                "doc-028": 31
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 7,
+                "doc-022": 7,
+                "doc-023": 7,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "sunday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 7,
+                "doc-022": 7,
+                "doc-023": 7,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 2,
+                "doc-027": 2,
+                "doc-028": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.81,
+            "meanStdPerDoctor": 3.76,
+            "gaps2days": 36
+          },
+          "monthly": {
+            "meanStd": 10.49,
+            "maxStd": 12.7,
+            "maxMonthlyHours": 52
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        }
+      },
+      "concordancePct": 16.44,
+      "pureWheel": {
+        "restViolations": 18,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AP",
+      "groupSize": 12,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 243.58,
+            "std": 3.84,
+            "min": 235,
+            "max": 247,
+            "range": 12,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 247,
+              "doc-022": 242,
+              "doc-023": 247,
+              "doc-024": 247,
+              "doc-025": 247,
+              "doc-026": 247,
+              "doc-027": 235,
+              "doc-028": 242,
+              "doc-029": 247,
+              "doc-030": 242,
+              "doc-031": 240,
+              "doc-032": 240
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 20,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 5,
+                "doc-023": 4,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 5,
+                "doc-029": 4,
+                "doc-030": 5,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 3,
+              "max": 5,
+              "range": 2,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 5,
+                "doc-025": 5,
+                "doc-026": 3,
+                "doc-027": 5,
+                "doc-028": 4,
+                "doc-029": 5,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 5
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 3,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 1,
+                "doc-023": 2,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 3,
+                "doc-027": 0,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 2,
+                "doc-032": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.83,
+            "meanStdPerDoctor": 4.12,
+            "gaps2days": 9
+          },
+          "monthly": {
+            "meanStd": 5.03,
+            "maxStd": 6.75,
+            "maxMonthlyHours": 33
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        },
+        "wheels": {
+          "hours": {
+            "mean": 243.58,
+            "std": 3.84,
+            "min": 235,
+            "max": 247,
+            "range": 12,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 247,
+              "doc-022": 247,
+              "doc-023": 235,
+              "doc-024": 242,
+              "doc-025": 242,
+              "doc-026": 242,
+              "doc-027": 247,
+              "doc-028": 247,
+              "doc-029": 247,
+              "doc-030": 247,
+              "doc-031": 240,
+              "doc-032": 240
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 20,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 5,
+                "doc-025": 5,
+                "doc-026": 5,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 5,
+                "doc-028": 5,
+                "doc-029": 5,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 1,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 2,
+                "doc-031": 2,
+                "doc-032": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.76,
+            "meanStdPerDoctor": 5.59,
+            "gaps2days": 27
+          },
+          "monthly": {
+            "meanStd": 6.87,
+            "maxStd": 8.63,
+            "maxMonthlyHours": 33
+          },
+          "assignments": 369,
+          "totalHours": 2923,
+          "skipRuleImpactDays": 20
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 243.58,
+            "std": 14.1,
+            "min": 228,
+            "max": 266,
+            "range": 38,
+            "cv": 0.06,
+            "perDoctor": {
+              "doc-021": 266,
+              "doc-022": 266,
+              "doc-023": 266,
+              "doc-024": 247,
+              "doc-025": 247,
+              "doc-026": 235,
+              "doc-027": 235,
+              "doc-028": 235,
+              "doc-029": 235,
+              "doc-030": 235,
+              "doc-031": 228,
+              "doc-032": 228
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 20,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 5,
+                "doc-022": 5,
+                "doc-023": 5,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 5,
+                "doc-022": 5,
+                "doc-023": 5,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.67,
+            "meanStdPerDoctor": 5.96,
+            "gaps2days": 30
+          },
+          "monthly": {
+            "meanStd": 9.61,
+            "maxStd": 12.3,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        }
+      },
+      "concordancePct": 8.77,
+      "pureWheel": {
+        "restViolations": 10,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2026,
+      "rotaType": "AP",
+      "groupSize": 17,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 171.94,
+            "std": 3.19,
+            "min": 167,
+            "max": 174,
+            "range": 7,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 174,
+              "doc-022": 167,
+              "doc-023": 167,
+              "doc-024": 167,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 174,
+              "doc-029": 174,
+              "doc-030": 174,
+              "doc-031": 174,
+              "doc-032": 167,
+              "doc-033": 167,
+              "doc-034": 174,
+              "doc-035": 174,
+              "doc-036": 174,
+              "doc-037": 174
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 14,
+                "doc-023": 14,
+                "doc-024": 14,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 15,
+                "doc-032": 14,
+                "doc-033": 14,
+                "doc-034": 15,
+                "doc-035": 15,
+                "doc-036": 15,
+                "doc-037": 15
+              }
+            },
+            "saturday": {
+              "min": 3,
+              "max": 3,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "sunday": {
+              "min": 2,
+              "max": 4,
+              "range": 2,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 2,
+                "doc-027": 4,
+                "doc-028": 2,
+                "doc-029": 3,
+                "doc-030": 4,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 4,
+                "doc-034": 2,
+                "doc-035": 3,
+                "doc-036": 2,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 2,
+              "range": 2,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 0,
+                "doc-025": 0,
+                "doc-026": 2,
+                "doc-027": 0,
+                "doc-028": 2,
+                "doc-029": 1,
+                "doc-030": 0,
+                "doc-031": 1,
+                "doc-032": 1,
+                "doc-033": 0,
+                "doc-034": 2,
+                "doc-035": 1,
+                "doc-036": 2,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.68,
+            "meanStdPerDoctor": 6.35,
+            "gaps2days": 6
+          },
+          "monthly": {
+            "meanStd": 5.17,
+            "maxStd": 7.53,
+            "maxMonthlyHours": 26
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        },
+        "wheels": {
+          "hours": {
+            "mean": 171.94,
+            "std": 3.19,
+            "min": 167,
+            "max": 174,
+            "range": 7,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 174,
+              "doc-022": 174,
+              "doc-023": 174,
+              "doc-024": 174,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 174,
+              "doc-029": 174,
+              "doc-030": 174,
+              "doc-031": 174,
+              "doc-032": 174,
+              "doc-033": 167,
+              "doc-034": 167,
+              "doc-035": 167,
+              "doc-036": 167,
+              "doc-037": 167
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 15,
+                "doc-023": 15,
+                "doc-024": 15,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 15,
+                "doc-032": 15,
+                "doc-033": 14,
+                "doc-034": 14,
+                "doc-035": 14,
+                "doc-036": 14,
+                "doc-037": 14
+              }
+            },
+            "saturday": {
+              "min": 3,
+              "max": 3,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "sunday": {
+              "min": 3,
+              "max": 3,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 1,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 1,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1,
+                "doc-033": 1,
+                "doc-034": 1,
+                "doc-035": 1,
+                "doc-036": 1,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.53,
+            "meanStdPerDoctor": 8.17,
+            "gaps2days": 21
+          },
+          "monthly": {
+            "meanStd": 5.73,
+            "maxStd": 7.37,
+            "maxMonthlyHours": 31
+          },
+          "assignments": 369,
+          "totalHours": 2923,
+          "skipRuleImpactDays": 12
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 171.94,
+            "std": 4.66,
+            "min": 160,
+            "max": 181,
+            "range": 21,
+            "cv": 0.03,
+            "perDoctor": {
+              "doc-021": 181,
+              "doc-022": 174,
+              "doc-023": 174,
+              "doc-024": 174,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 174,
+              "doc-029": 174,
+              "doc-030": 174,
+              "doc-031": 174,
+              "doc-032": 174,
+              "doc-033": 167,
+              "doc-034": 167,
+              "doc-035": 167,
+              "doc-036": 167,
+              "doc-037": 160
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 15,
+                "doc-023": 15,
+                "doc-024": 15,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 15,
+                "doc-032": 15,
+                "doc-033": 14,
+                "doc-034": 14,
+                "doc-035": 14,
+                "doc-036": 14,
+                "doc-037": 14
+              }
+            },
+            "saturday": {
+              "min": 2,
+              "max": 4,
+              "range": 2,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 2
+              }
+            },
+            "sunday": {
+              "min": 3,
+              "max": 3,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 1,
+              "range": 0,
+              "perDoctor": {
+                "doc-021": 1,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1,
+                "doc-033": 1,
+                "doc-034": 1,
+                "doc-035": 1,
+                "doc-036": 1,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.45,
+            "meanStdPerDoctor": 8.66,
+            "gaps2days": 18
+          },
+          "monthly": {
+            "meanStd": 8.32,
+            "maxStd": 10.88,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 369,
+          "totalHours": 2923
+        }
+      },
+      "concordancePct": 5.75,
+      "pureWheel": {
+        "restViolations": 6,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AC",
+      "groupSize": 3,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 2214.67,
+            "std": 7.13,
+            "min": 2205,
+            "max": 2222,
+            "range": 17,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 2217,
+              "doc-002": 2222,
+              "doc-003": 2205
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 84,
+                "doc-002": 84,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 16,
+              "max": 17,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 16,
+                "doc-003": 16
+              }
+            },
+            "sunday": {
+              "min": 14,
+              "max": 20,
+              "range": 6,
+              "perDoctor": {
+                "doc-001": 14,
+                "doc-002": 17,
+                "doc-003": 20
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 7,
+              "range": 5,
+              "perDoctor": {
+                "doc-001": 7,
+                "doc-002": 5,
+                "doc-003": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3,
+            "meanStdPerDoctor": 0.94,
+            "gaps2days": 114
+          },
+          "monthly": {
+            "meanStd": 15.36,
+            "maxStd": 20.55,
+            "maxMonthlyHours": 207
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        },
+        "wheels": {
+          "hours": {
+            "mean": 2214.67,
+            "std": 7.13,
+            "min": 2205,
+            "max": 2222,
+            "range": 17,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 2222,
+              "doc-002": 2217,
+              "doc-003": 2205
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 84,
+                "doc-002": 84,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 16,
+              "max": 17,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 16,
+                "doc-002": 17,
+                "doc-003": 16
+              }
+            },
+            "sunday": {
+              "min": 16,
+              "max": 18,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 16,
+                "doc-003": 18
+              }
+            },
+            "holiday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 5,
+                "doc-002": 5,
+                "doc-003": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3,
+            "meanStdPerDoctor": 0.94,
+            "gaps2days": 108
+          },
+          "monthly": {
+            "meanStd": 16.95,
+            "maxStd": 18.37,
+            "maxMonthlyHours": 224
+          },
+          "assignments": 365,
+          "totalHours": 6644,
+          "skipRuleImpactDays": 72
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 2214.67,
+            "std": 24.24,
+            "min": 2182,
+            "max": 2240,
+            "range": 58,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 2240,
+              "doc-002": 2222,
+              "doc-003": 2182
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 83,
+              "max": 84,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 84,
+                "doc-002": 84,
+                "doc-003": 83
+              }
+            },
+            "saturday": {
+              "min": 16,
+              "max": 17,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 16,
+                "doc-003": 16
+              }
+            },
+            "sunday": {
+              "min": 17,
+              "max": 17,
+              "range": 0,
+              "perDoctor": {
+                "doc-001": 17,
+                "doc-002": 17,
+                "doc-003": 17
+              }
+            },
+            "holiday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 5,
+                "doc-002": 5,
+                "doc-003": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 2.99,
+            "meanStdPerDoctor": 0.95,
+            "gaps2days": 112
+          },
+          "monthly": {
+            "meanStd": 20.61,
+            "maxStd": 21.98,
+            "maxMonthlyHours": 224
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        }
+      },
+      "concordancePct": 31.23,
+      "pureWheel": {
+        "restViolations": 35,
+        "satAndSunSameDoctor": 2,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AC",
+      "groupSize": 4,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1661,
+            "std": 7.35,
+            "min": 1655,
+            "max": 1673,
+            "range": 18,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1673,
+              "doc-002": 1655,
+              "doc-003": 1655,
+              "doc-004": 1661
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 63,
+                "doc-003": 63,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 12,
+                "doc-003": 12,
+                "doc-004": 12
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 15,
+              "range": 5,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 12,
+                "doc-003": 14,
+                "doc-004": 15
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 6,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 6,
+                "doc-002": 4,
+                "doc-003": 2,
+                "doc-004": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4,
+            "meanStdPerDoctor": 1.43,
+            "gaps2days": 61
+          },
+          "monthly": {
+            "meanStd": 9.44,
+            "maxStd": 10.13,
+            "maxMonthlyHours": 161
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1661,
+            "std": 7.35,
+            "min": 1655,
+            "max": 1673,
+            "range": 18,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1655,
+              "doc-002": 1673,
+              "doc-003": 1655,
+              "doc-004": 1661
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 63,
+                "doc-003": 63,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 12,
+                "doc-002": 13,
+                "doc-003": 12,
+                "doc-004": 12
+              }
+            },
+            "sunday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 12,
+                "doc-002": 13,
+                "doc-003": 13,
+                "doc-004": 13
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 3,
+                "doc-003": 3,
+                "doc-004": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4,
+            "meanStdPerDoctor": 1.54,
+            "gaps2days": 72
+          },
+          "monthly": {
+            "meanStd": 12.23,
+            "maxStd": 13.96,
+            "maxMonthlyHours": 172
+          },
+          "assignments": 365,
+          "totalHours": 6644,
+          "skipRuleImpactDays": 17
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1661,
+            "std": 21.37,
+            "min": 1638,
+            "max": 1696,
+            "range": 58,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1696,
+              "doc-002": 1655,
+              "doc-003": 1655,
+              "doc-004": 1638
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 0,
+            "totalDeficit": 0,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 62,
+              "max": 63,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 63,
+                "doc-002": 63,
+                "doc-003": 63,
+                "doc-004": 62
+              }
+            },
+            "saturday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 12,
+                "doc-003": 12,
+                "doc-004": 12
+              }
+            },
+            "sunday": {
+              "min": 12,
+              "max": 13,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 13,
+                "doc-002": 13,
+                "doc-003": 12,
+                "doc-004": 13
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 3,
+                "doc-003": 4,
+                "doc-004": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 3.98,
+            "meanStdPerDoctor": 1.55,
+            "gaps2days": 82
+          },
+          "monthly": {
+            "meanStd": 14.16,
+            "maxStd": 15.77,
+            "maxMonthlyHours": 172
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        }
+      },
+      "concordancePct": 29.04,
+      "pureWheel": {
+        "restViolations": 9,
+        "satAndSunSameDoctor": 1,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AC",
+      "groupSize": 5,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1328.8,
+            "std": 0.4,
+            "min": 1328,
+            "max": 1329,
+            "range": 1,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1329,
+              "doc-002": 1329,
+              "doc-003": 1329,
+              "doc-004": 1329,
+              "synth-AC-5": 1328
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1456,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado grande para AC: el objetivo de 8100h supera la capacidad anual de cobertura de 6644h. 5 médicos quedan por debajo del mínimo de 1620h; faltan 1456h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 50,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 51
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 9
+              }
+            },
+            "sunday": {
+              "min": 9,
+              "max": 11,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 11,
+                "doc-002": 9,
+                "doc-003": 11,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 4,
+              "range": 2,
+              "perDoctor": {
+                "doc-001": 2,
+                "doc-002": 4,
+                "doc-003": 2,
+                "doc-004": 3,
+                "synth-AC-5": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5,
+            "meanStdPerDoctor": 1.45,
+            "gaps2days": 26
+          },
+          "monthly": {
+            "meanStd": 9.69,
+            "maxStd": 11.08,
+            "maxMonthlyHours": 132
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1328.8,
+            "std": 0.4,
+            "min": 1328,
+            "max": 1329,
+            "range": 1,
+            "cv": 0,
+            "perDoctor": {
+              "doc-001": 1328,
+              "doc-002": 1329,
+              "doc-003": 1329,
+              "doc-004": 1329,
+              "synth-AC-5": 1329
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1456,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado grande para AC: el objetivo de 8100h supera la capacidad anual de cobertura de 6644h. 5 médicos quedan por debajo del mínimo de 1620h; faltan 1456h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 51,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 50
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 9,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 11,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 2,
+                "doc-004": 3,
+                "synth-AC-5": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5,
+            "meanStdPerDoctor": 2.04,
+            "gaps2days": 65
+          },
+          "monthly": {
+            "meanStd": 15.59,
+            "maxStd": 21.67,
+            "maxMonthlyHours": 162
+          },
+          "assignments": 365,
+          "totalHours": 6644,
+          "skipRuleImpactDays": 78
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1328.8,
+            "std": 25.62,
+            "min": 1288,
+            "max": 1369,
+            "range": 81,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-001": 1369,
+              "doc-002": 1329,
+              "doc-003": 1329,
+              "doc-004": 1329,
+              "synth-AC-5": 1288
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 5,
+            "totalDeficit": 1456,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 51,
+                "doc-002": 50,
+                "doc-003": 50,
+                "doc-004": 50,
+                "synth-AC-5": 50
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 10,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 9
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 11,
+                "doc-002": 10,
+                "doc-003": 10,
+                "doc-004": 10,
+                "synth-AC-5": 10
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 3,
+                "doc-004": 3,
+                "synth-AC-5": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.96,
+            "meanStdPerDoctor": 2.02,
+            "gaps2days": 62
+          },
+          "monthly": {
+            "meanStd": 21.35,
+            "maxStd": 29.7,
+            "maxMonthlyHours": 172
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        }
+      },
+      "concordancePct": 24.66,
+      "pureWheel": {
+        "restViolations": 25,
+        "satAndSunSameDoctor": 2,
+        "friSatSunSameDoctor": 1
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AC",
+      "groupSize": 6,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 1107.33,
+            "std": 6.24,
+            "min": 1094,
+            "max": 1111,
+            "range": 17,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1094,
+              "doc-002": 1111,
+              "doc-003": 1111,
+              "doc-004": 1111,
+              "synth-AC-5": 1106,
+              "synth-AC-6": 1111
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3076,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 6 médicos es demasiado grande para AC: el objetivo de 9720h supera la capacidad anual de cobertura de 6644h. 6 médicos quedan por debajo del mínimo de 1620h; faltan 3076h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 41,
+                "doc-002": 42,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 42,
+                "synth-AC-6": 42
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 8,
+                "doc-003": 8,
+                "doc-004": 8,
+                "synth-AC-5": 9,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 7,
+              "max": 11,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 7,
+                "doc-002": 9,
+                "doc-003": 11,
+                "doc-004": 9,
+                "synth-AC-5": 7,
+                "synth-AC-6": 8
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 4,
+              "range": 4,
+              "perDoctor": {
+                "doc-001": 4,
+                "doc-002": 2,
+                "doc-003": 0,
+                "doc-004": 2,
+                "synth-AC-5": 3,
+                "synth-AC-6": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.99,
+            "meanStdPerDoctor": 2.17,
+            "gaps2days": 24
+          },
+          "monthly": {
+            "meanStd": 12.11,
+            "maxStd": 15.61,
+            "maxMonthlyHours": 114
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        },
+        "wheels": {
+          "hours": {
+            "mean": 1107.33,
+            "std": 14.67,
+            "min": 1088,
+            "max": 1134,
+            "range": 46,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-001": 1111,
+              "doc-002": 1106,
+              "doc-003": 1088,
+              "doc-004": 1111,
+              "synth-AC-5": 1134,
+              "synth-AC-6": 1094
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3076,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": [
+              "El grupo de 6 médicos es demasiado grande para AC: el objetivo de 9720h supera la capacidad anual de cobertura de 6644h. 6 médicos quedan por debajo del mínimo de 1620h; faltan 3076h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 42,
+                "doc-002": 42,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 42,
+                "synth-AC-6": 41
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 9,
+                "doc-003": 8,
+                "doc-004": 8,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 8,
+                "doc-003": 8,
+                "doc-004": 9,
+                "synth-AC-5": 9,
+                "synth-AC-6": 9
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 2,
+                "doc-003": 2,
+                "doc-004": 2,
+                "synth-AC-5": 3,
+                "synth-AC-6": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.99,
+            "meanStdPerDoctor": 2.57,
+            "gaps2days": 56
+          },
+          "monthly": {
+            "meanStd": 14.47,
+            "maxStd": 16.05,
+            "maxMonthlyHours": 115
+          },
+          "assignments": 365,
+          "totalHours": 6644,
+          "skipRuleImpactDays": 49
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 1107.33,
+            "std": 28.25,
+            "min": 1071,
+            "max": 1152,
+            "range": 81,
+            "cv": 0.03,
+            "perDoctor": {
+              "doc-001": 1134,
+              "doc-002": 1152,
+              "doc-003": 1111,
+              "doc-004": 1088,
+              "synth-AC-5": 1088,
+              "synth-AC-6": 1071
+            }
+          },
+          "limit": {
+            "rotaType": "AC",
+            "belowMinCount": 6,
+            "totalDeficit": 3076,
+            "aboveMaxCount": null,
+            "totalExcess": null,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 41,
+              "max": 42,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 42,
+                "doc-002": 42,
+                "doc-003": 42,
+                "doc-004": 42,
+                "synth-AC-5": 42,
+                "synth-AC-6": 41
+              }
+            },
+            "saturday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 8,
+                "doc-002": 9,
+                "doc-003": 8,
+                "doc-004": 8,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "sunday": {
+              "min": 8,
+              "max": 9,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 9,
+                "doc-002": 9,
+                "doc-003": 9,
+                "doc-004": 8,
+                "synth-AC-5": 8,
+                "synth-AC-6": 8
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-001": 3,
+                "doc-002": 3,
+                "doc-003": 2,
+                "doc-004": 2,
+                "synth-AC-5": 2,
+                "synth-AC-6": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 5.94,
+            "meanStdPerDoctor": 2.67,
+            "gaps2days": 67
+          },
+          "monthly": {
+            "meanStd": 18.93,
+            "maxStd": 21.45,
+            "maxMonthlyHours": 132
+          },
+          "assignments": 365,
+          "totalHours": 6644
+        }
+      },
+      "concordancePct": 18.9,
+      "pureWheel": {
+        "restViolations": 27,
+        "satAndSunSameDoctor": 2,
+        "friSatSunSameDoctor": 1
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AP",
+      "groupSize": 5,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 592.8,
+            "std": 4.53,
+            "min": 588,
+            "max": 600,
+            "range": 12,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 595,
+              "doc-022": 588,
+              "doc-023": 593,
+              "doc-024": 588,
+              "doc-025": 600
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 839,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado pequeño para AP: la cobertura anual de 2964h supera el máximo de 425h por médico (se necesitan al menos 7 médicos). 5 médicos quedan por encima del máximo de 425h; sobran 839h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 51,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 10,
+                "doc-022": 10,
+                "doc-023": 9,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "sunday": {
+              "min": 9,
+              "max": 13,
+              "range": 4,
+              "perDoctor": {
+                "doc-021": 9,
+                "doc-022": 9,
+                "doc-023": 13,
+                "doc-024": 13,
+                "doc-025": 10
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 5,
+              "range": 4,
+              "perDoctor": {
+                "doc-021": 5,
+                "doc-022": 5,
+                "doc-023": 2,
+                "doc-024": 1,
+                "doc-025": 5
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.9,
+            "meanStdPerDoctor": 1.42,
+            "gaps2days": 25
+          },
+          "monthly": {
+            "meanStd": 6.44,
+            "maxStd": 9.53,
+            "maxMonthlyHours": 71
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        },
+        "wheels": {
+          "hours": {
+            "mean": 592.8,
+            "std": 5.88,
+            "min": 588,
+            "max": 600,
+            "range": 12,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 588,
+              "doc-022": 588,
+              "doc-023": 588,
+              "doc-024": 600,
+              "doc-025": 600
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 839,
+            "warnings": [
+              "El grupo de 5 médicos es demasiado pequeño para AP: la cobertura anual de 2964h supera el máximo de 425h por médico (se necesitan al menos 7 médicos). 5 médicos quedan por encima del máximo de 425h; sobran 839h en total."
+            ]
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 51,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 9,
+                "doc-022": 10,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 10
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 10,
+                "doc-023": 11,
+                "doc-024": 11,
+                "doc-025": 11
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 4,
+                "doc-023": 3,
+                "doc-024": 4,
+                "doc-025": 4
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.9,
+            "meanStdPerDoctor": 2,
+            "gaps2days": 69
+          },
+          "monthly": {
+            "meanStd": 8.48,
+            "maxStd": 12.75,
+            "maxMonthlyHours": 73
+          },
+          "assignments": 372,
+          "totalHours": 2964,
+          "skipRuleImpactDays": 78
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 592.8,
+            "std": 9.37,
+            "min": 581,
+            "max": 607,
+            "range": 26,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 607,
+              "doc-022": 600,
+              "doc-023": 588,
+              "doc-024": 588,
+              "doc-025": 581
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 5,
+            "totalExcess": 839,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 50,
+              "max": 51,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 51,
+                "doc-022": 50,
+                "doc-023": 50,
+                "doc-024": 50,
+                "doc-025": 50
+              }
+            },
+            "saturday": {
+              "min": 9,
+              "max": 10,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 10,
+                "doc-022": 10,
+                "doc-023": 10,
+                "doc-024": 10,
+                "doc-025": 9
+              }
+            },
+            "sunday": {
+              "min": 10,
+              "max": 11,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 11,
+                "doc-022": 11,
+                "doc-023": 10,
+                "doc-024": 11,
+                "doc-025": 11
+              }
+            },
+            "holiday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 3,
+                "doc-025": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 4.87,
+            "meanStdPerDoctor": 2.01,
+            "gaps2days": 68
+          },
+          "monthly": {
+            "meanStd": 8.29,
+            "maxStd": 11.98,
+            "maxMonthlyHours": 68
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        }
+      },
+      "concordancePct": 19.18,
+      "pureWheel": {
+        "restViolations": 29,
+        "satAndSunSameDoctor": 3,
+        "friSatSunSameDoctor": 1
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AP",
+      "groupSize": 8,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 370.5,
+            "std": 3.5,
+            "min": 367,
+            "max": 374,
+            "range": 7,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 367,
+              "doc-022": 367,
+              "doc-023": 367,
+              "doc-024": 374,
+              "doc-025": 374,
+              "doc-026": 374,
+              "doc-027": 367,
+              "doc-028": 374
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 31,
+                "doc-022": 31,
+                "doc-023": 31,
+                "doc-024": 32,
+                "doc-025": 32,
+                "doc-026": 32,
+                "doc-027": 31,
+                "doc-028": 31
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 6,
+                "doc-023": 6,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 7
+              }
+            },
+            "sunday": {
+              "min": 5,
+              "max": 8,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 8,
+                "doc-023": 6,
+                "doc-024": 7,
+                "doc-025": 8,
+                "doc-026": 6,
+                "doc-027": 5,
+                "doc-028": 8
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 4,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 1,
+                "doc-023": 3,
+                "doc-024": 2,
+                "doc-025": 1,
+                "doc-026": 3,
+                "doc-027": 4,
+                "doc-028": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.85,
+            "meanStdPerDoctor": 2.71,
+            "gaps2days": 11
+          },
+          "monthly": {
+            "meanStd": 6.25,
+            "maxStd": 8.29,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        },
+        "wheels": {
+          "hours": {
+            "mean": 370.5,
+            "std": 7.38,
+            "min": 355,
+            "max": 379,
+            "range": 24,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 374,
+              "doc-022": 374,
+              "doc-023": 369,
+              "doc-024": 355,
+              "doc-025": 367,
+              "doc-026": 367,
+              "doc-027": 379,
+              "doc-028": 379
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 32,
+                "doc-022": 32,
+                "doc-023": 32,
+                "doc-024": 31,
+                "doc-025": 31,
+                "doc-026": 31,
+                "doc-027": 31,
+                "doc-028": 31
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 6,
+                "doc-023": 7,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "sunday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 7,
+                "doc-022": 7,
+                "doc-023": 6,
+                "doc-024": 6,
+                "doc-025": 7,
+                "doc-026": 7,
+                "doc-027": 7,
+                "doc-028": 7
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 2,
+                "doc-027": 3,
+                "doc-028": 3
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.82,
+            "meanStdPerDoctor": 3.5,
+            "gaps2days": 41
+          },
+          "monthly": {
+            "meanStd": 7.27,
+            "maxStd": 10.53,
+            "maxMonthlyHours": 52
+          },
+          "assignments": 372,
+          "totalHours": 2964,
+          "skipRuleImpactDays": 28
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 370.5,
+            "std": 12.63,
+            "min": 355,
+            "max": 393,
+            "range": 38,
+            "cv": 0.03,
+            "perDoctor": {
+              "doc-021": 386,
+              "doc-022": 393,
+              "doc-023": 374,
+              "doc-024": 367,
+              "doc-025": 367,
+              "doc-026": 367,
+              "doc-027": 355,
+              "doc-028": 355
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 31,
+              "max": 32,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 32,
+                "doc-022": 32,
+                "doc-023": 32,
+                "doc-024": 31,
+                "doc-025": 31,
+                "doc-026": 31,
+                "doc-027": 31,
+                "doc-028": 31
+              }
+            },
+            "saturday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 6,
+                "doc-022": 7,
+                "doc-023": 6,
+                "doc-024": 6,
+                "doc-025": 6,
+                "doc-026": 6,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "sunday": {
+              "min": 6,
+              "max": 7,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 7,
+                "doc-022": 7,
+                "doc-023": 7,
+                "doc-024": 7,
+                "doc-025": 7,
+                "doc-026": 7,
+                "doc-027": 6,
+                "doc-028": 6
+              }
+            },
+            "holiday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 2,
+                "doc-027": 2,
+                "doc-028": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 7.76,
+            "meanStdPerDoctor": 3.68,
+            "gaps2days": 34
+          },
+          "monthly": {
+            "meanStd": 9.19,
+            "maxStd": 12.9,
+            "maxMonthlyHours": 52
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        }
+      },
+      "concordancePct": 9.32,
+      "pureWheel": {
+        "restViolations": 14,
+        "satAndSunSameDoctor": 1,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AP",
+      "groupSize": 12,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 247,
+            "std": 2.86,
+            "min": 240,
+            "max": 254,
+            "range": 14,
+            "cv": 0.01,
+            "perDoctor": {
+              "doc-021": 247,
+              "doc-022": 247,
+              "doc-023": 247,
+              "doc-024": 247,
+              "doc-025": 247,
+              "doc-026": 247,
+              "doc-027": 247,
+              "doc-028": 254,
+              "doc-029": 247,
+              "doc-030": 247,
+              "doc-031": 247,
+              "doc-032": 240
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 21,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 5,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 2,
+              "max": 6,
+              "range": 4,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 5,
+                "doc-024": 6,
+                "doc-025": 5,
+                "doc-026": 2,
+                "doc-027": 4,
+                "doc-028": 5,
+                "doc-029": 4,
+                "doc-030": 5,
+                "doc-031": 5,
+                "doc-032": 5
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 4,
+              "range": 4,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 1,
+                "doc-024": 0,
+                "doc-025": 1,
+                "doc-026": 4,
+                "doc-027": 2,
+                "doc-028": 1,
+                "doc-029": 2,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.76,
+            "meanStdPerDoctor": 4.16,
+            "gaps2days": 7
+          },
+          "monthly": {
+            "meanStd": 5.29,
+            "maxStd": 7.57,
+            "maxMonthlyHours": 33
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        },
+        "wheels": {
+          "hours": {
+            "mean": 247,
+            "std": 7.22,
+            "min": 235,
+            "max": 259,
+            "range": 24,
+            "cv": 0.03,
+            "perDoctor": {
+              "doc-021": 247,
+              "doc-022": 247,
+              "doc-023": 247,
+              "doc-024": 242,
+              "doc-025": 235,
+              "doc-026": 235,
+              "doc-027": 247,
+              "doc-028": 247,
+              "doc-029": 247,
+              "doc-030": 259,
+              "doc-031": 259,
+              "doc-032": 252
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 21,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 5,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 5,
+                "doc-028": 5,
+                "doc-029": 5,
+                "doc-030": 5,
+                "doc-031": 5,
+                "doc-032": 5
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 2,
+                "doc-031": 2,
+                "doc-032": 2
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.71,
+            "meanStdPerDoctor": 5.49,
+            "gaps2days": 31
+          },
+          "monthly": {
+            "meanStd": 7.26,
+            "maxStd": 9.19,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 372,
+          "totalHours": 2964,
+          "skipRuleImpactDays": 30
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 247,
+            "std": 12.5,
+            "min": 228,
+            "max": 266,
+            "range": 38,
+            "cv": 0.05,
+            "perDoctor": {
+              "doc-021": 259,
+              "doc-022": 266,
+              "doc-023": 259,
+              "doc-024": 259,
+              "doc-025": 259,
+              "doc-026": 247,
+              "doc-027": 247,
+              "doc-028": 235,
+              "doc-029": 235,
+              "doc-030": 235,
+              "doc-031": 235,
+              "doc-032": 228
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 20,
+              "max": 21,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 21,
+                "doc-022": 21,
+                "doc-023": 21,
+                "doc-024": 21,
+                "doc-025": 21,
+                "doc-026": 21,
+                "doc-027": 21,
+                "doc-028": 21,
+                "doc-029": 21,
+                "doc-030": 21,
+                "doc-031": 21,
+                "doc-032": 20
+              }
+            },
+            "saturday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 5,
+                "doc-023": 4,
+                "doc-024": 4,
+                "doc-025": 4,
+                "doc-026": 4,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "sunday": {
+              "min": 4,
+              "max": 5,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 5,
+                "doc-022": 5,
+                "doc-023": 5,
+                "doc-024": 5,
+                "doc-025": 5,
+                "doc-026": 5,
+                "doc-027": 4,
+                "doc-028": 4,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 4
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 2,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 2,
+                "doc-026": 1,
+                "doc-027": 2,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 11.56,
+            "meanStdPerDoctor": 5.8,
+            "gaps2days": 26
+          },
+          "monthly": {
+            "meanStd": 9.07,
+            "maxStd": 12.28,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        }
+      },
+      "concordancePct": 10.14,
+      "pureWheel": {
+        "restViolations": 15,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    },
+    {
+      "year": 2027,
+      "rotaType": "AP",
+      "groupSize": 17,
+      "strategies": {
+        "balanced": {
+          "hours": {
+            "mean": 174.35,
+            "std": 3.39,
+            "min": 167,
+            "max": 179,
+            "range": 12,
+            "cv": 0.02,
+            "perDoctor": {
+              "doc-021": 174,
+              "doc-022": 179,
+              "doc-023": 179,
+              "doc-024": 179,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 167,
+              "doc-029": 174,
+              "doc-030": 174,
+              "doc-031": 167,
+              "doc-032": 174,
+              "doc-033": 179,
+              "doc-034": 174,
+              "doc-035": 174,
+              "doc-036": 174,
+              "doc-037": 174
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 14,
+                "doc-023": 14,
+                "doc-024": 14,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 14,
+                "doc-032": 15,
+                "doc-033": 15,
+                "doc-034": 15,
+                "doc-035": 15,
+                "doc-036": 15,
+                "doc-037": 15
+              }
+            },
+            "saturday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 2,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 2,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "sunday": {
+              "min": 1,
+              "max": 4,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 2,
+                "doc-027": 2,
+                "doc-028": 4,
+                "doc-029": 3,
+                "doc-030": 4,
+                "doc-031": 1,
+                "doc-032": 4,
+                "doc-033": 4,
+                "doc-034": 4,
+                "doc-035": 3,
+                "doc-036": 4,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 0,
+              "max": 3,
+              "range": 3,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 2,
+                "doc-025": 1,
+                "doc-026": 2,
+                "doc-027": 2,
+                "doc-028": 0,
+                "doc-029": 1,
+                "doc-030": 0,
+                "doc-031": 3,
+                "doc-032": 0,
+                "doc-033": 1,
+                "doc-034": 0,
+                "doc-035": 1,
+                "doc-036": 0,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.67,
+            "meanStdPerDoctor": 6.1,
+            "gaps2days": 1
+          },
+          "monthly": {
+            "meanStd": 4.96,
+            "maxStd": 6.83,
+            "maxMonthlyHours": 26
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        },
+        "wheels": {
+          "hours": {
+            "mean": 174.35,
+            "std": 7.15,
+            "min": 167,
+            "max": 186,
+            "range": 19,
+            "cv": 0.04,
+            "perDoctor": {
+              "doc-021": 174,
+              "doc-022": 174,
+              "doc-023": 167,
+              "doc-024": 167,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 174,
+              "doc-029": 186,
+              "doc-030": 186,
+              "doc-031": 186,
+              "doc-032": 174,
+              "doc-033": 186,
+              "doc-034": 167,
+              "doc-035": 167,
+              "doc-036": 167,
+              "doc-037": 167
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 15,
+                "doc-023": 15,
+                "doc-024": 15,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 15,
+                "doc-032": 15,
+                "doc-033": 15,
+                "doc-034": 14,
+                "doc-035": 14,
+                "doc-036": 14,
+                "doc-037": 14
+              }
+            },
+            "saturday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 2,
+                "doc-024": 2,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "sunday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 4,
+                "doc-030": 4,
+                "doc-031": 4,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 1,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1,
+                "doc-033": 2,
+                "doc-034": 1,
+                "doc-035": 1,
+                "doc-036": 1,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.43,
+            "meanStdPerDoctor": 8.13,
+            "gaps2days": 18
+          },
+          "monthly": {
+            "meanStd": 6.3,
+            "maxStd": 8.02,
+            "maxMonthlyHours": 38
+          },
+          "assignments": 372,
+          "totalHours": 2964,
+          "skipRuleImpactDays": 17
+        },
+        "fromFirst": {
+          "hours": {
+            "mean": 174.35,
+            "std": 8.92,
+            "min": 160,
+            "max": 198,
+            "range": 38,
+            "cv": 0.05,
+            "perDoctor": {
+              "doc-021": 198,
+              "doc-022": 186,
+              "doc-023": 186,
+              "doc-024": 174,
+              "doc-025": 174,
+              "doc-026": 174,
+              "doc-027": 174,
+              "doc-028": 174,
+              "doc-029": 174,
+              "doc-030": 174,
+              "doc-031": 174,
+              "doc-032": 174,
+              "doc-033": 174,
+              "doc-034": 167,
+              "doc-035": 167,
+              "doc-036": 160,
+              "doc-037": 160
+            }
+          },
+          "limit": {
+            "rotaType": "AP",
+            "belowMinCount": null,
+            "totalDeficit": null,
+            "aboveMaxCount": 0,
+            "totalExcess": 0,
+            "warnings": []
+          },
+          "wheelCounts": {
+            "weekday": {
+              "min": 14,
+              "max": 15,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 15,
+                "doc-022": 15,
+                "doc-023": 15,
+                "doc-024": 15,
+                "doc-025": 15,
+                "doc-026": 15,
+                "doc-027": 15,
+                "doc-028": 15,
+                "doc-029": 15,
+                "doc-030": 15,
+                "doc-031": 15,
+                "doc-032": 15,
+                "doc-033": 15,
+                "doc-034": 14,
+                "doc-035": 14,
+                "doc-036": 14,
+                "doc-037": 14
+              }
+            },
+            "saturday": {
+              "min": 2,
+              "max": 3,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 3,
+                "doc-022": 3,
+                "doc-023": 3,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 2,
+                "doc-037": 2
+              }
+            },
+            "sunday": {
+              "min": 3,
+              "max": 4,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 4,
+                "doc-022": 4,
+                "doc-023": 4,
+                "doc-024": 3,
+                "doc-025": 3,
+                "doc-026": 3,
+                "doc-027": 3,
+                "doc-028": 3,
+                "doc-029": 3,
+                "doc-030": 3,
+                "doc-031": 3,
+                "doc-032": 3,
+                "doc-033": 3,
+                "doc-034": 3,
+                "doc-035": 3,
+                "doc-036": 3,
+                "doc-037": 3
+              }
+            },
+            "holiday": {
+              "min": 1,
+              "max": 2,
+              "range": 1,
+              "perDoctor": {
+                "doc-021": 2,
+                "doc-022": 1,
+                "doc-023": 1,
+                "doc-024": 1,
+                "doc-025": 1,
+                "doc-026": 1,
+                "doc-027": 1,
+                "doc-028": 1,
+                "doc-029": 1,
+                "doc-030": 1,
+                "doc-031": 1,
+                "doc-032": 1,
+                "doc-033": 1,
+                "doc-034": 1,
+                "doc-035": 1,
+                "doc-036": 1,
+                "doc-037": 1
+              }
+            }
+          },
+          "rest": {
+            "violations": 0,
+            "streaks3": 0
+          },
+          "weekends": {
+            "satAndSunSameDoctor": 0,
+            "friSatSunSameDoctor": 0
+          },
+          "gaps": {
+            "min": 2,
+            "mean": 16.35,
+            "meanStdPerDoctor": 8.7,
+            "gaps2days": 23
+          },
+          "monthly": {
+            "meanStd": 8.09,
+            "maxStd": 12.27,
+            "maxMonthlyHours": 45
+          },
+          "assignments": 372,
+          "totalHours": 2964
+        }
+      },
+      "concordancePct": 4.66,
+      "pureWheel": {
+        "restViolations": 9,
+        "satAndSunSameDoctor": 0,
+        "friSatSunSameDoctor": 0
+      }
+    }
+  ]
+}

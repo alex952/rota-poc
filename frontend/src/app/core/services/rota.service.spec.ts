@@ -109,6 +109,26 @@ describe('RotaService', () => {
     req.flush(mockRotaResponse);
   });
 
+  it('debe enviar la estrategia elegida en el POST de generación', () => {
+    const pool: Doctor[] = [
+      { id: 'doc-001', name: 'Dr. Garcia', department: 'Medicina General', rota_type: 'AC' },
+    ];
+
+    service.generateRota(2026, 'AC', pool, 'wheels').subscribe();
+
+    const req = httpTesting.expectOne('/api/v1/rota/generate');
+    expect(req.request.body.strategy).toBe('wheels');
+    req.flush(mockRotaResponse);
+  });
+
+  it('debe enviar la estrategia balanced por defecto en el POST de generación', () => {
+    service.generateRota(2026, 'AC', []).subscribe();
+
+    const req = httpTesting.expectOne('/api/v1/rota/generate');
+    expect(req.request.body.strategy).toBe('balanced');
+    req.flush(mockRotaResponse);
+  });
+
   it('should replace doctor via PATCH /api/v1/rota/{year}/{type}/replace', () => {
     const replaceRequest: ReplaceRequest = {
       date: '2026-03-15',

@@ -5,6 +5,23 @@ export interface DoctorRef {
   doctor_name: string;
 }
 
+/** Método de asignación de guardias */
+export type AssignmentStrategy = 'balanced' | 'wheels';
+
+export const DEFAULT_STRATEGY: AssignmentStrategy = 'balanced';
+
+/** Opciones del desplegable de método de asignación */
+export const STRATEGY_OPTIONS: { value: AssignmentStrategy; label: string }[] = [
+  { value: 'balanced', label: 'Equilibrado (predeterminado)' },
+  { value: 'wheels', label: 'Ruedas (orden estricto)' },
+];
+
+/** Etiqueta corta para mostrar el método de un cuadrante ya generado */
+export const STRATEGY_SHORT_LABELS: Record<AssignmentStrategy, string> = {
+  balanced: 'Equilibrado',
+  wheels: 'Ruedas',
+};
+
 export interface DayAssignment {
   date: string;
   day_type: 'weekday' | 'saturday' | 'holiday';
@@ -39,12 +56,15 @@ export interface RotaResponse {
   schedule: DayAssignment[];
   stats: StatsResponse;
   warnings: string[];
+  /** Ausente en cuadrantes antiguos: se asume 'balanced' */
+  strategy?: AssignmentStrategy;
 }
 
 export interface GenerateRequest {
   year: number;
   rota_type: RotaType;
   pool: { id: string; name: string; department: string }[];
+  strategy: AssignmentStrategy;
 }
 
 export interface ReplaceRequest {

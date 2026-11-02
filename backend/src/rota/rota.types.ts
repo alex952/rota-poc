@@ -1,3 +1,5 @@
+import type { AssignmentStrategyId } from '../scheduling/strategies/assignment-strategy';
+
 export enum RotaType {
   AC = 'AC',
   AP = 'AP',
@@ -63,6 +65,7 @@ export interface RotaResponse {
   city: string;
   rota_type: RotaType;
   doctors_per_day: number;
+  strategy: AssignmentStrategyId;
   generated_at: Date;
   schedule: DayAssignment[];
   stats: StatsResponse;

@@ -12,7 +12,7 @@ import { HolidaysService } from './core/services/holidays.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
 import { Doctor, RotaType } from './core/models/doctor.model';
-import { DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
+import { AssignmentStrategy, DEFAULT_STRATEGY, DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
@@ -64,6 +64,16 @@ export class App implements OnInit {
   protected readonly apStats = signal<DoctorStats[]>([]);
   protected readonly hasAcRota = signal(false);
   protected readonly hasApRota = signal(false);
+
+  // Método de asignación: selección global y método con el que se generó cada cuadrante
+  protected readonly selectedStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
+  protected readonly acStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
+  protected readonly apStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
+  protected readonly generatedStrategy = computed<AssignmentStrategy | null>(() => {
+    const tab = this.activePoolTab();
+    if (!(tab === 'AC' ? this.hasAcRota() : this.hasApRota())) return null;
+    return tab === 'AC' ? this.acStrategy() : this.apStrategy();
+  });
 
   // Drag-and-drop replacement state
   protected readonly pendingReplacement = signal<ReplacementEvent | null>(null);
@@ -403,10 +413,12 @@ export class App implements OnInit {
       this.acSchedule.set(rota.schedule);
       this.acStats.set(rota.stats.doctors);
       this.hasAcRota.set(true);
+      this.acStrategy.set(rota.strategy ?? DEFAULT_STRATEGY);
     } else {
       this.apSchedule.set(rota.schedule);
       this.apStats.set(rota.stats.doctors);
       this.hasApRota.set(true);
+      this.apStrategy.set(rota.strategy ?? DEFAULT_STRATEGY);
     }
   }
 
@@ -423,7 +435,7 @@ export class App implements OnInit {
     const year = this.selectedYear();
     this.loading.set(true);
     this.isGenerating.set(true);
-    this.rotaService.generateRota(year, tab, pool).subscribe({
+    this.rotaService.generateRota(year, tab, pool, this.selectedStrategy()).subscribe({
       next: (rota) => {
         this.applyRota(rota);
         this.loading.set(false);

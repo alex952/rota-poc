@@ -2,6 +2,12 @@ import { Component, input, output, signal } from '@angular/core';
 import { DoctorCardComponent } from './doctor-card.component';
 import { AddDoctorDialogComponent } from './add-doctor-dialog.component';
 import { Doctor, RotaType } from '../../core/models/doctor.model';
+import {
+  AssignmentStrategy,
+  DEFAULT_STRATEGY,
+  STRATEGY_OPTIONS,
+  STRATEGY_SHORT_LABELS,
+} from '../../core/models/rota.model';
 import { CdkDropList } from '@angular/cdk/drag-drop';
 
 @Component({
@@ -42,6 +48,19 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
       }
 
       <div class="pool-actions">
+        <div class="strategy-field">
+          <label class="strategy-label" for="strategy-select">Método de asignación</label>
+          <select
+            id="strategy-select"
+            class="strategy-select"
+            [disabled]="isLoading()"
+            (change)="onStrategyChange($event)"
+          >
+            @for (option of strategyOptions; track option.value) {
+              <option [value]="option.value" [selected]="option.value === strategy()">{{ option.label }}</option>
+            }
+          </select>
+        </div>
         <button class="btn-add-doctor" (click)="onAddDoctorClick()">
           + Añadir médico
         </button>
@@ -56,6 +75,9 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
           }
           {{ hasExistingRota() ? 'Regenerar cuadrante ' + activeTab() : 'Generar cuadrante ' + activeTab() }}
         </button>
+        @if (generatedStrategy(); as generated) {
+          <p class="generated-with">Generado con: {{ shortLabels[generated] }}</p>
+        }
       </div>
     </section>
   `,
@@ -132,6 +154,42 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
       flex-shrink: 0;
     }
 
+    .strategy-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .strategy-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .strategy-select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.45rem;
+      font-size: 0.8rem;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #fff;
+      color: #333;
+      text-overflow: ellipsis;
+    }
+
+    .strategy-select:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .generated-with {
+      margin: 0;
+      font-size: 0.75rem;
+      color: #777;
+      text-align: center;
+    }
+
     .btn-add-doctor,
     .btn-generate {
       width: 100%;
@@ -197,13 +255,24 @@ export class DoctorPoolComponent {
   readonly activeTab = input.required<RotaType>();
   readonly hasExistingRota = input<boolean>(false);
   readonly isLoading = input<boolean>(false);
+  readonly strategy = input<AssignmentStrategy>(DEFAULT_STRATEGY);
+  /** Método con el que se generó el cuadrante de la pestaña activa; null si no hay cuadrante */
+  readonly generatedStrategy = input<AssignmentStrategy | null>(null);
 
+  readonly strategyChange = output<AssignmentStrategy>();
   readonly generateRota = output<void>();
   readonly addDoctorClick = output<void>();
   readonly doctorAdded = output<Doctor>();
   readonly poolTabChange = output<RotaType>();
 
   readonly showAddDialog = signal(false);
+
+  protected readonly strategyOptions = STRATEGY_OPTIONS;
+  protected readonly shortLabels = STRATEGY_SHORT_LABELS;
+
+  onStrategyChange(event: Event): void {
+    this.strategyChange.emit((event.target as HTMLSelectElement).value as AssignmentStrategy);
+  }
 
   onTabClick(tab: RotaType): void {
     this.poolTabChange.emit(tab);

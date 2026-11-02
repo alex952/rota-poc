@@ -1,3 +1,5 @@
+import type { AssignmentStrategyId } from './strategies/assignment-strategy';
+
 export type RotaType = 'AC' | 'AP';
 export type DayType = 'weekday' | 'saturday' | 'holiday';
 
@@ -15,6 +17,10 @@ export interface DoctorRef {
 export interface DayInfo {
   date: Date;
   dayType: DayType;
+  // true si la fecha figura en el calendario de festivos, sea cual sea el día de la
+  // semana. Un domingo normal tiene dayType 'holiday' pero publicHoliday falso.
+  // Opcional: los días reconstruidos desde la base de datos no lo conocen (= falso).
+  publicHoliday?: boolean;
   durationHours: number;
   shiftStart: string;
   shiftEnd: string;
@@ -43,6 +49,7 @@ export interface StatsResponse {
 export interface RotaSchedule {
   year: number;
   rotaType: RotaType;
+  strategy: AssignmentStrategyId;
   doctorsPerDay: number;
   schedule: DayAssignment[];
   stats: StatsResponse;
