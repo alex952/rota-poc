@@ -204,7 +204,7 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 - `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — Módulos NestJS y estructura de persistencia
 - `docs/IMPLEMENTATION.md` — Guía para desarrolladores, jerarquía de componentes, estrategia de pruebas
 - `docs/ALGORITHM.md` — Diseño del algoritmo de asignación, restricciones y compromisos
-- `docs/visualizations/ruedas.html` — Visualización interactiva de la estrategia de ruedas (HTML autocontenido; si cambia `wheels.strategy.ts`, actualizar también su copia de la lógica)
+- `docs/visualizations/ruedas.html` — Visualización interactiva de la estrategia de ruedas (HTML autocontenido; si cambia `wheels.strategy.ts`, actualizar también su copia de la lógica). Se publica en GitHub Pages con `.github/workflows/pages.yml` en cada push a `main` que toque `docs/visualizations/` (único workflow del repositorio; no es CI de la aplicación)
 
 ## Exclusiones del Alcance PoC
 
