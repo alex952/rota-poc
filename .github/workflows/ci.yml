@@ -1,0 +1,53 @@
+# CI de la aplicación: build y tests de backend y frontend en cada PR y en cada push a main.
+# Las versiones de Node son las de los Dockerfiles (backend 24, frontend 22).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma PR cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (tests y build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      # Unitarios y e2e contra sql.js con fetch simulado: no necesita MySQL ni red.
+      - run: npm test
+      - run: npm run build
+
+  frontend:
+    name: Frontend (tests y build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx ng test --watch=false
+      - run: npx ng build

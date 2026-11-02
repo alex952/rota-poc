@@ -209,7 +209,7 @@ Lo siguiente queda explícitamente **fuera del alcance** de esta PoC:
 - Deshacer/rehacer cambios de rota
 - Sistema de notificaciones (email/SMS)
 - Diseño adaptable para móviles (solo escritorio es aceptable)
-- Despliegue en producción (solo entornos locales y basados en Docker)
+- Despliegue en producción (solo entornos locales y basados en Docker). Sí hay integración continua: build y tests de backend y frontend en cada PR (`.github/workflows/ci.yml`)
 
 ---
 

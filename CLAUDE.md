@@ -82,6 +82,17 @@ Variables de entorno (backend):
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
+## Integración Continua
+
+Dos workflows de GitHub Actions en `.github/workflows/`:
+
+- **`ci.yml`** — en cada PR, en cada push a `main` y a mano. Dos jobs en paralelo:
+  - Backend (Node 24, como su Dockerfile): `npm ci`, `npm test`, `npm run build`. Los e2e van contra `sql.js` con `fetch` simulado, así que no necesita MySQL ni red.
+  - Frontend (Node 22, como su Dockerfile): `npm ci`, `npx ng test --watch=false`, `npx ng build`.
+- **`pages.yml`** — publica sólo `docs/visualizations/` en GitHub Pages en cada push a `main` que la toque (requiere Settings → Pages → Source: «GitHub Actions»). El sitio es público aunque el repositorio sea privado.
+
+Una PR no se mezcla con la CI en rojo. La CI **no** sustituye a la verificación visual: no levanta el stack ni abre el navegador. Si cambian las versiones de Node de los Dockerfiles, actualizar también `ci.yml`.
+
 ## Verificación Visual (obligatoria antes del commit)
 
 Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
@@ -204,8 +215,8 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 - `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — Módulos NestJS y estructura de persistencia
 - `docs/IMPLEMENTATION.md` — Guía para desarrolladores, jerarquía de componentes, estrategia de pruebas
 - `docs/ALGORITHM.md` — Diseño del algoritmo de asignación, restricciones y compromisos
-- `docs/visualizations/ruedas.html` — Visualización interactiva de la estrategia de ruedas (HTML autocontenido; si cambia `wheels.strategy.ts`, actualizar también su copia de la lógica). Se publica en GitHub Pages con `.github/workflows/pages.yml` en cada push a `main` que toque `docs/visualizations/` (único workflow del repositorio; no es CI de la aplicación)
+- `docs/visualizations/ruedas.html` — Visualización interactiva de la estrategia de ruedas (HTML autocontenido; si cambia `wheels.strategy.ts`, actualizar también su copia de la lógica). Se publica en GitHub Pages con `.github/workflows/pages.yml` (ver «Integración Continua»)
 
 ## Exclusiones del Alcance PoC
 
-Sin autenticación, sin multi-ciudad, sin deshacer, sin diseño móvil, sin CI/CD, sin despliegue en producción. Ver docs/PRD.md sección 4 para la lista completa.
+Sin autenticación, sin multi-ciudad, sin deshacer, sin diseño móvil, sin despliegue continuo ni en producción (sí hay CI de build y tests y la publicación de las visualizaciones en GitHub Pages). Ver docs/PRD.md sección 4 para la lista completa.
