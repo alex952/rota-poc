@@ -69,6 +69,8 @@ export class RotaService {
         dayClassifications,
         dayBeforeYear,
         request.strategy ?? DEFAULT_ASSIGNMENT_STRATEGY,
+        // Se baraja cada grupo para no empezar todos los años por el mismo médico.
+        Math.random,
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => [
