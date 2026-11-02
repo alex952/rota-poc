@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { toIsoDate } from '../common/date.utils';
+import { isSanidadSpecialHoliday, sanidadSpecialHolidays } from '../common/sanidad-holidays';
 import { HolidayEntity } from '../rota/entities/holiday.entity';
 import { DayInfo } from '../scheduling/scheduling.types';
 
@@ -20,6 +21,7 @@ export interface HolidayRecord {
   date: string;
   name: string;
   source?: 'api' | 'manual';
+  special?: boolean;
 }
 
 export interface HolidayRepositoryPort {
@@ -88,14 +90,17 @@ function isHolidayForCity(holiday: HolidayApiItem, regionCode?: string): boolean
   return Boolean(regionCode && holiday.counties.includes(regionCode));
 }
 
+// Los festivos especiales de sanidad son festivo aunque no figuren en `holidays`.
 export function classifyDay(date: Date, holidays: Set<Date>): DayInfo {
   const weekday = date.getUTCDay();
-  const publicHoliday = hasHolidayDate(holidays, date);
+  const specialHoliday = isSanidadSpecialHoliday(toIsoDate(date));
+  const publicHoliday = specialHoliday || hasHolidayDate(holidays, date);
   if (publicHoliday || weekday === 0) {
     return {
       date,
       dayType: 'holiday',
       publicHoliday,
+      specialHoliday,
       durationHours: 23,
       shiftStart: '09:00',
       shiftEnd: '08:00+1',
@@ -163,11 +168,36 @@ export async function fetchHolidays(
       city,
       date: holidayDate,
       name: holiday.localName || holiday.name || '',
+      special: isSanidadSpecialHoliday(holidayDate),
     });
   }
 
+  for (const special of sanidadSpecialHolidays(year)) {
+    if (!seenDates.has(special.date)) {
+      items.push({ year, city, date: special.date, name: special.name, special: true });
+    }
+  }
+  items.sort((left, right) => left.date.localeCompare(right.date));
+
   await repository.upsertMany(items);
   return items;
+}
+
+/**
+ * Festivos especiales que faltan o no están marcados en `records`. Una caché
+ * anterior a esta regla no los tiene; un festivo manual en esa fecha pasa a especial.
+ */
+function missingSpecialHolidays(year: number, city: string, records: HolidayRecord[]): HolidayRecord[] {
+  const byDate = new Map(records.map((record) => [record.date, record]));
+  return sanidadSpecialHolidays(year)
+    .filter((special) => !byDate.get(special.date)?.special)
+    .map((special) => ({
+      year,
+      city,
+      date: special.date,
+      name: byDate.get(special.date)?.name ?? special.name,
+      special: true,
+    }));
 }
 
 export async function getHolidays(
@@ -178,7 +208,12 @@ export async function getHolidays(
 ) {
   const cached = await repository.findCached(year, city);
   if (cached.length > 0) {
-    return cached;
+    const missing = missingSpecialHolidays(year, city, cached);
+    if (missing.length === 0) {
+      return cached;
+    }
+    await repository.upsertMany(missing);
+    return repository.findCached(year, city);
   }
 
   return fetchHolidays(year, city, repository, fetcher);
@@ -237,6 +272,9 @@ export class HolidaysService {
     if (!existing) {
       throw new Error(`No se ha encontrado ningún festivo para el ${date}`);
     }
+    if (existing.special) {
+      throw new Error('Los festivos especiales de sanidad no se pueden eliminar');
+    }
     if (existing.source !== 'manual') {
       throw new Error('Solo se pueden eliminar los festivos creados manualmente');
     }
@@ -267,12 +305,28 @@ export class HolidaysService {
         .createQueryBuilder()
         .insert()
         .into(HolidayEntity)
-        .values(items.map((item) => ({ ...item, source: 'api' as const })))
+        .values(
+          items.map((item) => ({ ...item, source: 'api' as const, special: item.special ?? false })),
+        )
         .orIgnore()
         // En MySQL TypeORM relee las filas insertadas por id tras el INSERT; las ignoradas no
         // tienen id y esa relectura falla ("entity id is not set"). No se usan los valores devueltos.
         .updateEntity(false)
         .execute();
+
+      // Una fila que ya existía (p. ej. un festivo manual) no se pisa, pero si su fecha es
+      // un festivo especial de sanidad se marca como tal.
+      const specialItems = items.filter((item) => item.special);
+      if (specialItems.length > 0) {
+        await this.holidaysRepository.update(
+          {
+            year: specialItems[0].year,
+            city: specialItems[0].city,
+            date: In(specialItems.map((item) => item.date)),
+          },
+          { special: true },
+        );
+      }
     },
   };
 

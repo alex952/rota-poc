@@ -30,6 +30,19 @@ describe('Holiday service', () => {
     });
   });
 
+  it('trata los festivos especiales de sanidad como festivos aunque no estén en el calendario', () => {
+    for (const iso of ['2026-01-01', '2026-01-06', '2026-12-24', '2026-12-25', '2026-12-31']) {
+      expect(classifyDay(new Date(iso), new Set())).toMatchObject({
+        dayType: 'holiday',
+        publicHoliday: true,
+        specialHoliday: true,
+        durationHours: 23,
+        shiftStart: '09:00',
+      });
+    }
+    expect(classifyDay(new Date('2026-12-26'), new Set()).specialHoliday).toBeFalsy();
+  });
+
   it('classifies an entire year into 365 days', () => {
     const days = classifyYear(2026, new Set([new Date('2026-01-01'), new Date('2026-01-06')]));
 
@@ -48,6 +61,37 @@ describe('Holiday service', () => {
       expect.arrayContaining(['Ano Nuevo', 'Dia de la Comunidad de Madrid']),
     );
     expect(holidays.map((holiday) => holiday.name)).not.toEqual(expect.arrayContaining(['San Jose', 'Sant Jordi']));
+  });
+
+  it('añade siempre los festivos especiales de sanidad y marca los que ya trae la API', async () => {
+    const mockDb = createHolidayDbMock();
+    const fetcher = jest.fn().mockResolvedValue(HOLIDAY_API_RESPONSE);
+
+    const holidays = await fetchHolidays(2026, CITY, mockDb.repository, fetcher);
+    const specials = holidays.filter((holiday) => holiday.special).map((holiday) => holiday.date);
+
+    expect(specials).toEqual(['2026-01-01', '2026-01-06', '2026-12-24', '2026-12-25', '2026-12-31']);
+    expect(holidays.find((holiday) => holiday.date === '2026-12-24')?.name).toBe('Nochebuena');
+    expect(holidays.find((holiday) => holiday.date === '2026-12-25')?.name).toBe('Navidad');
+    expect(holidays.find((holiday) => holiday.date === '2026-05-01')?.special).toBe(false);
+    expect(holidays.map((holiday) => holiday.date)).toEqual([...holidays.map((h) => h.date)].sort());
+  });
+
+  it('completa una caché anterior sin festivos especiales', async () => {
+    const mockDb = createHolidayDbMock();
+    await mockDb.repository.upsertMany([
+      { year: 2026, city: CITY, date: '2026-01-01', name: 'Ano Nuevo' },
+      { year: 2026, city: CITY, date: '2026-05-01', name: 'Dia del Trabajador' },
+    ]);
+    const fetcher = jest.fn();
+
+    const holidays = await getHolidays(2026, CITY, mockDb.repository, fetcher);
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(holidays.filter((holiday: { special?: boolean }) => holiday.special).map((h: { date: string }) => h.date).sort()).toEqual([
+      '2026-01-01', '2026-01-06', '2026-12-24', '2026-12-25', '2026-12-31',
+    ]);
+    expect(holidays.find((holiday: { date: string }) => holiday.date === '2026-01-01')?.name).toBe('Ano Nuevo');
   });
 
   it('reads cached holidays before hitting the external API again', async () => {
@@ -120,6 +164,18 @@ describe('Holiday service', () => {
       await expect(service.deleteCustomHoliday(2026, CITY, '2026-03-15')).rejects.toThrow('No se ha encontrado');
     });
 
+    it('rechaza eliminar un festivo especial de sanidad aunque se marcara a mano', async () => {
+      const { HolidaysService } = await import('../../src/holidays/holidays.service');
+      const mockRepo = createHolidayRepositoryMock([
+        { year: 2026, city: CITY, date: '2026-12-24', name: 'Nochebuena', source: 'manual', special: true },
+      ]);
+      const service = new HolidaysService(mockRepo as any);
+
+      await expect(service.deleteCustomHoliday(2026, CITY, '2026-12-24')).rejects.toThrow(
+        'Los festivos especiales de sanidad no se pueden eliminar',
+      );
+    });
+
     it('rejects deleting an API holiday', async () => {
       const { HolidaysService } = await import('../../src/holidays/holidays.service');
       const mockRepo = createHolidayRepositoryMock([
@@ -133,14 +189,14 @@ describe('Holiday service', () => {
 });
 
 function createHolidayDbMock() {
-  const records: Array<{ year: number; city: string; date: string; name: string }> = [];
+  const records: Array<{ year: number; city: string; date: string; name: string; special?: boolean }> = [];
 
   return {
     repository: {
       findCached: jest.fn(async (year: number, city: string) =>
         records.filter((record) => record.year === year && record.city === city),
       ),
-      upsertMany: jest.fn(async (items: Array<{ year: number; city: string; date: string; name: string }>) => {
+      upsertMany: jest.fn(async (items: Array<{ year: number; city: string; date: string; name: string; special?: boolean }>) => {
         for (const item of items) {
           const existingIndex = records.findIndex(
             (record) => record.year === item.year && record.city === item.city && record.date === item.date,

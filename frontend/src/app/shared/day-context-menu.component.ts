@@ -17,6 +17,9 @@ export interface ContextMenuAction {
       role="menu"
       tabindex="-1"
     >
+      @if (isSpecial()) {
+        <span class="menu-note" role="note">Festivo especial de sanidad: no se puede desmarcar</span>
+      }
       @if (canMark()) {
         <button class="menu-item" role="menuitem" (click)="onMark()">
           Marcar como festivo
@@ -70,6 +73,14 @@ export interface ContextMenuAction {
       background-color: #f5f5f5;
     }
 
+    .menu-note {
+      display: block;
+      max-width: 220px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      color: #6a1b9a;
+    }
+
     .menu-item:focus-visible {
       outline: none;
       background-color: #e3f2fd;
@@ -87,7 +98,8 @@ export class DayContextMenuComponent {
 
   @ViewChild('menuRef') menuRef!: ElementRef<HTMLDivElement>;
 
-  readonly canMark = () => this.dayType() !== 'holiday-manual';
+  readonly isSpecial = () => this.dayType() === 'holiday-special';
+  readonly canMark = () => this.dayType() !== 'holiday-manual' && !this.isSpecial();
   readonly canUnmark = () => this.dayType() === 'holiday-manual';
 
   onMark(): void {

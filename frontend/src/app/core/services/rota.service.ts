@@ -20,20 +20,22 @@ export class RotaService {
     return this.http.get(`/api/v1/rota/${year}/export`, { responseType: 'blob' });
   }
 
-  generateRota(year: number, rotaType: RotaType, pool: Doctor[],
+  /** Genera de una vez los cuadrantes AC y AP del año; devuelve [AC, AP]. */
+  generateRotas(year: number, acPool: Doctor[], apPool: Doctor[],
     strategy: AssignmentStrategy = DEFAULT_STRATEGY,
-  ): Observable<RotaResponse> {
+  ): Observable<RotaResponse[]> {
+    const toInput = (doctor: Doctor) => ({
+      id: doctor.id,
+      name: doctor.name,
+      department: doctor.department,
+    });
     const request: GenerateRequest = {
       year,
-      rota_type: rotaType,
-      pool: pool.map((doctor) => ({
-        id: doctor.id,
-        name: doctor.name,
-        department: doctor.department,
-      })),
+      ac_pool: acPool.map(toInput),
+      ap_pool: apPool.map(toInput),
       strategy,
     };
-    return this.http.post<RotaResponse>('/api/v1/rota/generate', request);
+    return this.http.post<RotaResponse[]>('/api/v1/rota/generate', request);
   }
 
   addDoctor(year: number, rotaType: RotaType, request: AddDoctorRequest): Observable<RotaResponse> {

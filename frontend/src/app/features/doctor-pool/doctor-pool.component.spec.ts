@@ -73,7 +73,7 @@ describe('DoctorPoolComponent', () => {
 
     const generateButton = fixture.nativeElement.querySelector('.btn-generate');
     expect(generateButton).toBeTruthy();
-    expect(generateButton.textContent.trim()).toBe('Generar cuadrante AC');
+    expect(generateButton.textContent.trim()).toBe('Generar cuadrante');
   });
 
   it('should show Re-generate AC Rota button when rota exists', () => {
@@ -84,7 +84,7 @@ describe('DoctorPoolComponent', () => {
 
     const generateButton = fixture.nativeElement.querySelector('.btn-generate');
     expect(generateButton).toBeTruthy();
-    expect(generateButton.textContent.trim()).toBe('Regenerar cuadrante AC');
+    expect(generateButton.textContent.trim()).toBe('Regenerar cuadrante');
   });
 
   it('should emit generateRota event when button clicked', () => {

@@ -55,6 +55,15 @@ export const AP_POOL_12: DoctorInput[] = [
   { id: 'doc-022', name: 'Dr. Prieto', department: 'Medicina General' },
 ];
 
+export const AP_POOL_17: DoctorInput[] = [
+  ...AP_POOL_12,
+  { id: 'doc-023', name: 'Dr. Ortega', department: 'Medicina General' },
+  { id: 'doc-024', name: 'Dr. Rubio', department: 'Medicina General' },
+  { id: 'doc-025', name: 'Dr. Molina', department: 'Medicina General' },
+  { id: 'doc-026', name: 'Dr. Delgado', department: 'Medicina General' },
+  { id: 'doc-027', name: 'Dr. Suarez', department: 'Medicina General' },
+];
+
 export const HOLIDAY_API_RESPONSE:HolidayApiItem[] = [
   {
     date: '2026-01-01',

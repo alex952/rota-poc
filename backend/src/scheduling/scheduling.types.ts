@@ -2,6 +2,9 @@ import type { AssignmentStrategyId } from './strategies/assignment-strategy';
 
 export type RotaType = 'AC' | 'AP';
 export type DayType = 'weekday' | 'saturday' | 'holiday';
+// Guardia: la plaza principal del día de cada grupo (AC o AP). Refuerzo: plaza adicional
+// con horario AP, cubierta por un AP o, si le faltan horas en el mes, por un AC.
+export type ShiftRole = 'guardia' | 'refuerzo';
 
 export interface DoctorInput {
   id: string;
@@ -12,6 +15,12 @@ export interface DoctorInput {
 export interface DoctorRef {
   doctorId: string;
   doctorName: string;
+  // Sin papel explícito se trata como guardia.
+  role?: ShiftRole;
+  // Horario propio de la asignación cuando no coincide con el del día (refuerzo AC).
+  durationHours?: number;
+  shiftStart?: string;
+  shiftEnd?: string;
 }
 
 export interface DayInfo {
@@ -21,6 +30,8 @@ export interface DayInfo {
   // semana. Un domingo normal tiene dayType 'holiday' pero publicHoliday falso.
   // Opcional: los días reconstruidos desde la base de datos no lo conocen (= falso).
   publicHoliday?: boolean;
+  // Festivo especial de sanidad (24, 25 y 31 dic, 1 y 6 ene): siempre lleva dos refuerzos.
+  specialHoliday?: boolean;
   durationHours: number;
   shiftStart: string;
   shiftEnd: string;
@@ -40,6 +51,7 @@ export interface DoctorStats {
   shiftsWeekday: number;
   shiftsSaturday: number;
   shiftsSundayHoliday: number;
+  shiftsRefuerzo: number;
 }
 
 export interface StatsResponse {

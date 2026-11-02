@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Workbook, Worksheet } from 'exceljs';
 
 import { fromIsoDate, getIsoWeekday } from '../common/date.utils';
+import { isSanidadSpecialHoliday } from '../common/sanidad-holidays';
+import { apShiftDetails } from '../scheduling/shifts';
 import { DayAssignment, DayType, RotaResponse, RotaType } from './rota.types';
 
 const NOMBRES_DIA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
@@ -21,9 +23,12 @@ const CABECERA_CUADRANTE = [
   { header: 'Médico AC', width: 24 },
   { header: 'Horario AC', width: 15 },
   { header: 'Horas AC', width: 10 },
-  { header: 'Refuerzo AP', width: 40 },
+  { header: 'Médico AP', width: 24 },
   { header: 'Horario AP', width: 15 },
   { header: 'Horas AP', width: 10 },
+  { header: 'Refuerzos', width: 44 },
+  { header: 'Horario refuerzo', width: 17 },
+  { header: 'Horas refuerzo', width: 15 },
 ];
 
 const CABECERA_ESTADISTICAS = [
@@ -34,6 +39,7 @@ const CABECERA_ESTADISTICAS = [
   { header: 'Laborables', width: 13 },
   { header: 'Sábados', width: 11 },
   { header: 'Festivos', width: 11 },
+  { header: 'Refuerzos', width: 12 },
   ...NOMBRES_MES.map((mes) => ({ header: mes, width: 8 })),
 ];
 
@@ -71,22 +77,43 @@ export class RotaExportService {
       sheet.addRow([
         fromIsoDate(fecha),
         NOMBRES_DIA[getIsoWeekday(fecha)],
-        NOMBRES_TIPO_DIA[tipoDia],
-        ...this.shiftColumns(diaAc),
-        ...this.shiftColumns(diaAp),
+        isSanidadSpecialHoliday(fecha) ? 'Festivo especial' : NOMBRES_TIPO_DIA[tipoDia],
+        ...this.guardiaColumns(diaAc),
+        ...this.guardiaColumns(diaAp),
+        ...this.refuerzoColumns(tipoDia, diaAc, diaAp),
       ]);
     }
   }
 
-  private shiftColumns(day?: DayAssignment): Array<string | number | null> {
-    if (!day) {
+  private guardiaColumns(day?: DayAssignment): Array<string | number | null> {
+    const guardias = day?.doctors.filter((doctor) => doctor.role !== 'refuerzo') ?? [];
+    if (!day || guardias.length === 0) {
       return [null, null, null];
     }
     return [
-      day.doctors.map((doctor) => doctor.doctor_name).join(', '),
+      guardias.map((doctor) => doctor.doctor_name).join(', '),
       `${day.shift_start}–${day.shift_end}`,
       day.duration_hours,
     ];
+  }
+
+  // Refuerzos del día: los de AP y, marcados con «(AC)», los que cubre un médico AC.
+  private refuerzoColumns(
+    tipoDia: DayType,
+    ac?: DayAssignment,
+    ap?: DayAssignment,
+  ): Array<string | number | null> {
+    const nombres = [
+      ...(ap?.doctors ?? []).filter((doctor) => doctor.role === 'refuerzo').map((doctor) => doctor.doctor_name),
+      ...(ac?.doctors ?? [])
+        .filter((doctor) => doctor.role === 'refuerzo')
+        .map((doctor) => `${doctor.doctor_name} (AC)`),
+    ];
+    if (nombres.length === 0) {
+      return [null, null, null];
+    }
+    const turno = apShiftDetails(tipoDia);
+    return [nombres.join(', '), `${turno.shiftStart}–${turno.shiftEnd}`, turno.durationHours];
   }
 
   private addStatsSheet(workbook: Workbook, rota: RotaResponse): void {
@@ -101,6 +128,7 @@ export class RotaExportService {
         doctor.shifts_weekday,
         doctor.shifts_saturday,
         doctor.shifts_sunday_holiday,
+        doctor.shifts_refuerzo,
         ...NOMBRES_MES.map((_, indice) => doctor.monthly_hours[String(indice + 1)] ?? 0),
       ]);
     }

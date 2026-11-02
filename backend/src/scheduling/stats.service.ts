@@ -12,6 +12,7 @@ export function calculateStats(
   const shiftsWeekday: Record<string, number> = {};
   const shiftsSaturday: Record<string, number> = {};
   const shiftsSundayHoliday: Record<string, number> = {};
+  const shiftsRefuerzo: Record<string, number> = {};
 
   for (const doctor of pool) {
     totalHours[doctor.id] = 0;
@@ -19,6 +20,7 @@ export function calculateStats(
     shiftsWeekday[doctor.id] = 0;
     shiftsSaturday[doctor.id] = 0;
     shiftsSundayHoliday[doctor.id] = 0;
+    shiftsRefuerzo[doctor.id] = 0;
   }
 
   for (const day of schedule) {
@@ -29,9 +31,14 @@ export function calculateStats(
         continue;
       }
 
-      totalHours[doctor.doctorId] += day.durationHours;
+      // El refuerzo de un AC tiene horario AP: su duración va en la propia asignación.
+      const hours = doctor.durationHours ?? day.durationHours;
+      totalHours[doctor.doctorId] += hours;
       monthlyHours[doctor.doctorId][month] =
-        (monthlyHours[doctor.doctorId][month] ?? 0) + day.durationHours;
+        (monthlyHours[doctor.doctorId][month] ?? 0) + hours;
+      if (doctor.role === 'refuerzo') {
+        shiftsRefuerzo[doctor.doctorId] += 1;
+      }
 
       if (day.dayType === 'weekday') {
         shiftsWeekday[doctor.doctorId] += 1;
@@ -55,6 +62,7 @@ export function calculateStats(
       shiftsWeekday: shiftsWeekday[doctor.id],
       shiftsSaturday: shiftsSaturday[doctor.id],
       shiftsSundayHoliday: shiftsSundayHoliday[doctor.id],
+      shiftsRefuerzo: shiftsRefuerzo[doctor.id],
     };
   });
 }

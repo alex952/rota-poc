@@ -19,7 +19,11 @@ import { RotaType } from '../../core/models/doctor.model';
         </div>
         <div class="stat-item">
           <span class="stat-label">{{ monthName() }}</span>
-          <span class="stat-value month-hours">{{ currentMonthHours() }}h</span>
+          <span
+            class="stat-value month-hours"
+            [class.negative]="rotaType() === 'AC' && currentMonthHours() < acMonthlyMinimum"
+            [attr.title]="rotaType() === 'AC' ? 'Mínimo mensual: ' + acMonthlyMinimum + 'h' : null"
+          >{{ currentMonthHours() }}h</span>
         </div>
       </div>
       <div class="stats-grid compact">
@@ -43,6 +47,9 @@ import { RotaType } from '../../core/models/doctor.model';
         <span class="shift-badge weekday">Lab: {{ stats().shifts_weekday }}</span>
         <span class="shift-badge saturday">Sáb: {{ stats().shifts_saturday }}</span>
         <span class="shift-badge holiday">Fest: {{ stats().shifts_sunday_holiday }}</span>
+        @if (stats().shifts_refuerzo) {
+          <span class="shift-badge refuerzo" title="Turnos de refuerzo (incluidos en Lab/Sáb/Fest)">Ref: {{ stats().shifts_refuerzo }}</span>
+        }
       </div>
     </div>
   `,
@@ -137,9 +144,15 @@ import { RotaType } from '../../core/models/doctor.model';
       background: #fce4ec;
       color: #c62828;
     }
+
+    .shift-badge.refuerzo {
+      background: #fff3e0;
+      color: #e65100;
+    }
   `],
 })
 export class DoctorStatsRowComponent {
+  protected readonly acMonthlyMinimum = 135;
   readonly stats = input.required<DoctorStats>();
   readonly rotaType = input<RotaType>('AC');
   readonly maxHours = input<number>(0);

@@ -34,6 +34,7 @@ export interface DayContextMenuEvent {
               [dayType]="cell.dayType"
               [date]="cell.date"
               [isManualHoliday]="cell.isManualHoliday"
+              [isSpecialHoliday]="cell.isSpecialHoliday"
               (doctorDropped)="doctorDropped.emit($event)"
               (doctorClicked)="doctorClicked.emit($event)"
               (daySelected)="daySelected.emit($event)"
@@ -99,6 +100,7 @@ export class MonthViewComponent {
   readonly assignments = input<MergedDayAssignment[]>([]);
   readonly manualHolidayDates = input<ReadonlySet<string>>(new Set<string>());
   readonly allHolidayDates = input<ReadonlySet<string>>(new Set<string>());
+  readonly specialHolidayDates = input<ReadonlySet<string>>(new Set<string>());
 
   readonly doctorDropped = output<ReplacementEvent>();
   readonly doctorClicked = output<{ doctor_id: string; doctor_name: string }>();
@@ -140,15 +142,17 @@ export class MonthViewComponent {
       dayType: string;
       date: string;
       isManualHoliday: boolean;
+      isSpecialHoliday: boolean;
     }> = [];
     const offset = this.firstDayOffset();
     const total = this.daysInMonth();
     const assignMap = this.assignmentsByDay();
     const manualHolidays = this.manualHolidayDates();
     const allHolidays = this.allHolidayDates();
+    const specialHolidays = this.specialHolidayDates();
 
     for (let i = 0; i < offset; i++) {
-      cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '', isManualHoliday: false });
+      cells.push({ key: `empty-${i}`, day: 0, assignment: null, dayType: 'weekday', date: '', isManualHoliday: false, isSpecialHoliday: false });
     }
 
     for (let d = 1; d <= total; d++) {
@@ -166,6 +170,7 @@ export class MonthViewComponent {
         dayType,
         date: dateStr,
         isManualHoliday,
+        isSpecialHoliday: specialHolidays.has(dateStr),
       });
     }
 

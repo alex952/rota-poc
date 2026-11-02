@@ -199,6 +199,8 @@ describe('Estrategia de ruedas (wheels)', () => {
     });
 
     it('limitación conocida (resonancia): AC de 5 médicos sin festivos, el de los viernes no hace sábados', () => {
+      // Los festivos especiales de sanidad (1 y 6 ene, 24, 25 y 31 dic) son siempre festivo:
+      // se mira el tramo del 7 de enero al 23 de diciembre, sin ningún festivo.
       // Con 5 laborables por semana y 5 médicos la rueda de laborables da una vuelta
       // exacta cada semana, así que el viernes lo hace siempre el mismo médico. Como
       // el descanso le impide hacer el sábado, la rueda de sábados lo salta una y otra
@@ -217,7 +219,11 @@ describe('Estrategia de ruedas (wheels)', () => {
       );
       const fridays = new Map<string, number>();
       const saturdays = new Map<string, number>();
-      for (const entry of rota.schedule) {
+      const window = rota.schedule.filter((entry) => {
+        const iso = toIsoDate(entry.date);
+        return iso >= '2026-01-07' && iso <= '2026-12-23';
+      });
+      for (const entry of window) {
         const weekday = entry.date.getUTCDay();
         const target = weekday === 5 ? fridays : weekday === 6 ? saturdays : null;
         for (const doctor of entry.doctors) {
@@ -234,6 +240,20 @@ describe('Estrategia de ruedas (wheels)', () => {
     const days = [day('2026-01-06', true), day('2026-01-07', true)];
     const fivePool = [...pool, { id: 'E', name: 'Dr. E', department: 'Medicina General' }];
     expect(runFromZero(days, [1, 2], fivePool)).toEqual([['A'], ['B', 'C']]);
+  });
+
+  it('guardia y refuerzo usan ruedas distintas; la de refuerzo arranca desplazada ⌊N/2⌋', () => {
+    const days = [day('2026-01-05'), day('2026-01-06'), day('2026-01-07')];
+    const assigned = assignWithWheels(
+      { pool, days, requiredByDay: [2, 2, 2], refuerzosByDay: [1, 1, 1] },
+      { weekday: 0, saturday: 0, sunday: 0, holiday: 0 },
+    ).map((chosen) => chosen.map((doctor) => doctor.id));
+    // Guardia: A, B, C. Refuerzo desde C (0 + 2): C, D y, al dar la vuelta, A.
+    expect(assigned).toEqual([
+      ['A', 'C'],
+      ['B', 'D'],
+      ['C', 'A'],
+    ]);
   });
 
   it('descanso blando: completa con no descansados en orden de rueda y sin generar deudas', () => {

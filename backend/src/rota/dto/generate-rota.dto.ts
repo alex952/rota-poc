@@ -17,17 +17,20 @@ export class DoctorInputDto {
   department!: string;
 }
 
+/** Genera de una vez los cuadrantes AC y AP del año. */
 export class GenerateRotaDto {
   @IsInt({ message: 'el año debe ser un número entero' })
   year!: number;
 
-  @IsIn(['AC', 'AP'], { message: 'el tipo de cuadrante debe ser AC o AP' })
-  rota_type!: 'AC' | 'AP';
-
-  @IsArray({ message: 'el grupo de médicos debe ser una lista' })
-  @ValidateNested({ each: true, message: 'cada médico del grupo debe ser un objeto válido' })
+  @IsArray({ message: 'el grupo de médicos AC debe ser una lista' })
+  @ValidateNested({ each: true, message: 'cada médico del grupo AC debe ser un objeto válido' })
   @Type(() => DoctorInputDto)
-  pool!: DoctorInputDto[];
+  ac_pool!: DoctorInputDto[];
+
+  @IsArray({ message: 'el grupo de médicos AP debe ser una lista' })
+  @ValidateNested({ each: true, message: 'cada médico del grupo AP debe ser un objeto válido' })
+  @Type(() => DoctorInputDto)
+  ap_pool!: DoctorInputDto[];
 
   // Método de asignación; si se omite, el servicio usa 'balanced'.
   @IsOptional()

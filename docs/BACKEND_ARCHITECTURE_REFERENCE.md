@@ -30,10 +30,10 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 
 - `GET /health`
 - `GET /api/v1/config`
-- `GET /api/v1/holidays/:year` — lista todos los festivos del año (API + manuales)
+- `GET /api/v1/holidays/:year` — lista todos los festivos del año (API + manuales + los especiales de sanidad, con `special: true`)
 - `POST /api/v1/holidays/:year` — marca una fecha como festivo manual
-- `DELETE /api/v1/holidays/:year/:date` — desmarca un festivo manual (solo si `source = 'manual'`)
-- `POST /api/v1/rota/generate`
+- `DELETE /api/v1/holidays/:year/:date` — desmarca un festivo manual (solo si `source = 'manual'` y no es especial)
+- `POST /api/v1/rota/generate` — genera AC y AP a la vez (`{ year, ac_pool, ap_pool, strategy? }` → `[AC, AP]`)
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
 - `GET /api/v1/rota/:year/export`
