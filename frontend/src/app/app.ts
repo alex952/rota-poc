@@ -3,7 +3,7 @@ import { DoctorPoolComponent } from './features/doctor-pool/doctor-pool.componen
 import { CalendarComponent } from './features/calendar/calendar.component';
 import { StatsPanelComponent } from './features/stats/stats-panel.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
-import { ReplaceDoctorDialogComponent, ReplaceDoctorChoice } from './shared/replace-doctor-dialog.component';
+import { DayRefuerzo, ReplaceDoctorDialogComponent, ReplaceDoctorChoice } from './shared/replace-doctor-dialog.component';
 import { DayContextMenuComponent } from './shared/day-context-menu.component';
 import { NotificationComponent } from './shared/notification.component';
 import { ConfigService } from './core/services/config.service';
@@ -78,6 +78,30 @@ export class App implements OnInit {
 
   // Drag-and-drop replacement state
   protected readonly pendingReplacement = signal<ReplacementEvent | null>(null);
+  /** Fecha del día soltado en formato largo, p. ej. «jueves, 1 de enero» */
+  protected readonly pendingDateLabel = computed(() => {
+    const pending = this.pendingReplacement();
+    if (!pending) return '';
+    return new Date(pending.date + 'T00:00:00').toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  });
+  /** Guardia de su grupo que el médico soltado puede sustituir */
+  protected readonly pendingGuardia = computed<DoctorRef | null>(() => {
+    const pending = this.pendingReplacement();
+    if (!pending) return null;
+    return this.sectionDoctors(this.activePoolTab(), pending).find((doctor) => doctor.role !== 'refuerzo') ?? null;
+  });
+  /** Refuerzos del día de los dos grupos: el bloque de refuerzo es común */
+  protected readonly pendingRefuerzos = computed<DayRefuerzo[]>(() => {
+    const pending = this.pendingReplacement();
+    if (!pending) return [];
+    const refuerzosOf = (doctors: DoctorRef[], rotaType: RotaType) =>
+      doctors.filter((doctor) => doctor.role === 'refuerzo').map((doctor) => ({ doctor, rotaType }));
+    return [...refuerzosOf(pending.apDoctors, 'AP'), ...refuerzosOf(pending.acDoctors, 'AC')];
+  });
 
   protected readonly activePoolDoctors = computed(() => {
     const tab = this.activePoolTab();
@@ -280,7 +304,7 @@ export class App implements OnInit {
   }
 
   onDoctorDropped(event: ReplacementEvent): void {
-    const assignedDoctors = this.getReplaceableDoctors(this.activePoolTab(), event);
+    const assignedDoctors = this.sectionDoctors(this.activePoolTab(), event);
     if (assignedDoctors.length === 0) {
       this.notificationService.show(
         'No hay ninguna sustitución disponible para ese médico en este día.',
@@ -290,7 +314,7 @@ export class App implements OnInit {
     }
     if (assignedDoctors.some((doctor) => doctor.doctor_id === event.newDoctor.id)) {
       this.notificationService.show(
-        'Ese médico ya está asignado a la guardia de este día.',
+        'Ese médico ya tiene una guardia o un refuerzo este día.',
         'warning'
       );
       return;
@@ -309,7 +333,7 @@ export class App implements OnInit {
     const replacement = this.pendingReplacement();
     if (!replacement) return;
     this.pendingReplacement.set(null);
-    this.doReplace(this.activePoolTab(), replacement.date, choice.doctor_id, replacement.newDoctor.id);
+    this.doReplace(this.activePoolTab(), replacement.date, choice, replacement.newDoctor.id);
   }
 
   onCancelReplacement(): void {
@@ -343,21 +367,30 @@ export class App implements OnInit {
   private doReplace(
     rotaType: RotaType,
     dateStr: string,
-    oldDoctorId: string,
+    oldDoctor: ReplaceDoctorChoice,
     newDoctorId: string,
   ): void {
     const request: ReplaceRequest = {
       date: dateStr,
-      old_doctor_id: oldDoctorId,
+      old_doctor_id: oldDoctor.doctor_id,
       new_doctor_id: newDoctorId,
     };
+    // Un refuerzo del otro grupo sale de su cuadrante: hay que recargar los dos.
+    const crossRota = oldDoctor.rota_type !== rotaType;
+    if (crossRota) {
+      request.old_rota_type = oldDoctor.rota_type;
+    }
 
     this.loading.set(true);
 
     this.rotaService.replaceDoctor(this.selectedYear(), rotaType, request).subscribe({
       next: (rota) => {
-        this.applyRota(rota);
-        this.loading.set(false);
+        if (crossRota) {
+          this.loadRotas(this.selectedYear());
+        } else {
+          this.applyRota(rota);
+          this.loading.set(false);
+        }
         if (rota.warnings?.length) {
           this.notificationService.show(rota.warnings.join('\n'), 'warning');
         }
@@ -421,10 +454,8 @@ export class App implements OnInit {
     }
   }
 
-  protected getReplaceableDoctors(
-    rotaType: RotaType,
-    event: ReplacementEvent,
-  ): DoctorRef[] {
+  /** Médicos (guardia y refuerzos) del grupo indicado en el día soltado */
+  private sectionDoctors(rotaType: RotaType, event: ReplacementEvent): DoctorRef[] {
     return rotaType === 'AP' ? event.apDoctors : event.acDoctors;
   }
 

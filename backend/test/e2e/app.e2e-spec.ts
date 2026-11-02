@@ -243,6 +243,70 @@ describe('HTTP contract', () => {
     expect(updatedAp.doctors.map((doctor) => doctor.doctor_id)).not.toContain(refuerzo.doctor_id);
   });
 
+  it('sustituye un refuerzo del otro grupo: sale de su cuadrante y entra como refuerzo en el del médico', async () => {
+    const [ac, ap] = (await generate()).json();
+
+    // Un día laborable con refuerzo AP en el que el médico AC elegido no tiene asignación.
+    const apDay = (ap.schedule as ApiDay[]).find(
+      (day) => day.day_type === 'weekday' && withRole(day, 'refuerzo').length === 1,
+    )!;
+    const [apRefuerzo] = withRole(apDay, 'refuerzo');
+    const acDay = byDate(ac.schedule).get(apDay.date)!;
+    const acDoctor = AC_POOL_4.find(
+      (doctor) => !acDay.doctors.some((ref: { doctor_id: string }) => ref.doctor_id === doctor.id),
+    )!;
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/rota/2026/AC/replace',
+      payload: {
+        date: apDay.date,
+        old_doctor_id: apRefuerzo.doctor_id,
+        new_doctor_id: acDoctor.id,
+        old_rota_type: 'AP',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().rota_type).toBe('AC');
+    const updatedAc = byDate(response.json().schedule).get(apDay.date)!;
+    expect(withRole(updatedAc, 'refuerzo')).toContainEqual(
+      expect.objectContaining({ doctor_id: acDoctor.id }),
+    );
+
+    const storedAp = (await app.inject({ method: 'GET', url: '/api/v1/rota/2026/AP' })).json();
+    const updatedAp = byDate(storedAp.schedule).get(apDay.date)!;
+    expect(updatedAp.doctors.map((doctor: { doctor_id: string }) => doctor.doctor_id)).not.toContain(
+      apRefuerzo.doctor_id,
+    );
+    expect(withRole(updatedAp, 'guardia')).toEqual(withRole(apDay, 'guardia'));
+
+    // La guardia del otro grupo no se puede sustituir.
+    const [apGuardia] = withRole(apDay, 'guardia');
+    const otherAcDoctor = AC_POOL_4.find(
+      (doctor) => doctor.id !== acDoctor.id && !acDay.doctors.some((ref: { doctor_id: string }) => ref.doctor_id === doctor.id),
+    )!;
+    const guardiaAttempt = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/rota/2026/AC/replace',
+      payload: {
+        date: apDay.date,
+        old_doctor_id: apGuardia.doctor_id,
+        new_doctor_id: otherAcDoctor.id,
+        old_rota_type: 'AP',
+      },
+    });
+    expect(guardiaAttempt.statusCode).toBe(400);
+    expect(guardiaAttempt.json().message).toMatch(/sólo se puede sustituir un refuerzo/i);
+
+    const invalidType = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/rota/2026/AC/replace',
+      payload: { date: apDay.date, old_doctor_id: 'x', new_doctor_id: 'y', old_rota_type: 'ZZ' },
+    });
+    expect(invalidType.statusCode).toBe(400);
+    expect(invalidType.json().message).toEqual(['el grupo del médico saliente debe ser AC o AP']);
+  });
+
   it('supports adding a doctor to an existing day', async () => {
     const [ac, ap] = (await generate()).json();
 
@@ -262,11 +326,12 @@ describe('HTTP contract', () => {
     });
     expect(addition.statusCode).toBe(200);
 
+    // En AC también se añade un refuerzo, con el horario AP del día (7h L-S, 12h festivo).
     const updatedDay = byDate(addition.json().schedule).get(targetDay.date)!;
     expect(updatedDay.doctors).toHaveLength(2);
     expect(updatedDay.doctors[0].doctor_id).toBe(assignedDoctorId);
-    expect(updatedDay.doctors[1]).toMatchObject({ doctor_id: extraDoctor!.id, role: 'guardia' });
-    expect(hoursOf(addition.json())).toBe(hoursBefore + targetDay.duration_hours);
+    expect(updatedDay.doctors[1]).toMatchObject({ doctor_id: extraDoctor!.id, role: 'refuerzo' });
+    expect(hoursOf(addition.json())).toBe(hoursBefore + (targetDay.day_type === 'holiday' ? 12 : 7));
 
     // En AP se añade un refuerzo.
     const apDay = ap.schedule[10] as ApiDay;

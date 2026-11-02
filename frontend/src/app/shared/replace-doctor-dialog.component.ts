@@ -1,9 +1,18 @@
 import { Component, input, output } from '@angular/core';
 import { DoctorRef } from '../core/models/rota.model';
+import { RotaType } from '../core/models/doctor.model';
 
 export interface ReplaceDoctorChoice {
   doctor_id: string;
   doctor_name: string;
+  /** Cuadrante en el que está el médico saliente */
+  rota_type: RotaType;
+}
+
+/** Refuerzo del día con el grupo que lo cubre: el bloque de refuerzo es común a AC y AP */
+export interface DayRefuerzo {
+  doctor: DoctorRef;
+  rotaType: RotaType;
 }
 
 @Component({
@@ -13,17 +22,23 @@ export interface ReplaceDoctorChoice {
     <div class="replace-doctor-backdrop">
       <div class="replace-doctor-dialog">
         <p class="dialog-title">Asignar a {{ doctorName() }} el {{ date() }}</p>
-        <p class="dialog-subtitle">
-          Elija cómo desea asignarlo
-        </p>
-        <button class="btn-add" data-testid="add-doctor-option" (click)="added.emit()">{{ addLabel() }}</button>
-        <p class="replace-label">O sustituir a:</p>
+        <p class="dialog-subtitle">Elija cómo desea asignarlo</p>
         <div class="doctor-buttons">
-          @for (doc of doctors(); track doc.doctor_id) {
-            <button class="btn-doctor" (click)="selected.emit({ doctor_id: doc.doctor_id, doctor_name: doc.doctor_name })">
-              Sustituir a {{ doc.doctor_name }}{{ doc.role === 'refuerzo' ? ' (refuerzo)' : '' }}
-            </button>
+          @if (guardia(); as doc) {
+            <button
+              class="btn-doctor"
+              data-testid="replace-guardia-option"
+              (click)="choose(doc, rotaType())"
+            >Sustituir a {{ doc.doctor_name }} en la guardia {{ rotaType() }}</button>
           }
+          @for (ref of refuerzos(); track ref.doctor.doctor_id) {
+            <button
+              class="btn-doctor"
+              data-testid="replace-refuerzo-option"
+              (click)="choose(ref.doctor, ref.rotaType)"
+            >Sustituir a {{ ref.doctor.doctor_name }}{{ ref.rotaType === 'AC' ? ' (AC)' : '' }} en el refuerzo</button>
+          }
+          <button class="btn-add" data-testid="add-doctor-option" (click)="added.emit()">Añadir al refuerzo</button>
         </div>
         <div class="dialog-actions">
           <button class="btn-cancel" (click)="cancelled.emit()">Cancelar</button>
@@ -90,11 +105,6 @@ export interface ReplaceDoctorChoice {
       background: #0d47a1;
     }
 
-    .replace-label {
-      margin: 0.9rem 0 0.4rem;
-      font-size: 0.75rem;
-      color: #666;
-    }
 
     .btn-doctor {
       overflow-wrap: anywhere;
@@ -137,11 +147,18 @@ export interface ReplaceDoctorChoice {
 export class ReplaceDoctorDialogComponent {
   readonly date = input.required<string>();
   readonly doctorName = input.required<string>();
-  readonly doctors = input.required<DoctorRef[]>();
-  /** En AC se añade una guardia; en AP, un refuerzo */
-  readonly addLabel = input<string>('Añadir a la guardia');
+  /** Grupo del médico arrastrado: su guardia es la única que puede sustituir */
+  readonly rotaType = input.required<RotaType>();
+  /** Guardia de su grupo ese día; null si no hay ninguna que sustituir */
+  readonly guardia = input<DoctorRef | null>(null);
+  /** Todos los refuerzos del día, de AP y de AC */
+  readonly refuerzos = input<DayRefuerzo[]>([]);
 
   readonly selected = output<ReplaceDoctorChoice>();
   readonly added = output<void>();
   readonly cancelled = output<void>();
+
+  protected choose(doctor: DoctorRef, rotaType: RotaType): void {
+    this.selected.emit({ doctor_id: doctor.doctor_id, doctor_name: doctor.doctor_name, rota_type: rotaType });
+  }
 }

@@ -12,7 +12,8 @@ import { formatClockTime } from '../common/date.utils';
 import { HolidaysService, classifyDay, classifyYear } from '../holidays/holidays.service';
 import { InfeasiblePoolError, generateRotas } from '../scheduling/assignment.service';
 import { DEFAULT_ASSIGNMENT_STRATEGY } from '../scheduling/strategies';
-import { DoctorInput, RotaSchedule } from '../scheduling/scheduling.types';
+import { apShiftDetails } from '../scheduling/shifts';
+import { DayType, DoctorInput, RotaSchedule } from '../scheduling/scheduling.types';
 import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
@@ -184,24 +185,16 @@ export class RotaService {
       const rotaRepository = manager.getRepository(RotaEntity);
       const assignmentRepository = manager.getRepository(RotaAssignmentEntity);
 
-      const rota = await rotaRepository.findOne({
-        where: { year, rotaType },
-        relations: { assignments: true, doctors: true },
-      });
-      if (!rota) {
-        throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
-      }
+      const rota = await this.findRotaForEdit(rotaRepository, year, rotaType);
+      this.assertInPool(rota, request.new_doctor_id);
 
-      const poolDoctorIds = new Set((rota.pool as DoctorInput[]).map((doctor) => doctor.id));
-      if (!poolDoctorIds.has(request.new_doctor_id)) {
-        throw new BadRequestException(
-          `El médico ${request.new_doctor_id} no pertenece al grupo original.`,
-        );
-      }
+      const oldRotaType = request.old_rota_type ?? rotaType;
+      const oldRota =
+        oldRotaType === rotaType ? rota : await this.findRotaForEdit(rotaRepository, year, oldRotaType);
 
       const assignment = await assignmentRepository.findOne({
         where: {
-          rotaId: rota.id,
+          rotaId: oldRota.id,
           date: request.date,
           doctorId: request.old_doctor_id,
         },
@@ -224,15 +217,24 @@ export class RotaService {
         );
       }
 
-      assignment.doctorId = request.new_doctor_id;
-      await assignmentRepository.save(assignment);
+      if (oldRota === rota) {
+        assignment.doctorId = request.new_doctor_id;
+        await assignmentRepository.save(assignment);
+      } else {
+        // Entre grupos sólo se cambia el refuerzo, que es común a AC y AP: la fila sale
+        // del cuadrante del médico saliente y entra en el del entrante con el horario AP.
+        if (assignment.role !== 'refuerzo') {
+          throw new BadRequestException(
+            `Sólo se puede sustituir un refuerzo de otro grupo; ${request.old_doctor_id} hace la guardia ${oldRotaType} el ${request.date}.`,
+          );
+        }
+        await assignmentRepository.remove(assignment);
+        await assignmentRepository.save(
+          this.newRefuerzo(assignmentRepository, rota.id, request.date, assignment.dayType, request.new_doctor_id),
+        );
+      }
 
-      const refreshed = await rotaRepository.findOneOrFail({
-        where: { id: rota.id },
-        relations: { assignments: true, doctors: true },
-      });
-
-      return this.responseMapper.toResponse(refreshed);
+      return this.refreshedResponse(rotaRepository, rota.id);
     });
   }
 
@@ -241,18 +243,8 @@ export class RotaService {
       const rotaRepository = manager.getRepository(RotaEntity);
       const assignmentRepository = manager.getRepository(RotaAssignmentEntity);
 
-      const rota = await rotaRepository.findOne({
-        where: { year, rotaType },
-        relations: { assignments: true, doctors: true },
-      });
-      if (!rota) {
-        throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
-      }
-
-      const poolDoctorIds = new Set((rota.pool as DoctorInput[]).map((doctor) => doctor.id));
-      if (!poolDoctorIds.has(request.doctor_id)) {
-        throw new BadRequestException(`El médico ${request.doctor_id} no pertenece al grupo original.`);
-      }
+      const rota = await this.findRotaForEdit(rotaRepository, year, rotaType);
+      this.assertInPool(rota, request.doctor_id);
 
       const dayAssignments = rota.assignments.filter((candidate) => candidate.date === request.date);
       if (dayAssignments.length === 0) {
@@ -266,32 +258,57 @@ export class RotaService {
         );
       }
 
-      // En AC se añade una guardia y en AP un refuerzo. La fila nueva hereda tipo de día y
-      // horario de la fila más antigua del día con ese papel (o de la más antigua del día).
-      const role = rotaType === 'AP' ? 'refuerzo' : 'guardia';
-      const sameRole = dayAssignments.filter((candidate) => candidate.role === role);
-      const template = (sameRole.length > 0 ? sameRole : dayAssignments).reduce((first, candidate) =>
-        candidate.id < first.id ? candidate : first,
-      );
+      // Tanto en AC como en AP se añade un refuerzo, con el horario AP del tipo de día.
       await assignmentRepository.save(
-        assignmentRepository.create({
-          rotaId: rota.id,
-          date: request.date,
-          dayType: template.dayType,
-          shiftStart: template.shiftStart,
-          shiftEnd: template.shiftEnd,
-          durationHours: template.durationHours,
-          doctorId: request.doctor_id,
-          role,
-        }),
+        this.newRefuerzo(assignmentRepository, rota.id, request.date, dayAssignments[0].dayType, request.doctor_id),
       );
 
-      const refreshed = await rotaRepository.findOneOrFail({
-        where: { id: rota.id },
-        relations: { assignments: true, doctors: true },
-      });
-
-      return this.responseMapper.toResponse(refreshed);
+      return this.refreshedResponse(rotaRepository, rota.id);
     });
+  }
+
+  private async findRotaForEdit(rotaRepository: Repository<RotaEntity>, year: number, rotaType: string) {
+    const rota = await rotaRepository.findOne({
+      where: { year, rotaType },
+      relations: { assignments: true, doctors: true },
+    });
+    if (!rota) {
+      throw new NotFoundException(`No se ha encontrado ningún cuadrante ${rotaType} para el año ${year}`);
+    }
+    return rota;
+  }
+
+  private assertInPool(rota: RotaEntity, doctorId: string): void {
+    if (!(rota.pool as DoctorInput[]).some((doctor) => doctor.id === doctorId)) {
+      throw new BadRequestException(`El médico ${doctorId} no pertenece al grupo original.`);
+    }
+  }
+
+  private newRefuerzo(
+    assignmentRepository: Repository<RotaAssignmentEntity>,
+    rotaId: number,
+    date: string,
+    dayType: string,
+    doctorId: string,
+  ): RotaAssignmentEntity {
+    const shift = apShiftDetails(dayType as DayType);
+    return assignmentRepository.create({
+      rotaId,
+      date,
+      dayType,
+      shiftStart: shift.shiftStart,
+      shiftEnd: shift.shiftEnd,
+      durationHours: shift.durationHours,
+      doctorId,
+      role: 'refuerzo',
+    });
+  }
+
+  private async refreshedResponse(rotaRepository: Repository<RotaEntity>, rotaId: number) {
+    const refreshed = await rotaRepository.findOneOrFail({
+      where: { id: rotaId },
+      relations: { assignments: true, doctors: true },
+    });
+    return this.responseMapper.toResponse(refreshed);
   }
 }
