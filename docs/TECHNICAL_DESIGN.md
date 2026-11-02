@@ -43,8 +43,8 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
 - `GET /api/v1/rota/:year/export` descarga un libro de Excel (`cuadrante-guardias-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
-- `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación
-- `POST /api/v1/rota/:year/:rotaType/add` añade un médico a la guardia de un día sin quitar a los ya asignados; cuerpo `{ date, doctor_id }`, responde 200 con la rota completa. La fila nueva copia tipo de día y horario de la guardia existente; es una corrección manual sin validar día de descanso ni `doctors_per_day`
+- `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación; cuerpo `{ date, old_doctor_id, new_doctor_id, old_rota_type? }`. Con `old_rota_type` del otro grupo sólo se admite un refuerzo (si no, 400): la fila sale del cuadrante de origen y entra como refuerzo, con horario AP, en el de `:rotaType`, que es el que se devuelve
+- `POST /api/v1/rota/:year/:rotaType/add` añade un médico como refuerzo de un día (en AC y en AP) sin quitar a los ya asignados; cuerpo `{ date, doctor_id }`, responde 200 con la rota completa. La fila nueva copia el tipo de día y usa el horario AP del refuerzo (7h L-S, 12h festivo); es una corrección manual sin validar día de descanso ni `doctors_per_day`
 
 ## Diseño de Persistencia
 

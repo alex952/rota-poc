@@ -62,10 +62,11 @@
 
 @if (pendingReplacement()) {
   <app-replace-doctor-dialog
-    [date]="pendingReplacement()!.date"
+    [date]="pendingDateLabel()"
     [doctorName]="pendingReplacement()!.newDoctor.name"
-    [doctors]="getReplaceableDoctors(activePoolTab(), pendingReplacement()!)"
-    [addLabel]="activePoolTab() === 'AP' ? 'Añadir como refuerzo' : 'Añadir a la guardia'"
+    [rotaType]="activePoolTab()"
+    [guardia]="pendingGuardia()"
+    [refuerzos]="pendingRefuerzos()"
     (added)="onAddDoctorToDay()"
     (selected)="onReplaceDoctorSelected($event)"
     (cancelled)="onCancelReplacement()"

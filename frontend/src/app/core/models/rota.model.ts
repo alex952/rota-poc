@@ -77,6 +77,8 @@ export interface ReplaceRequest {
   date: string;
   old_doctor_id: string;
   new_doctor_id: string;
+  /** Grupo del médico saliente si no es el del cuadrante: sólo para refuerzos */
+  old_rota_type?: RotaType;
 }
 
 export interface AddDoctorRequest {

@@ -580,13 +580,15 @@ describe('App', () => {
   });
 
   describe('soltar un médico sobre un día', () => {
-    const drop = (assigned: { doctor_id: string; doctor_name: string }[], newDoctor = mockDoctors[1]) => ({
+    type Ref = { doctor_id: string; doctor_name: string; role?: 'guardia' | 'refuerzo' };
+    const drop = (acDoctors: Ref[], newDoctor = mockDoctors[1], apDoctors: Ref[] = []) => ({
       date: '2026-01-01',
       newDoctor,
-      acDoctors: assigned,
-      apDoctors: [],
+      acDoctors,
+      apDoctors,
     });
-    const garcia = { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia' };
+    const garcia: Ref = { doctor_id: 'doc-001', doctor_name: 'Dr. Garcia', role: 'guardia' };
+    const apRefuerzo: Ref = { doctor_id: 'doc-012', doctor_name: 'Dr. Torres', role: 'refuerzo' };
 
     function setup() {
       const fixture = TestBed.createComponent(App);
@@ -596,14 +598,29 @@ describe('App', () => {
       return { fixture, app: fixture.componentInstance, notifications: TestBed.inject(NotificationService) };
     }
 
-    it('con un solo médico asignado abre el diálogo y no lanza ninguna sustitución', () => {
+    const optionTexts = (fixture: { nativeElement: HTMLElement }) =>
+      Array.from(fixture.nativeElement.querySelectorAll('app-replace-doctor-dialog button:not(.btn-cancel)')).map(
+        (b) => b.textContent?.trim(),
+      );
+
+    it('abre el diálogo con la guardia de su grupo y todos los refuerzos del día, sin lanzar nada', () => {
       const { fixture, app } = setup();
 
-      app.onDoctorDropped(drop([garcia]));
+      app.onDoctorDropped(drop([garcia], mockDoctors[1], [
+        { doctor_id: 'doc-011', doctor_name: 'Dr. Navarro', role: 'guardia' },
+        apRefuerzo,
+      ]));
       fixture.detectChanges();
 
       expect(app['pendingReplacement']()).not.toBeNull();
-      expect(fixture.nativeElement.querySelector('app-replace-doctor-dialog')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.dialog-title').textContent.trim()).toBe(
+        'Asignar a Dr. Lopez el jueves, 1 de enero',
+      );
+      expect(optionTexts(fixture)).toEqual([
+        'Sustituir a Dr. Garcia en la guardia AC',
+        'Sustituir a Dr. Torres en el refuerzo',
+        'Añadir al refuerzo',
+      ]);
       httpTesting.expectNone('/api/v1/rota/2026/AC/replace');
     });
 
@@ -623,7 +640,7 @@ describe('App', () => {
         schedule: [
           {
             ...mockAcRotaResponse.schedule[0],
-            doctors: [garcia, { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez' }],
+            doctors: [garcia, { doctor_id: 'doc-002', doctor_name: 'Dr. Lopez', role: 'refuerzo' }],
           },
         ],
       };
@@ -633,7 +650,41 @@ describe('App', () => {
       expect(app['acSchedule']()[0].doctors.length).toBe(2);
     });
 
-    it('si el médico ya está asignado ese día avisa y no abre el diálogo', () => {
+    it('sustituir la guardia de su grupo manda el PATCH sin old_rota_type', () => {
+      const { app } = setup();
+      app.onDoctorDropped(drop([garcia]));
+
+      app.onReplaceDoctorSelected({ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia', rota_type: 'AC' });
+
+      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
+      expect(req.request.body).toEqual({
+        date: '2026-01-01',
+        old_doctor_id: 'doc-001',
+        new_doctor_id: 'doc-002',
+      });
+      req.flush(mockAcRotaResponse);
+    });
+
+    it('sustituir un refuerzo del otro grupo manda old_rota_type y recarga los dos cuadrantes', () => {
+      const { app } = setup();
+      app.onDoctorDropped(drop([garcia], mockDoctors[1], [apRefuerzo]));
+
+      app.onReplaceDoctorSelected({ doctor_id: 'doc-012', doctor_name: 'Dr. Torres', rota_type: 'AP' });
+
+      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
+      expect(req.request.body).toEqual({
+        date: '2026-01-01',
+        old_doctor_id: 'doc-012',
+        new_doctor_id: 'doc-002',
+        old_rota_type: 'AP',
+      });
+      req.flush(mockAcRotaResponse);
+
+      httpTesting.expectOne('/api/v1/rota/2026').flush([mockAcRotaResponse, mockApRotaResponse]);
+      expect(app['hasApRota']()).toBe(true);
+    });
+
+    it('si el médico ya tiene guardia o refuerzo ese día avisa y no abre el diálogo', () => {
       const { app, notifications } = setup();
 
       app.onDoctorDropped(drop([garcia], mockDoctors[0]));
@@ -641,10 +692,10 @@ describe('App', () => {
       expect(app['pendingReplacement']()).toBeNull();
       const last = notifications.notifications().at(-1);
       expect(last?.type).toBe('warning');
-      expect(last?.message).toBe('Ese médico ya está asignado a la guardia de este día.');
+      expect(last?.message).toBe('Ese médico ya tiene una guardia o un refuerzo este día.');
     });
 
-    it('sin médicos asignados mantiene el aviso actual', () => {
+    it('sin médicos de su grupo ese día mantiene el aviso actual', () => {
       const { app, notifications } = setup();
 
       app.onDoctorDropped(drop([]));

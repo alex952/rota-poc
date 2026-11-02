@@ -32,7 +32,7 @@ npm run migration:run
 
 ```bash
 cd frontend
-npx ng test --watch=false       # ejecutar los 137 tests del frontend
+npx ng test --watch=false       # ejecutar los 139 tests del frontend
 npx ng build                    # build de producción
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desarrollo
 ```
@@ -77,8 +77,8 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (126 tests actualmente)
-- Frontend: `vitest` — 137 tests cubriendo servicios, componentes y la integración del app shell
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (127 tests actualmente)
+- Frontend: `vitest` — 139 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
@@ -96,7 +96,7 @@ Una PR no se mezcla con la CI en rojo. La CI **no** sustituye a la verificación
 ## Verificación Visual (obligatoria antes del commit)
 
 Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
-236 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
+266 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
 ningún test comprueba, un mensaje que la librería genera en inglés. Por eso, todo
 cambio que toque algo visible para el usuario —frontend, o mensajes del backend,
 que llegan literalmente a la interfaz vía `extractErrorMessage` en
@@ -199,7 +199,7 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 1. AC y AP tienen **grupos de médicos separados** — un médico pertenece a un solo grupo (en los dos grupos → 400). Los dos cuadrantes se generan **juntos con una sola acción**, porque los refuerzos que hace un AC se descuentan de los de AP.
 2. Un médico de guardia o refuerzo el día D está **libre el D+1** dentro de su grupo y nunca hace guardia y refuerzo el mismo día (día de descanso — restricción blanda para grupos pequeños). El refuerzo de un AC va a propósito el día anterior a su guardia.
 3. Límites de horas: **mínimo 135h/mes y 1.620h/año AC**, **máximo 425h/año AP** por médico — **restricción blanda**: si algún médico no cumple (AC por debajo, AP por encima), el cuadrante se genera igualmente con un aviso (`warnings`) y las estadísticas muestran la desviación. Si un AC no llega a 135h en un mes, hace **refuerzos el día anterior a sus guardias de ese mes**, tantos como necesite y donde haya hueco; si no hay hueco, aviso «No hay hueco para más refuerzos …».
-4. **Cobertura diaria fija**: **1 guardia AC, 1 guardia AP y 1 refuerzo** (de AP, salvo los que cubre un AC). Hay **2 refuerzos** en los **festivos especiales de sanidad** (24, 25 y 31 dic, 1 y 6 ene: se añaden siempre a los festivos del año, `special: true`, no se pueden desmarcar) y en el segundo de dos festivos consecutivos (los domingos cuentan como festivo); nunca más de 2. `doctors_per_day` vale siempre 1. La adición manual (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas) añade una guardia en AC y un refuerzo en AP. Si el pool AC excede la capacidad anual de cobertura («El grupo … es demasiado grande …») o el pool AP es tan pequeño que superaría el máximo de 425h («El grupo … es demasiado pequeño …»), el cuadrante se genera con ese aviso en lugar de fallar. `InfeasiblePoolError` queda sólo para grupos demasiado pequeños.
+4. **Cobertura diaria fija**: **1 guardia AC, 1 guardia AP y 1 refuerzo** (de AP, salvo los que cubre un AC). Hay **2 refuerzos** en los **festivos especiales de sanidad** (24, 25 y 31 dic, 1 y 6 ene: se añaden siempre a los festivos del año, `special: true`, no se pueden desmarcar) y en el segundo de dos festivos consecutivos (los domingos cuentan como festivo); nunca más de 2. `doctors_per_day` vale siempre 1. La adición manual (`POST /rota/:year/:rotaType/add`, sin validaciones de reglas) añade un refuerzo, en AC y en AP, con el horario AP del día. La sustitución (`PATCH /rota/:year/:rotaType/replace`) cambia al médico conservando el papel; con `old_rota_type` del otro grupo sólo admite un refuerzo, que sale de ese cuadrante y entra como refuerzo en el del médico entrante. Si el pool AC excede la capacidad anual de cobertura («El grupo … es demasiado grande …») o el pool AP es tan pequeño que superaría el máximo de 425h («El grupo … es demasiado pequeño …»), el cuadrante se genera con ese aviso en lugar de fallar. `InfeasiblePoolError` queda sólo para grupos demasiado pequeños.
 5. **Duraciones por rota**:
    - AC: 17h laborable, 18h sábado, 23h festivo (15:00 → 08:00+1 / 09:00+1, festivo 09:00 → 08:00+1).
    - Guardia AP y todos los refuerzos (también el de un AC): 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).
