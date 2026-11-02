@@ -204,6 +204,7 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
 - `docs/BACKEND_ARCHITECTURE_REFERENCE.md` — Módulos NestJS y estructura de persistencia
 - `docs/IMPLEMENTATION.md` — Guía para desarrolladores, jerarquía de componentes, estrategia de pruebas
 - `docs/ALGORITHM.md` — Diseño del algoritmo de asignación, restricciones y compromisos
+- `docs/visualizations/ruedas.html` — Visualización interactiva de la estrategia de ruedas (HTML autocontenido; si cambia `wheels.strategy.ts`, actualizar también su copia de la lógica)
 
 ## Exclusiones del Alcance PoC
 
