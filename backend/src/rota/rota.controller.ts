@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -61,6 +62,12 @@ export class RotaController {
   async getByYear(@Param('year', ParseIntPipe) year: number) {
     await this.ensureHolidaysLoaded(year);
     return this.rotaService.getByYear(year);
+  }
+
+  @Delete(':year')
+  @HttpCode(204)
+  async deleteByYear(@Param('year', ParseIntPipe) year: number): Promise<void> {
+    await this.rotaService.deleteByYear(year);
   }
 
   @Patch(':year/:rotaType/replace')

@@ -153,6 +153,16 @@ describe('RotaService', () => {
     req.flush(mockRotaResponse);
   });
 
+  it('borra los cuadrantes del año con DELETE /api/v1/rota/{year}', () => {
+    let completed = false;
+    service.deleteRotas(2026).subscribe({ complete: () => (completed = true) });
+
+    const req = httpTesting.expectOne('/api/v1/rota/2026');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    expect(completed).toBe(true);
+  });
+
   it('should filter rota by doctor_id query param', () => {
     service.getRotaByDoctor(2026, 'AC', 'doc-001').subscribe((rota) => {
       expect(rota).toBeTruthy();

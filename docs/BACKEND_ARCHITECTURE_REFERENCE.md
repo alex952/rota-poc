@@ -37,6 +37,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
 - `GET /api/v1/rota/:year/export`
+- `DELETE /api/v1/rota/:year`
 - `PATCH /api/v1/rota/:year/:rotaType/replace`
 - `POST /api/v1/rota/:year/:rotaType/add`
 

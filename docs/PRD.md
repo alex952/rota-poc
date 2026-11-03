@@ -197,6 +197,19 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 ---
 
+### 3.10 — Borrado de los cuadrantes
+
+**Descripción:** El usuario puede borrar los cuadrantes del año seleccionado (AC y AP juntos) para empezar de cero, sin generar otros nuevos.
+
+#### Criterios de Aceptación
+
+| ID | Criterio |
+|----|---------|
+| CA-3.10.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Borrar cuadrantes» y confirma, **entonces** se borran los cuadrantes AC y AP del año con todas sus guardias, refuerzos y cambios manuales, el calendario y las estadísticas quedan vacíos y aparece «Cuadrantes AC y AP de <año> borrados». Los festivos, también los manuales, se conservan. Si cancela, no cambia nada. |
+| CA-3.10.2 | **Dado** un año sin cuadrantes, el botón «Borrar cuadrantes» está deshabilitado y `DELETE /api/v1/rota/:year` devuelve 404 con un mensaje en español. |
+
+---
+
 ## 4. Fuera de Alcance (PoC)
 
 Lo siguiente queda explícitamente **fuera del alcance** de esta PoC:
