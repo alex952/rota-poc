@@ -434,6 +434,100 @@ describe('App', () => {
     expect(cards.length).toBe(2); // doc-001, doc-002 are AC
   });
 
+  describe('borrar cuadrantes', () => {
+    function resetButton(fixture: { nativeElement: HTMLElement }): HTMLButtonElement {
+      const button = fixture.nativeElement.querySelector<HTMLButtonElement>('.app-header .btn-reset');
+      if (!button) {
+        throw new Error('No se ha encontrado el botón «Borrar cuadrantes»');
+      }
+      return button;
+    }
+
+    function openResetDialog() {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      flushInitRequests({ rotas: generatedRotas });
+      fixture.detectChanges();
+      resetButton(fixture).click();
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('deshabilita el botón cuando no hay cuadrantes', () => {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      flushInitRequests({ rotaStatus: 404 });
+      fixture.detectChanges();
+
+      expect(resetButton(fixture).textContent?.trim()).toBe('Borrar cuadrantes');
+      expect(resetButton(fixture).disabled).toBe(true);
+    });
+
+    it('pide confirmación antes de borrar y no lanza nada si se cancela', () => {
+      const fixture = openResetDialog();
+
+      const dialog: HTMLElement = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
+      expect(dialog.querySelector('.confirm-title')?.textContent).toBe('Borrar cuadrantes');
+      expect(dialog.textContent).toContain(
+        `Se borrarán los cuadrantes AC y AP de ${new Date().getFullYear()}`,
+      );
+      expect(dialog.querySelector('.btn-confirm')?.textContent?.trim()).toBe('Borrar');
+
+      (dialog.querySelector('.btn-cancel') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.confirm-dialog-backdrop')).toBeFalsy();
+      expect(fixture.componentInstance['hasData']()).toBe(true);
+    });
+
+    it('al confirmar manda el DELETE, vacía el calendario y avisa del éxito', () => {
+      const fixture = openResetDialog();
+      const notificationService = TestBed.inject(NotificationService);
+
+      fixture.nativeElement.querySelector('.confirm-dialog-backdrop .btn-confirm').click();
+      fixture.detectChanges();
+
+      const year = new Date().getFullYear();
+      const req = httpTesting.expectOne(`/api/v1/rota/${year}`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
+      fixture.detectChanges();
+
+      const app = fixture.componentInstance;
+      expect(app['hasData']()).toBe(false);
+      expect(app['mergedSchedule']()).toEqual([]);
+      expect(app['acStats']()).toEqual([]);
+      expect(app['apStats']()).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.confirm-dialog-backdrop')).toBeFalsy();
+      expect(resetButton(fixture).disabled).toBe(true);
+      expect(fixture.nativeElement.querySelector('.btn-generate').textContent).toContain('Generar cuadrante');
+      const success = notificationService.notifications().find((n) => n.type === 'success');
+      expect(success?.message).toBe(`Cuadrantes AC y AP de ${year} borrados`);
+    });
+
+    it('muestra el mensaje del backend si el borrado falla y conserva los cuadrantes', () => {
+      const fixture = openResetDialog();
+      const notificationService = TestBed.inject(NotificationService);
+
+      fixture.nativeElement.querySelector('.confirm-dialog-backdrop .btn-confirm').click();
+      fixture.detectChanges();
+
+      const year = new Date().getFullYear();
+      httpTesting
+        .expectOne(`/api/v1/rota/${year}`)
+        .flush(
+          { statusCode: 404, message: `No se ha encontrado ningún cuadrante para el año ${year}` },
+          { status: 404, statusText: 'Not Found' },
+        );
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance['hasData']()).toBe(true);
+      const error = notificationService.notifications().find((n) => n.type === 'error');
+      expect(error?.message).toBe(
+        `No se han podido borrar los cuadrantes: No se ha encontrado ningún cuadrante para el año ${year}`,
+      );
+    });
+  });
+
   describe('exportar a Excel', () => {
     const originalCreateObjectURL = URL.createObjectURL;
     const originalRevokeObjectURL = URL.revokeObjectURL;

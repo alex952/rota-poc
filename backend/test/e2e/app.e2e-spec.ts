@@ -206,6 +206,35 @@ describe('HTTP contract', () => {
     }
   });
 
+  it('borra los cuadrantes AC y AP del año y conserva los festivos manuales', async () => {
+    expect((await generate()).statusCode).toBe(201);
+    const manual = await app.inject({
+      method: 'POST',
+      url: '/api/v1/holidays/2026',
+      payload: { date: '2026-03-16', name: 'Festivo Manual' },
+    });
+    expect(manual.statusCode).toBe(201);
+
+    const response = await app.inject({ method: 'DELETE', url: '/api/v1/rota/2026' });
+    expect(response.statusCode).toBe(204);
+    expect(response.body).toBe('');
+
+    for (const url of ['/api/v1/rota/2026', '/api/v1/rota/2026/AC', '/api/v1/rota/2026/AP']) {
+      expect((await app.inject({ method: 'GET', url })).statusCode).toBe(404);
+    }
+    const holidays = await app.inject({ method: 'GET', url: '/api/v1/holidays/2026' });
+    expect(holidays.json().holidays.map((holiday: { date: string }) => holiday.date)).toContain('2026-03-16');
+
+    // Se puede volver a generar tras el borrado.
+    expect((await generate()).statusCode).toBe(201);
+  });
+
+  it('devuelve 404 en español al borrar un año sin cuadrantes', async () => {
+    const response = await app.inject({ method: 'DELETE', url: '/api/v1/rota/2035' });
+    expect(response.statusCode).toBe(404);
+    expect(response.json().message).toBe('No se ha encontrado ningún cuadrante para el año 2035');
+  });
+
   it('sustituir conserva el papel de la asignación', async () => {
     const [ac, ap] = (await generate()).json();
 

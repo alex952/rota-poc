@@ -44,6 +44,7 @@ export class App implements OnInit {
   protected readonly activePoolTab = signal<RotaType>('AC');
   protected readonly showStats = signal(false);
   protected readonly showConfirmDialog = signal(false);
+  protected readonly showResetDialog = signal(false);
   protected readonly loading = signal(false);
   protected readonly isGenerating = signal(false);
   protected readonly exporting = signal(false);
@@ -157,6 +158,10 @@ export class App implements OnInit {
 
   protected readonly confirmMessage = computed(() =>
     `Los cuadrantes AC y AP actuales de ${this.selectedYear()} se sustituirán por unos nuevos. Esta acción no se puede deshacer. ¿Desea continuar?`
+  );
+
+  protected readonly resetMessage = computed(() =>
+    `Se borrarán los cuadrantes AC y AP de ${this.selectedYear()}, con todas sus guardias, refuerzos y cambios manuales. Los festivos se conservan. Esta acción no se puede deshacer. ¿Desea continuar?`
   );
 
   ngOnInit(): void {
@@ -299,6 +304,31 @@ export class App implements OnInit {
     this.showConfirmDialog.set(false);
   }
 
+  onResetRotas(): void {
+    this.showResetDialog.set(true);
+  }
+
+  onConfirmReset(): void {
+    this.showResetDialog.set(false);
+    const year = this.selectedYear();
+    this.loading.set(true);
+    this.rotaService.deleteRotas(year).subscribe({
+      next: () => {
+        this.clearRotas();
+        this.loading.set(false);
+        this.notificationService.show(`Cuadrantes AC y AP de ${year} borrados`, 'success');
+      },
+      error: (err) => {
+        console.error('Failed to delete rotas', err);
+        this.loading.set(false);
+        this.notificationService.show(
+          this.extractErrorMessage(err, 'No se han podido borrar los cuadrantes'),
+          'error'
+        );
+      },
+    });
+  }
+
   onAddDoctor(doctor: Doctor): void {
     this.doctorPoolService.addDoctor(doctor);
   }
@@ -410,25 +440,14 @@ export class App implements OnInit {
     this.loading.set(true);
     this.rotaService.getRotas(year).subscribe({
       next: (rotas) => {
-        this.acSchedule.set([]);
-        this.apSchedule.set([]);
-        this.acStats.set([]);
-        this.apStats.set([]);
-        this.hasAcRota.set(false);
-        this.hasApRota.set(false);
-
+        this.clearRotas();
         for (const rota of rotas) {
           this.applyRota(rota);
         }
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.acSchedule.set([]);
-        this.apSchedule.set([]);
-        this.acStats.set([]);
-        this.apStats.set([]);
-        this.hasAcRota.set(false);
-        this.hasApRota.set(false);
+        this.clearRotas();
         this.loading.set(false);
         if (err.status !== 404) {
           this.notificationService.show(
@@ -438,6 +457,15 @@ export class App implements OnInit {
         }
       },
     });
+  }
+
+  private clearRotas(): void {
+    this.acSchedule.set([]);
+    this.apSchedule.set([]);
+    this.acStats.set([]);
+    this.apStats.set([]);
+    this.hasAcRota.set(false);
+    this.hasApRota.set(false);
   }
 
   private applyRota(rota: RotaResponse): void {

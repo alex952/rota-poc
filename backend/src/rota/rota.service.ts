@@ -104,9 +104,7 @@ export class RotaService {
       where: { year, rotaType: rota.rotaType },
     });
     if (existing) {
-      await manager.delete(RotaAssignmentEntity, { rotaId: existing.id });
-      await manager.delete(RotaDoctorEntity, { rotaId: existing.id });
-      await manager.delete(RotaEntity, { id: existing.id });
+      await this.deleteRota(manager, existing.id);
     }
 
     const savedRota = await manager.save(
@@ -180,6 +178,25 @@ export class RotaService {
     }
 
     return Promise.all(rotas.map((rota) => this.responseMapper.toResponse(rota)));
+  }
+
+  /** Borra los cuadrantes AC y AP del año con sus médicos y asignaciones; los festivos se conservan. */
+  async deleteByYear(year: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const rotas = await manager.find(RotaEntity, { where: { year } });
+      if (rotas.length === 0) {
+        throw new NotFoundException(`No se ha encontrado ningún cuadrante para el año ${year}`);
+      }
+      for (const rota of rotas) {
+        await this.deleteRota(manager, rota.id);
+      }
+    });
+  }
+
+  private async deleteRota(manager: EntityManager, rotaId: number): Promise<void> {
+    await manager.delete(RotaAssignmentEntity, { rotaId });
+    await manager.delete(RotaDoctorEntity, { rotaId });
+    await manager.delete(RotaEntity, { id: rotaId });
   }
 
   async replaceDoctor(year: number, rotaType: string, request: ReplaceDoctorDto) {

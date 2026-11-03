@@ -38,6 +38,11 @@ export class RotaService {
     return this.http.post<RotaResponse[]>('/api/v1/rota/generate', request);
   }
 
+  /** Borra los cuadrantes AC y AP del año; los festivos se conservan. */
+  deleteRotas(year: number): Observable<void> {
+    return this.http.delete<void>(`/api/v1/rota/${year}`);
+  }
+
   addDoctor(year: number, rotaType: RotaType, request: AddDoctorRequest): Observable<RotaResponse> {
     return this.http.post<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/add`, request);
   }

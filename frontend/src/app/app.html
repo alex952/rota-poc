@@ -3,6 +3,9 @@
   <span class="header-divider"></span>
   <span class="app-title">Cuadrante de Guardias</span>
   <span class="header-spacer"></span>
+  <button class="btn-reset" [disabled]="!hasData() || loading()" (click)="onResetRotas()">
+    Borrar cuadrantes
+  </button>
   <button class="btn-export" [disabled]="!hasData() || exporting()" (click)="onExportRota()">
     Exportar a Excel
   </button>
@@ -57,6 +60,16 @@
     [message]="confirmMessage()"
     (confirmed)="onConfirmRegenerate()"
     (cancelled)="onCancelRegenerate()"
+  />
+}
+
+@if (showResetDialog()) {
+  <app-confirm-dialog
+    title="Borrar cuadrantes"
+    confirmLabel="Borrar"
+    [message]="resetMessage()"
+    (confirmed)="onConfirmReset()"
+    (cancelled)="showResetDialog.set(false)"
   />
 }
 

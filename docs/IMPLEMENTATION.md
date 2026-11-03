@@ -81,6 +81,7 @@ El frontend espera:
 - `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
 - `/api/v1/rota/generate` para generar y persistir a la vez los cuadrantes AC y AP (`[AC, AP]`) con un único botón
 - `/api/v1/rota/:year/:rotaType/replace` para devolver la rota actualizada tras la sustitución
+- `DELETE /api/v1/rota/:year` para borrar los dos cuadrantes del año (botón «Borrar cuadrantes», con confirmación; tras el 204 `App` vacía el calendario y las estadísticas)
 - `/api/v1/rota/:year/export` para descargar el libro de Excel del año (respuesta binaria; el cuerpo de los errores también llega como `Blob` y se decodifica en `App.onExportRota`)
 - `/api/v1/rota/:year/:rotaType/add` para devolver la rota actualizada tras añadir un médico a una guardia
 

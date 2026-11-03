@@ -6,11 +6,11 @@ import { Component, ElementRef, HostListener, input, output, AfterViewInit, View
   template: `
     <div class="confirm-dialog-backdrop" (click)="onBackdropClick($event)">
       <div class="confirm-dialog" role="dialog" aria-modal="true">
-        <h3 class="confirm-title">Confirmar regeneración</h3>
+        <h3 class="confirm-title">{{ title() }}</h3>
         <p class="confirm-message">{{ message() }}</p>
         <div class="confirm-actions">
           <button class="btn-cancel" (click)="cancelled.emit()">Cancelar</button>
-          <button class="btn-confirm" #confirmBtn (click)="confirmed.emit()">Confirmar</button>
+          <button class="btn-confirm" #confirmBtn (click)="confirmed.emit()">{{ confirmLabel() }}</button>
         </div>
       </div>
     </div>
@@ -115,6 +115,8 @@ import { Component, ElementRef, HostListener, input, output, AfterViewInit, View
   `],
 })
 export class ConfirmDialogComponent implements AfterViewInit {
+  readonly title = input<string>('Confirmar regeneración');
+  readonly confirmLabel = input<string>('Confirmar');
   readonly message = input<string>(
     'El cuadrante actual se sustituirá por uno nuevo. Esta acción no se puede deshacer. ¿Desea continuar?'
   );
