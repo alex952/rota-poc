@@ -148,6 +148,18 @@ describe('HTTP contract', () => {
     );
   });
 
+  it('devuelve doctor_order con los mismos médicos de cada grupo y lo conserva al consultar', async () => {
+    const response = await generate();
+    expect(response.statusCode).toBe(201);
+    const [ac, ap] = response.json() as { doctor_order: string[] }[];
+
+    expect([...ac.doctor_order].sort()).toEqual(AC_POOL_4.map((d) => d.id).sort());
+    expect([...ap.doctor_order].sort()).toEqual(AP_POOL_17.map((d) => d.id).sort());
+
+    const stored = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AC` });
+    expect(stored.json().doctor_order).toEqual(ac.doctor_order);
+  });
+
   it('valida el cuerpo con mensajes en español', async () => {
     const response = await app.inject({
       method: 'POST',

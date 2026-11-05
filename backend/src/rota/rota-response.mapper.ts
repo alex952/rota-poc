@@ -59,6 +59,7 @@ export class RotaResponseMapper {
       doctors_per_day: rota.doctorsPerDay,
       strategy: rota.strategy as AssignmentStrategyId,
       generated_at: rota.generatedAt,
+      doctor_order: pool.map((doctor) => doctor.id),
       schedule,
       stats,
       warnings: [],

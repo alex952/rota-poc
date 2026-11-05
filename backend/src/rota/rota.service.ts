@@ -74,8 +74,8 @@ export class RotaService {
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => [
-        await this.persistRota(manager, request.year, rotas.ac, request.ac_pool),
-        await this.persistRota(manager, request.year, rotas.ap, request.ap_pool),
+        await this.persistRota(manager, request.year, rotas.ac, rotas.ac.poolOrder),
+        await this.persistRota(manager, request.year, rotas.ap, rotas.ap.poolOrder),
       ]);
 
       return [

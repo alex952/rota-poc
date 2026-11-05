@@ -469,6 +469,9 @@ export class App implements OnInit {
   }
 
   private applyRota(rota: RotaResponse): void {
+    if (rota.doctor_order?.length) {
+      this.doctorPoolService.applyOrder(rota.rota_type, rota.doctor_order);
+    }
     if (rota.rota_type === 'AC') {
       this.acSchedule.set(rota.schedule);
       this.acStats.set(rota.stats.doctors);
