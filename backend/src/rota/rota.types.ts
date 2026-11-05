@@ -71,6 +71,8 @@ export interface RotaResponse {
   doctors_per_day: number;
   strategy: AssignmentStrategyId;
   generated_at: Date;
+  /** Ids de los médicos del grupo en el orden (barajado) con que se generó el cuadrante */
+  doctor_order: string[];
   schedule: DayAssignment[];
   stats: StatsResponse;
   warnings: string[];

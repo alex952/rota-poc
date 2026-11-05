@@ -85,6 +85,8 @@ interface AssignedRota {
   year: number;
   rotaType: RotaType;
   pool: DoctorInput[];
+  /** Grupo en el orden (barajado) con que se asignó */
+  poolOrder: DoctorInput[];
   strategy: AssignmentStrategyId;
   schedule: DayAssignment[];
 }
@@ -130,8 +132,9 @@ function assignRota(
 
   // La estrategia recibe el grupo barajado para que el primer médico de la rotación
   // no sea siempre el mismo; `pool` conserva el orden original (estadísticas, persistencia).
+  const orderedPool = random ? shuffle(pool, random) : pool;
   const assigned = getAssignmentStrategy(strategyId).assign({
-    pool: random ? shuffle(pool, random) : pool,
+    pool: orderedPool,
     days: effectiveDays,
     requiredByDay,
     refuerzosByDay,
@@ -148,7 +151,7 @@ function assignRota(
     };
   });
 
-  return { year, rotaType, pool, strategy: strategyId, schedule };
+  return { year, rotaType, pool, poolOrder: orderedPool, strategy: strategyId, schedule };
 }
 
 /**
@@ -309,6 +312,7 @@ function finalizeRota(rota: AssignedRota, extraWarnings: string[] = []): RotaSch
     rotaType,
     strategy: rota.strategy,
     doctorsPerDay: 1,
+    poolOrder: rota.poolOrder,
     schedule: [...schedule].sort((left, right) =>
       compareIsoDates(toIsoDate(left.date), toIsoDate(right.date)),
     ),

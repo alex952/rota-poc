@@ -466,9 +466,14 @@ export class App implements OnInit {
     this.apStats.set([]);
     this.hasAcRota.set(false);
     this.hasApRota.set(false);
+    // Sin cuadrante no hay orden barajado que mostrar: se vuelve al original.
+    this.doctorPoolService.resetOrder();
   }
 
   private applyRota(rota: RotaResponse): void {
+    if (rota.doctor_order?.length) {
+      this.doctorPoolService.applyOrder(rota.rota_type, rota.doctor_order);
+    }
     if (rota.rota_type === 'AC') {
       this.acSchedule.set(rota.schedule);
       this.acStats.set(rota.stats.doctors);

@@ -37,6 +37,54 @@ describe('DoctorPoolService', () => {
     expect(service.doctors()[0].name).toBe('Dr. Garcia');
   });
 
+  it('reordena el grupo indicado sin tocar el otro', () => {
+    service.loadDoctors();
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+
+    expect(service.doctors().map((d) => d.id)).toEqual(['doc-002', 'doc-001', 'doc-011']);
+  });
+
+  it('aplica el orden guardado si los médicos se cargan después', () => {
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+
+    service.loadDoctors();
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+
+    expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-002', 'doc-001']);
+  });
+
+  it('deja al final los médicos que no figuran en el orden', () => {
+    service.loadDoctors();
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+
+    service.applyOrder('AC', ['doc-002']);
+
+    expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-002', 'doc-001']);
+  });
+
+  it('resetOrder vuelve al orden original y conserva las altas manuales', () => {
+    service.loadDoctors();
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+    service.addDoctor({ id: 'doc-099', name: 'Dr. Nuevo', department: 'X', rota_type: 'AC' });
+    service.applyOrder('AC', ['doc-099', 'doc-002', 'doc-001']);
+
+    service.resetOrder();
+
+    expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-099']);
+  });
+
+  it('resetOrder impide que un orden anterior se reaplique al cargar', () => {
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+    service.resetOrder();
+
+    service.loadDoctors();
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+
+    expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-001', 'doc-002']);
+  });
+
   it('should add a doctor to the pool', () => {
     service.loadDoctors();
     const req = httpTesting.expectOne('assets/doctors.json');

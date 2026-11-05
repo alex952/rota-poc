@@ -59,6 +59,8 @@ export interface RotaResponse {
   rota_type: RotaType;
   doctors_per_day: number;
   generated_at: string;
+  /** Ids del grupo en el orden (barajado) con que se generó; ausente en respuestas antiguas */
+  doctor_order?: string[];
   schedule: DayAssignment[];
   stats: StatsResponse;
   warnings: string[];
