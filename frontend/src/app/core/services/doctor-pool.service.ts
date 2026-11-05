@@ -11,6 +11,9 @@ export class DoctorPoolService {
   /** Último orden barajado de cada grupo; se reaplica si los médicos llegan después. */
   private readonly savedOrder: Partial<Record<RotaType, string[]>> = {};
 
+  /** Ids en el orden original (archivo y altas manuales), al que vuelve `resetOrder`. */
+  private originalOrder: string[] = [];
+
   readonly acDoctors = computed(() =>
     this.doctors().filter((d) => d.rota_type === 'AC')
   );
@@ -23,6 +26,7 @@ export class DoctorPoolService {
     this.http.get<Doctor[]>('assets/doctors.json').subscribe({
       next: (docs) => {
         this.doctors.set(docs);
+        this.originalOrder = docs.map((d) => d.id);
         for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
           this.sortGroup(rotaType, this.savedOrder[rotaType] ?? []);
         }
@@ -32,7 +36,18 @@ export class DoctorPoolService {
   }
 
   addDoctor(doctor: Doctor): void {
+    this.originalOrder.push(doctor.id);
     this.doctors.update((current) => [...current, doctor]);
+  }
+
+  /** Olvida el orden barajado y devuelve cada grupo a su orden original. */
+  resetOrder(): void {
+    for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
+      delete this.savedOrder[rotaType];
+    }
+    for (const rotaType of ['AC', 'AP'] as RotaType[]) {
+      this.sortGroup(rotaType, this.originalOrder);
+    }
   }
 
   /**
