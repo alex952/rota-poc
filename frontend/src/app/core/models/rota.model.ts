@@ -19,12 +19,12 @@ export type AssignmentStrategy = 'wheels' | 'single-wheel';
  */
 export type GeneratedStrategy = AssignmentStrategy | 'balanced';
 
-export const DEFAULT_STRATEGY: AssignmentStrategy = 'wheels';
+export const DEFAULT_STRATEGY: AssignmentStrategy = 'single-wheel';
 
 /** Opciones del desplegable de método de asignación */
 export const STRATEGY_OPTIONS: { value: AssignmentStrategy; label: string }[] = [
-  { value: 'wheels', label: 'Ruedas (predeterminado)' },
-  { value: 'single-wheel', label: 'Rueda única (refuerzos por ruedas)' },
+  { value: 'single-wheel', label: 'Rueda única (predeterminado)' },
+  { value: 'wheels', label: 'Ruedas (orden estricto)' },
 ];
 
 /** Etiqueta corta para mostrar el método de un cuadrante ya generado */

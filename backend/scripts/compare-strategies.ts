@@ -1,5 +1,5 @@
 /**
- * Compara las estrategias 'wheels' (escalonado, la predeterminada) y 'single-wheel' (rueda única de guardias) y la variante «todas desde el primero» sobre los mismos datos y calcula
+ * Compara las estrategias 'wheels' (escalonado) y 'single-wheel' (rueda única de guardias, la predeterminada) y la variante «todas desde el primero» sobre los mismos datos y calcula
  * métricas de disparidad. Uso (desde backend/):
  *   npx ts-node --transpile-only scripts/compare-strategies.ts
  * Salida: docs/strategy-comparison/results.json + tablas markdown por stdout.

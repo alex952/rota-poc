@@ -375,10 +375,10 @@ describe('Estrategia de ruedas (wheels)', () => {
       expect(rota.schedule.every((d) => d.doctors.length === 1)).toBe(true);
     });
 
-    it('sin estrategia equivale a wheels (la predeterminada)', () => {
+    it('sin estrategia equivale a single-wheel (la predeterminada)', () => {
       const implicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications);
-      const explicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications, undefined, 'wheels');
-      expect(implicit.strategy).toBe('wheels');
+      const explicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications, undefined, 'single-wheel');
+      expect(implicit.strategy).toBe('single-wheel');
       expect(implicit).toEqual(explicit);
     });
   });

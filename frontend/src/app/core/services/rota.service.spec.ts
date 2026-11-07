@@ -110,16 +110,16 @@ describe('RotaService', () => {
         { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
       ],
       ap_pool: [{ id: 'doc-021', name: 'Dr. Navarro', department: 'Urgencias' }],
-      strategy: 'wheels',
+      strategy: 'single-wheel',
     });
     req.flush([mockRotaResponse, { ...mockRotaResponse, rota_type: 'AP' }]);
   });
 
   it('debe enviar la estrategia elegida en el POST de generación', () => {
-    service.generateRotas(2026, [], [], 'single-wheel').subscribe();
+    service.generateRotas(2026, [], [], 'wheels').subscribe();
 
     const req = httpTesting.expectOne('/api/v1/rota/generate');
-    expect(req.request.body.strategy).toBe('single-wheel');
+    expect(req.request.body.strategy).toBe('wheels');
     req.flush([]);
   });
 

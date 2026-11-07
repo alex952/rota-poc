@@ -147,21 +147,21 @@ describe('DoctorPoolComponent', () => {
       expect(label.htmlFor).toBe(select.id);
       const options = Array.from(select.options).map((o) => [o.value, o.textContent?.trim()]);
       expect(options).toEqual([
-        ['wheels', 'Ruedas (predeterminado)'],
-        ['single-wheel', 'Rueda única (refuerzos por ruedas)'],
+        ['single-wheel', 'Rueda única (predeterminado)'],
+        ['wheels', 'Ruedas (orden estricto)'],
       ]);
     });
 
     it('debe reflejar el valor de entrada strategy', () => {
-      setup({ strategy: 'single-wheel' });
-      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      expect(select.value).toBe('single-wheel');
-    });
-
-    it('debe seleccionar wheels por defecto', () => {
-      setup();
+      setup({ strategy: 'wheels' });
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
       expect(select.value).toBe('wheels');
+    });
+
+    it('debe seleccionar single-wheel por defecto', () => {
+      setup();
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
+      expect(select.value).toBe('single-wheel');
     });
 
     it('debe emitir strategyChange al cambiar la selección', () => {
@@ -169,9 +169,9 @@ describe('DoctorPoolComponent', () => {
       const emitted: string[] = [];
       component.strategyChange.subscribe((v) => emitted.push(v));
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      select.value = 'single-wheel';
+      select.value = 'wheels';
       select.dispatchEvent(new Event('change'));
-      expect(emitted).toEqual(['single-wheel']);
+      expect(emitted).toEqual(['wheels']);
     });
 
     it('debe deshabilitar el selector mientras carga', () => {

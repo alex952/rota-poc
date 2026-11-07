@@ -466,19 +466,19 @@ describe('HTTP contract', () => {
       expect(byType.json().strategy).toBe('single-wheel');
     });
 
-    it('usa wheels por defecto', async () => {
+    it('usa single-wheel por defecto', async () => {
       const generation = await generate();
       expect(generation.statusCode).toBe(201);
-      expect(generation.json()[0].strategy).toBe('wheels');
+      expect(generation.json()[0].strategy).toBe('single-wheel');
 
       const byType = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AC` });
-      expect(byType.json().strategy).toBe('wheels');
+      expect(byType.json().strategy).toBe('single-wheel');
     });
 
-    it('trata strategy null como omitido y usa wheels', async () => {
+    it('trata strategy null como omitido y usa single-wheel', async () => {
       const generation = await generate({ strategy: null });
       expect(generation.statusCode).toBe(201);
-      expect(generation.json()[1].strategy).toBe('wheels');
+      expect(generation.json()[1].strategy).toBe('single-wheel');
     });
 
     it.each(['aleatoria', 'balanced'])(
@@ -487,7 +487,7 @@ describe('HTTP contract', () => {
         const response = await generate({ strategy });
         expect(response.statusCode).toBe(400);
         expect(response.json().message).toContain(
-          'el método de asignación debe ser wheels o single-wheel',
+          'el método de asignación debe ser single-wheel o wheels',
         );
       },
     );

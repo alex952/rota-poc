@@ -89,8 +89,8 @@ Ejemplos:
 
 Quién hace cada plaza lo decide la estrategia elegida con `strategy` en `POST /rota/generate`:
 
-- **`wheels`** (predeterminada): ruedas por tipo de día (laborables, sábados, domingos, festivos) para las guardias y otras cuatro para los refuerzos. Ver «Estrategia de ruedas (wheels)».
-- **`single-wheel`**: una única rueda de guardias para todos los días del año y las cuatro ruedas por tipo de día sólo para los refuerzos. Ver «Estrategia de rueda única (single-wheel)».
+- **`wheels`**: ruedas por tipo de día (laborables, sábados, domingos, festivos) para las guardias y otras cuatro para los refuerzos. Ver «Estrategia de ruedas (wheels)».
+- **`single-wheel`** (predeterminada): una única rueda de guardias para todos los días del año y las cuatro ruedas por tipo de día sólo para los refuerzos. Ver «Estrategia de rueda única (single-wheel)».
 
 Ambas cubren cada día primero las guardias y después los refuerzos, y nadie hace las dos cosas el mismo día. El día de descanso se resuelve con «saltar y conservar turno» y deuda contada.
 
@@ -180,7 +180,7 @@ El refuerzo que hace un AC tiene este mismo horario.
 
 Visualización interactiva para presentarla (abrir en el navegador): [`docs/visualizations/ruedas.html`](visualizations/ruedas.html). Simula el año 2026 con 4 y 5 médicos AC y un ejemplo AP con guardia y refuerzo.
 
-Elegida con `strategy: "wheels"` en `POST /rota/generate` (o sin `strategy`). Replica cómo se hacen hoy los cuadrantes a mano. Duraciones, `doctors_per_day`, verificación de factibilidad, estadísticas y avisos son los mismos; sólo cambia quién hace cada día. Es la estrategia predeterminada.
+Elegida con `strategy: "wheels"` en `POST /rota/generate`. Replica cómo se hacen hoy los cuadrantes a mano. Duraciones, `doctors_per_day`, verificación de factibilidad, estadísticas y avisos son los mismos; sólo cambia quién hace cada día. La predeterminada es `single-wheel` (ver más abajo).
 
 **Ruedas.** Guardias y refuerzos tienen cada uno su juego de ruedas; las de refuerzo arrancan desplazadas ⌊N/2⌋ respecto a las de guardia y cada día se cubren primero las guardias. En cada juego hay cuatro ruedas independientes: laborables, sábados, domingos y festivos. Un día va a la rueda de festivos si su fecha es un festivo oficial (`publicHoliday`), aunque caiga en sábado o domingo; si no, a la de domingos si es domingo, a la de sábados si es sábado y a la de laborables en otro caso.
 
@@ -206,7 +206,7 @@ Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables
 
 ## Estrategia de rueda única (single-wheel)
 
-Elegida con `strategy: "single-wheel"` en `POST /rota/generate` (`scheduling/strategies/single-wheel.strategy.ts`). Usa la misma mecánica que `wheels` (`assignWithWheels` con `singleGuardiaWheel: true`); sólo cambia cómo se agrupan los días para las guardias.
+Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `strategy` en `POST /rota/generate` (`scheduling/strategies/single-wheel.strategy.ts`). Usa la misma mecánica que `wheels` (`assignWithWheels` con `singleGuardiaWheel: true`); sólo cambia cómo se agrupan los días para las guardias.
 
 - **Guardias: una sola rueda para todos los días.** Laborables, sábados, domingos, festivos y festivos especiales comparten un único puntero y una única cola de deuda. La rueda recorre el grupo (barajado) en orden y arranca en el índice 0. Sin choques de descanso, el día *i* del año lo hace el médico *i mod N*: es lo que pasa con la guardia AC, que no tiene refuerzos en la estrategia.
 - **Refuerzos: las cuatro ruedas de `wheels`.** Laborables, sábados, domingos y festivos, con los punteros escalonados (0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) desplazados ⌊N/2⌋, igual que en `wheels`.
