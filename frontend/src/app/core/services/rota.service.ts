@@ -4,24 +4,25 @@ import { Observable } from 'rxjs';
 import { AddDoctorRequest, GenerateRequest, AssignmentStrategy, DEFAULT_STRATEGY, ReplaceRequest, RotaResponse } from '../models/rota.model';
 import { Doctor, RotaType } from '../models/doctor.model';
 
+/** Todas las operaciones van sobre los cuadrantes de un equipo. */
 @Injectable({ providedIn: 'root' })
 export class RotaService {
   private readonly http = inject(HttpClient);
 
-  getRota(year: number, rotaType: RotaType): Observable<RotaResponse> {
-    return this.http.get<RotaResponse>(`/api/v1/rota/${year}/${rotaType}`);
+  getRota(teamId: number, year: number, rotaType: RotaType): Observable<RotaResponse> {
+    return this.http.get<RotaResponse>(`/api/v1/rota/${year}/${rotaType}`, { params: { team_id: teamId } });
   }
 
-  getRotas(year: number): Observable<RotaResponse[]> {
-    return this.http.get<RotaResponse[]>(`/api/v1/rota/${year}`);
+  getRotas(teamId: number, year: number): Observable<RotaResponse[]> {
+    return this.http.get<RotaResponse[]>(`/api/v1/rota/${year}`, { params: { team_id: teamId } });
   }
 
-  exportRotas(year: number): Observable<Blob> {
-    return this.http.get(`/api/v1/rota/${year}/export`, { responseType: 'blob' });
+  exportRotas(teamId: number, year: number): Observable<Blob> {
+    return this.http.get(`/api/v1/rota/${year}/export`, { params: { team_id: teamId }, responseType: 'blob' });
   }
 
   /** Genera de una vez los cuadrantes AC y AP del año; devuelve [AC, AP]. */
-  generateRotas(year: number, acPool: Doctor[], apPool: Doctor[],
+  generateRotas(teamId: number, year: number, acPool: Doctor[], apPool: Doctor[],
     strategy: AssignmentStrategy = DEFAULT_STRATEGY,
   ): Observable<RotaResponse[]> {
     const toInput = (doctor: Doctor) => ({
@@ -34,26 +35,31 @@ export class RotaService {
       ac_pool: acPool.map(toInput),
       ap_pool: apPool.map(toInput),
       strategy,
+      team_id: teamId,
     };
     return this.http.post<RotaResponse[]>('/api/v1/rota/generate', request);
   }
 
   /** Borra los cuadrantes AC y AP del año; los festivos se conservan. */
-  deleteRotas(year: number): Observable<void> {
-    return this.http.delete<void>(`/api/v1/rota/${year}`);
+  deleteRotas(teamId: number, year: number): Observable<void> {
+    return this.http.delete<void>(`/api/v1/rota/${year}`, { params: { team_id: teamId } });
   }
 
-  addDoctor(year: number, rotaType: RotaType, request: AddDoctorRequest): Observable<RotaResponse> {
-    return this.http.post<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/add`, request);
+  addDoctor(teamId: number, year: number, rotaType: RotaType, request: AddDoctorRequest): Observable<RotaResponse> {
+    return this.http.post<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/add`, request, {
+      params: { team_id: teamId },
+    });
   }
 
-  replaceDoctor(year: number, rotaType: RotaType, request: ReplaceRequest): Observable<RotaResponse> {
-    return this.http.patch<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/replace`, request);
+  replaceDoctor(teamId: number, year: number, rotaType: RotaType, request: ReplaceRequest): Observable<RotaResponse> {
+    return this.http.patch<RotaResponse>(`/api/v1/rota/${year}/${rotaType}/replace`, request, {
+      params: { team_id: teamId },
+    });
   }
 
-  getRotaByDoctor(year: number, rotaType: RotaType, doctorId: string): Observable<RotaResponse> {
+  getRotaByDoctor(teamId: number, year: number, rotaType: RotaType, doctorId: string): Observable<RotaResponse> {
     return this.http.get<RotaResponse>(`/api/v1/rota/${year}/${rotaType}`, {
-      params: { doctor_id: doctorId },
+      params: { doctor_id: doctorId, team_id: teamId },
     });
   }
 }
