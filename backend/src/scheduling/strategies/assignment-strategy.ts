@@ -1,8 +1,8 @@
 import { DayInfo, DoctorInput } from '../scheduling.types';
 
-export const ASSIGNMENT_STRATEGY_IDS = ['balanced', 'wheels'] as const;
+export const ASSIGNMENT_STRATEGY_IDS = ['wheels', 'single-wheel'] as const;
 export type AssignmentStrategyId = (typeof ASSIGNMENT_STRATEGY_IDS)[number];
-export const DEFAULT_ASSIGNMENT_STRATEGY: AssignmentStrategyId = 'balanced';
+export const DEFAULT_ASSIGNMENT_STRATEGY: AssignmentStrategyId = 'wheels';
 
 export interface StrategyInput {
   pool: DoctorInput[];

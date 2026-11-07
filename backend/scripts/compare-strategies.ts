@@ -1,5 +1,5 @@
 /**
- * Compara las estrategias 'balanced' y 'wheels' (escalonado, la de producción) y la variante «todas desde el primero» sobre los mismos datos y calcula
+ * Compara las estrategias 'wheels' (escalonado, la predeterminada) y 'single-wheel' (rueda única de guardias) y la variante «todas desde el primero» sobre los mismos datos y calcula
  * métricas de disparidad. Uso (desde backend/):
  *   npx ts-node --transpile-only scripts/compare-strategies.ts
  * Salida: docs/strategy-comparison/results.json + tablas markdown por stdout.
@@ -31,7 +31,7 @@ import { assignWithWheels, staggeredInitialPointers, wheelForDay, WheelId } from
 const CITY = 'Alicante';
 const YEARS = [2026, 2027];
 const SIZES: Record<RotaType, number[]> = { AC: [3, 4, 5, 6], AP: [5, 8, 12, 17] };
-const STRATEGIES = ['balanced', 'wheels'] as const;
+const STRATEGIES = ['wheels', 'single-wheel'] as const;
 type Strat = (typeof STRATEGIES)[number];
 const CATS: WheelId[] = ['weekday', 'saturday', 'sunday', 'holiday'];
 
@@ -227,7 +227,7 @@ async function main() {
             else throw e;
           }
         }
-        const b = schedules.balanced, w = schedules.wheels;
+        const b = schedules['single-wheel'], w = schedules.wheels;
         if (b && w) {
           const same = b.schedule.filter((d, i) => dayKey(d.doctors.map((x) => x.doctorId)) === dayKey(w.schedule[i].doctors.map((x) => x.doctorId))).length;
           entry.concordancePct = r2((100 * same) / b.schedule.length);
@@ -262,7 +262,7 @@ async function main() {
 
   // Coherencia
   for (const r of results) {
-    const b = r.strategies.balanced, w = r.strategies.wheels;
+    const b = r.strategies['single-wheel'], w = r.strategies.wheels;
     if (b?.totalHours !== undefined && w?.totalHours !== undefined && (b.totalHours !== w.totalHours || b.assignments !== w.assignments)) {
       console.error(`INCOHERENCIA en ${r.year} ${r.rotaType} ${r.groupSize}`);
     }
@@ -271,10 +271,10 @@ async function main() {
   // Tablas
   console.log(`Festivos: ${source}\nCommit: ${commit}\n`);
   const table = (title: string, get: (st: any, r: any) => string) => {
-    console.log(`### ${title}\n\n| Escenario | balanced | wheels |\n|---|---|---|`);
+    console.log(`### ${title}\n\n| Escenario | wheels | single-wheel |\n|---|---|---|`);
     for (const r of results) {
       const cell = (s: Strat) => (r.strategies[s]?.infeasible ? 'INFEASIBLE' : get(r.strategies[s], r));
-      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('balanced')} | ${cell('wheels')} |`);
+      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('wheels')} | ${cell('single-wheel')} |`);
     }
     console.log('');
   };
@@ -291,10 +291,10 @@ async function main() {
   for (const r of results) console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${r.pureWheel?.restViolations ?? 'n/d'} | ${r.pureWheel?.satAndSunSameDoctor ?? 'n/d'} | ${r.pureWheel?.friSatSunSameDoctor ?? 'n/d'} |`);
   console.log('');
   const table3 = (title: string, get: (st: any) => string) => {
-    console.log(`### wheels (escalonado: punteros 0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) frente a «todas desde el primero» (punteros 0): ${title}\n\n| Escenario | balanced | wheels (escalonado) | todas desde el primero |\n|---|---|---|---|`);
+    console.log(`### wheels (escalonado: punteros 0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) frente a «todas desde el primero» (punteros 0): ${title}\n\n| Escenario | single-wheel | wheels (escalonado) | todas desde el primero |\n|---|---|---|---|`);
     for (const r of results) {
       const cell = (k: string) => (!r.strategies[k] ? 'n/d' : r.strategies[k].infeasible ? 'INFEASIBLE' : get(r.strategies[k]));
-      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('balanced')} | ${cell('wheels')} | ${cell('fromFirst')} |`);
+      console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${cell('single-wheel')} | ${cell('wheels')} | ${cell('fromFirst')} |`);
     }
     console.log('');
   };
@@ -306,7 +306,7 @@ async function main() {
   table3('reparto mensual: media de desv. típica / máx desv. típica / mayor carga mensual (h)', (s) => `${s.monthly.meanStd} / ${s.monthly.maxStd} / ${s.monthly.maxMonthlyHours}`);
 
   // Distribución por médico en AC 5 y AP 5
-  const VARIANTS: [string, string][] = [['balanced', 'balanced'], ['wheels', 'wheels (escalonado)'], ['fromFirst', 'todas desde el primero']];
+  const VARIANTS: [string, string][] = [['single-wheel', 'single-wheel'], ['wheels', 'wheels (escalonado)'], ['fromFirst', 'todas desde el primero']];
   for (const r of results.filter((x) => x.groupSize === 5)) {
     const pool = buildPool(r.rotaType, 5);
     console.log(`### Distribución por médico, ${r.rotaType} 5 (${r.year}): sábados / domingos / festivos / horas totales\n\n| Médico | ${VARIANTS.map(([, l]) => l).join(' | ')} |\n|---|${VARIANTS.map(() => '---').join('|')}|`);
@@ -320,7 +320,7 @@ async function main() {
     }
     console.log('');
   }
-  console.log('### Concordancia y impacto de saltos\n\n| Escenario | Concordancia balanced=wheels (% días) | Días wheels distintos de rueda pura |\n|---|---|---|');
+  console.log('### Concordancia y impacto de saltos\n\n| Escenario | Concordancia single-wheel=wheels (% días) | Días wheels distintos de rueda pura |\n|---|---|---|');
   for (const r of results) console.log(`| ${r.rotaType} ${r.groupSize} (${r.year}) | ${r.concordancePct ?? 'n/d'} | ${r.strategies.wheels?.skipRuleImpactDays ?? 'n/d'} |`);
 }
 

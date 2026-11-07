@@ -32,7 +32,7 @@ npm run migration:run
 
 ```bash
 cd frontend
-npx ng test --watch=false       # ejecutar los 149 tests del frontend
+npx ng test --watch=false       # ejecutar los 150 tests del frontend
 npx ng build                    # build de producción
 npx ng serve --port 4200 --proxy-config src/proxy.conf.json  # servidor de desarrollo
 ```
@@ -49,7 +49,7 @@ docker compose up db            # solo MySQL (para desarrollo local del backend)
 - **API Backend** en `/api/v1`: config, CRUD de rota, festivos, health. `POST /rota/generate` genera **AC y AP a la vez** (`{ year, ac_pool, ap_pool, strategy? }` → `[AC, AP]`) y `DELETE /rota/:year` los borra juntos (botón «Borrar cuadrantes» de la cabecera; conserva los festivos)
 - **Base de datos**: MySQL 8.4 con 4 tablas — rotas, rota_doctors, rota_assignments, holidays
 - **Frontend**: Componentes standalone de Angular con estado basado en signals
-- **Algoritmo**: Dos estrategias de asignación seleccionables con `strategy` en `POST /rota/generate`, en `backend/src/scheduling/strategies/`: `balanced` (predeterminada) y `wheels` (ruedas: laborables, sábados, domingos y festivos, con punteros iniciales escalonados 0/⌊N/4⌋/⌊2N/4⌋/⌊3N/4⌋, «saltar y conservar turno», deuda contada y, con exactamente 5 médicos, un salto sin deuda cada lunes de semana completa para romper la resonancia semanal). Común a ambas, en `backend/src/scheduling/assignment.service.ts`: `generateRotas` baraja el orden de cada grupo (`scheduling/shuffle.ts`, `RotaService` pasa `Math.random`; sin fuente aleatoria es determinista) para no empezar todos los años por el mismo médico, genera AC, reserva los refuerzos AC por déficit mensual (`planAcRefuerzos`) y después AP; `doctorsPerDay` fijo en 1, día de descanso, puntero round-robin deslizante y equidad por papel (guardia/refuerzo) y tipo de día. La guardia AP y los refuerzos usan `apShiftDetails` (7h L-S, 12h festivo, en `scheduling/shifts.ts`) y `refuerzosForDay` da 2 refuerzos en festivos especiales y en el segundo de dos festivos consecutivos. Los festivos especiales de sanidad están en `backend/src/common/sanidad-holidays.ts`.
+- **Algoritmo**: Dos estrategias de asignación seleccionables con `strategy` en `POST /rota/generate`, en `backend/src/scheduling/strategies/`: `wheels` (predeterminada; ruedas: laborables, sábados, domingos y festivos, con punteros iniciales escalonados 0/⌊N/4⌋/⌊2N/4⌋/⌊3N/4⌋, «saltar y conservar turno», deuda contada y, con exactamente 5 médicos, un salto sin deuda cada lunes de semana completa para romper la resonancia semanal) y `single-wheel` (rueda única: todas las guardias, sea laborable, sábado, domingo, festivo o festivo especial, recorren una sola rueda; los refuerzos usan las cuatro ruedas por tipo de día de `wheels`). La antigua `balanced` está retirada: la API la rechaza con 400 y los cuadrantes guardados con ella se muestran como «Equilibrado (retirado)». Común a ambas, en `backend/src/scheduling/assignment.service.ts`: `generateRotas` baraja el orden de cada grupo (`scheduling/shuffle.ts`, `RotaService` pasa `Math.random`; sin fuente aleatoria es determinista) para no empezar todos los años por el mismo médico, genera AC, reserva los refuerzos AC por déficit mensual (`planAcRefuerzos`) y después AP; `doctorsPerDay` fijo en 1 y día de descanso. Las estrategias recorren ruedas separadas para guardias y refuerzos. La guardia AP y los refuerzos usan `apShiftDetails` (7h L-S, 12h festivo, en `scheduling/shifts.ts`) y `refuerzosForDay` da 2 refuerzos en festivos especiales y en el segundo de dos festivos consecutivos. Los festivos especiales de sanidad están en `backend/src/common/sanidad-holidays.ts`.
 
 ## Configuración Principal
 
@@ -77,8 +77,8 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (130 tests actualmente)
-- Frontend: `vitest` — 149 tests cubriendo servicios, componentes y la integración del app shell
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (138 tests actualmente)
+- Frontend: `vitest` — 150 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
 
@@ -96,7 +96,7 @@ Una PR no se mezcla con la CI en rojo. La CI **no** sustituye a la verificación
 ## Verificación Visual (obligatoria antes del commit)
 
 Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
-279 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
+288 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
 ningún test comprueba, un mensaje que la librería genera en inglés. Por eso, todo
 cambio que toque algo visible para el usuario —frontend, o mensajes del backend,
 que llegan literalmente a la interfaz vía `extractErrorMessage` en
@@ -205,7 +205,7 @@ Estas reglas son aplicadas por el algoritmo y verificadas por las pruebas:
    - Guardia AP y todos los refuerzos (también el de un AC): 7h L-Sábado (15:00–22:00), 12h festivo (10:00–22:00).
    - Los festivos especiales son festivo a todos los efectos (AC 23h desde las 09:00).
 6. Festivo > Sábado > Laborable para la clasificación de tipo de día.
-7. Las asignaciones deben tener máxima variación de grupo y ser equitativas (el puntero round-robin deslizante evita el bloqueo de grupo)
+7. Las asignaciones deben tener máxima variación de grupo y ser equitativas (el orden barajado y las ruedas evitan el bloqueo de grupo)
 8. **UI**: cada día muestra los bloques AC, AP y REFUERZO; los refuerzos van prefijados con `R:` y el que cubre un AC lleva el sufijo `(AC)`.
 
 ## Documentación

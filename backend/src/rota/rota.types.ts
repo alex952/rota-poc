@@ -69,7 +69,8 @@ export interface RotaResponse {
   city: string;
   rota_type: RotaType;
   doctors_per_day: number;
-  strategy: AssignmentStrategyId;
+  // 'balanced': método retirado que pueden conservar los cuadrantes antiguos.
+  strategy: AssignmentStrategyId | 'balanced';
   generated_at: Date;
   /** Ids de los médicos del grupo en el orden (barajado) con que se generó el cuadrante */
   doctor_order: string[];

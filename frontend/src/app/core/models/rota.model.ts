@@ -11,20 +11,27 @@ export interface DoctorRef {
 }
 
 /** Método de asignación de guardias */
-export type AssignmentStrategy = 'balanced' | 'wheels';
+export type AssignmentStrategy = 'wheels' | 'single-wheel';
 
-export const DEFAULT_STRATEGY: AssignmentStrategy = 'balanced';
+/**
+ * Método con el que se generó un cuadrante guardado. Además de los vigentes puede ser
+ * 'balanced', el método equilibrado ya retirado, en cuadrantes antiguos.
+ */
+export type GeneratedStrategy = AssignmentStrategy | 'balanced';
+
+export const DEFAULT_STRATEGY: AssignmentStrategy = 'wheels';
 
 /** Opciones del desplegable de método de asignación */
 export const STRATEGY_OPTIONS: { value: AssignmentStrategy; label: string }[] = [
-  { value: 'balanced', label: 'Equilibrado (predeterminado)' },
-  { value: 'wheels', label: 'Ruedas (orden estricto)' },
+  { value: 'wheels', label: 'Ruedas (predeterminado)' },
+  { value: 'single-wheel', label: 'Rueda única (refuerzos por ruedas)' },
 ];
 
 /** Etiqueta corta para mostrar el método de un cuadrante ya generado */
-export const STRATEGY_SHORT_LABELS: Record<AssignmentStrategy, string> = {
-  balanced: 'Equilibrado',
+export const STRATEGY_SHORT_LABELS: Record<GeneratedStrategy, string> = {
   wheels: 'Ruedas',
+  'single-wheel': 'Rueda única',
+  balanced: 'Equilibrado (retirado)',
 };
 
 export interface DayAssignment {
@@ -65,7 +72,7 @@ export interface RotaResponse {
   stats: StatsResponse;
   warnings: string[];
   /** Ausente en cuadrantes antiguos: se asume 'balanced' */
-  strategy?: AssignmentStrategy;
+  strategy?: GeneratedStrategy;
 }
 
 export interface GenerateRequest {

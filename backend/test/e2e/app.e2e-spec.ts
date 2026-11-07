@@ -454,26 +454,43 @@ describe('HTTP contract', () => {
       expect(byYear.json()[0].strategy).toBe('wheels');
     });
 
-    it('usa balanced por defecto', async () => {
-      const generation = await generate();
+    it('genera con single-wheel y lo devuelve en la respuesta y en las lecturas posteriores', async () => {
+      const generation = await generate({ strategy: 'single-wheel' });
       expect(generation.statusCode).toBe(201);
-      expect(generation.json()[0].strategy).toBe('balanced');
+      expect(generation.json().map((rota: { strategy: string }) => rota.strategy)).toEqual([
+        'single-wheel',
+        'single-wheel',
+      ]);
 
       const byType = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AC` });
-      expect(byType.json().strategy).toBe('balanced');
+      expect(byType.json().strategy).toBe('single-wheel');
     });
 
-    it('trata strategy null como omitido y usa balanced', async () => {
+    it('usa wheels por defecto', async () => {
+      const generation = await generate();
+      expect(generation.statusCode).toBe(201);
+      expect(generation.json()[0].strategy).toBe('wheels');
+
+      const byType = await app.inject({ method: 'GET', url: `/api/v1/rota/${YEAR_2026}/AC` });
+      expect(byType.json().strategy).toBe('wheels');
+    });
+
+    it('trata strategy null como omitido y usa wheels', async () => {
       const generation = await generate({ strategy: null });
       expect(generation.statusCode).toBe(201);
-      expect(generation.json()[1].strategy).toBe('balanced');
+      expect(generation.json()[1].strategy).toBe('wheels');
     });
 
-    it('rechaza una estrategia inválida con el mensaje en español', async () => {
-      const response = await generate({ strategy: 'aleatoria' });
-      expect(response.statusCode).toBe(400);
-      expect(response.json().message).toContain('el método de asignación debe ser balanced o wheels');
-    });
+    it.each(['aleatoria', 'balanced'])(
+      'rechaza la estrategia %s con el mensaje en español',
+      async (strategy) => {
+        const response = await generate({ strategy });
+        expect(response.statusCode).toBe(400);
+        expect(response.json().message).toContain(
+          'el método de asignación debe ser wheels o single-wheel',
+        );
+      },
+    );
   });
 
   it('marca los festivos especiales de sanidad y no deja eliminarlos', async () => {

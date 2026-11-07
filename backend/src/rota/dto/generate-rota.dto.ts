@@ -32,8 +32,8 @@ export class GenerateRotaDto {
   @Type(() => DoctorInputDto)
   ap_pool!: DoctorInputDto[];
 
-  // Método de asignación; si se omite, el servicio usa 'balanced'.
+  // Método de asignación; si se omite, el servicio usa 'wheels'.
   @IsOptional()
-  @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser balanced o wheels' })
+  @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser wheels o single-wheel' })
   strategy?: AssignmentStrategyId;
 }

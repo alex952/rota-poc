@@ -147,21 +147,21 @@ describe('DoctorPoolComponent', () => {
       expect(label.htmlFor).toBe(select.id);
       const options = Array.from(select.options).map((o) => [o.value, o.textContent?.trim()]);
       expect(options).toEqual([
-        ['balanced', 'Equilibrado (predeterminado)'],
-        ['wheels', 'Ruedas (orden estricto)'],
+        ['wheels', 'Ruedas (predeterminado)'],
+        ['single-wheel', 'Rueda única (refuerzos por ruedas)'],
       ]);
     });
 
     it('debe reflejar el valor de entrada strategy', () => {
-      setup({ strategy: 'wheels' });
+      setup({ strategy: 'single-wheel' });
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      expect(select.value).toBe('wheels');
+      expect(select.value).toBe('single-wheel');
     });
 
-    it('debe seleccionar balanced por defecto', () => {
+    it('debe seleccionar wheels por defecto', () => {
       setup();
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      expect(select.value).toBe('balanced');
+      expect(select.value).toBe('wheels');
     });
 
     it('debe emitir strategyChange al cambiar la selección', () => {
@@ -169,9 +169,9 @@ describe('DoctorPoolComponent', () => {
       const emitted: string[] = [];
       component.strategyChange.subscribe((v) => emitted.push(v));
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      select.value = 'wheels';
+      select.value = 'single-wheel';
       select.dispatchEvent(new Event('change'));
-      expect(emitted).toEqual(['wheels']);
+      expect(emitted).toEqual(['single-wheel']);
     });
 
     it('debe deshabilitar el selector mientras carga', () => {
@@ -192,10 +192,16 @@ describe('DoctorPoolComponent', () => {
       expect(note.textContent?.trim()).toBe('Generado con: Ruedas');
     });
 
-    it('debe mostrar "Generado con: Equilibrado" para balanced', () => {
+    it('debe mostrar "Generado con: Rueda única" para single-wheel', () => {
+      setup({ hasExistingRota: true, generatedStrategy: 'single-wheel' });
+      const note = fixture.nativeElement.querySelector('.generated-with');
+      expect(note.textContent?.trim()).toBe('Generado con: Rueda única');
+    });
+
+    it('debe mostrar "Generado con: Equilibrado (retirado)" para un cuadrante antiguo balanced', () => {
       setup({ hasExistingRota: true, generatedStrategy: 'balanced' });
       const note = fixture.nativeElement.querySelector('.generated-with');
-      expect(note.textContent?.trim()).toBe('Generado con: Equilibrado');
+      expect(note.textContent?.trim()).toBe('Generado con: Equilibrado (retirado)');
     });
 
     it('no debe mostrar "Generado con" sin cuadrante', () => {

@@ -13,7 +13,6 @@ import {
   DoctorInput,
   ShiftRole,
 } from '../scheduling/scheduling.types';
-import { AssignmentStrategyId } from '../scheduling/strategies/assignment-strategy';
 import { RotaResponse, RotaType, StatsResponse } from './rota.types';
 import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
 import { RotaEntity } from './entities/rota.entity';
@@ -57,7 +56,7 @@ export class RotaResponseMapper {
       city: rota.city,
       rota_type: rota.rotaType as RotaType,
       doctors_per_day: rota.doctorsPerDay,
-      strategy: rota.strategy as AssignmentStrategyId,
+      strategy: rota.strategy as RotaResponse['strategy'],
       generated_at: rota.generatedAt,
       doctor_order: pool.map((doctor) => doctor.id),
       schedule,

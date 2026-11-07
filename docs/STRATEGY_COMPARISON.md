@@ -1,5 +1,7 @@
 # Comparación de métodos de asignación: Equilibrado vs Ruedas
 
+> **Nota (noviembre de 2026):** la estrategia `balanced` («Equilibrado») está retirada. Este informe se conserva como registro histórico de la decisión. `scripts/compare-strategies.ts` compara ahora `wheels` con `single-wheel`; las cifras de abajo son de la ejecución original.
+
 Informe de disparidades entre la estrategia actual (`balanced`, «Equilibrado») y la estrategia de ruedas (`wheels`, «Ruedas»). Las Ruedas replican el método manual del hospital: varias ruedas round-robin estrictas para laborables, sábados, domingos y festivos.
 
 La estrategia `wheels` de producción arranca las ruedas **escalonadas**. La rueda de laborables empieza en el médico 0, la de sábados en ⌊N/4⌋, la de domingos en ⌊2N/4⌋ y la de festivos en ⌊3N/4⌋. Se adoptó tras este mismo análisis: el hallazgo 4 lo compara con la variante «todas desde el primero».
