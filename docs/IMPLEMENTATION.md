@@ -24,9 +24,12 @@ rota-poc/
 ```bash
 cd backend
 npm install
+cp .env.example .env   # misma configuración que el servicio backend de Docker
 npm run migration:run
 npm run start:dev
 ```
+
+`backend/.env` lo leen la aplicación (`ConfigModule.forRoot`) y el CLI de migraciones (`src/database/data-source.ts`, con `process.loadEnvFile`). Las variables ya definidas en el entorno tienen prioridad.
 
 ### Ejecutar Pruebas
 

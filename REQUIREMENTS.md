@@ -79,7 +79,7 @@ Se devuelve un calendario anual con:
 
 ## 10. Servicio de festivos
 
-El sistema consulta una API externa de festivos españoles (por defecto `https://date.nager.at/api/v3`) según la ciudad del hospital (variable de entorno `CITY`, por defecto `Madrid`). Los festivos se cachean en la base de datos.
+El sistema consulta una API externa de festivos españoles (por defecto `https://date.nager.at/api/v3`) según la ciudad del hospital (variable de entorno `CITY`, por defecto `Alicante`, cuyos festivos regionales son los de la Comunitat Valenciana). Los festivos se cachean en la base de datos.
 
 ## 11. Componentes del producto
 

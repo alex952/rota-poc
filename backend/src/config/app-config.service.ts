@@ -5,8 +5,9 @@ import { ConfigService } from '@nestjs/config';
 export class AppConfigService {
   constructor(private readonly configService: ConfigService) {}
 
+  // Ciudad del hospital: decide los festivos regionales (Alicante → Comunitat Valenciana, ES-VC).
   get city(): string {
-    return this.configService.get<string>('CITY') ?? 'Madrid';
+    return this.configService.get<string>('CITY') ?? 'Alicante';
   }
 
   get holidayApiUrl(): string {

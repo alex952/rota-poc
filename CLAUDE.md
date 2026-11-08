@@ -53,10 +53,10 @@ docker compose up db            # solo MySQL (para desarrollo local del backend)
 
 ## Configuración Principal
 
-Variables de entorno (backend):
+Variables de entorno (backend). Sin Docker, `cp backend/.env.example backend/.env` deja los mismos valores que `docker-compose.yml` (con `localhost` como host de MySQL); la aplicación (`ConfigModule`) y el CLI de migraciones (`src/database/data-source.ts`) leen ese fichero:
 - `DATABASE_URL` — Cadena de conexión a MySQL
 - `HOLIDAY_API_URL` — API de festivos española (por defecto: date.nager.at)
-- `CITY` — Ciudad del hospital (por defecto: Madrid), determina la resolución de festivos y la visualización en la interfaz
+- `CITY` — Ciudad del hospital (por defecto: Alicante, festivos de la Comunitat Valenciana `ES-VC`; `docker-compose.yml` también la fija a Alicante), determina la resolución de festivos y la visualización en la interfaz
 
 ## Convenciones de Código
 
@@ -77,7 +77,7 @@ Variables de entorno (backend):
 
 ## Pruebas
 
-- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (147 tests actualmente)
+- Backend: `npm test` — cobertura unitaria y e2e con Jest desde `backend/test/` (149 tests actualmente)
 - Frontend: `vitest` — 175 tests cubriendo servicios, componentes y la integración del app shell
 - Todos los criterios de aceptación del PRD tienen casos de prueba correspondientes (ver docs/IMPLEMENTATION.md sección 4.4)
 - Las pruebas deben escribirse ANTES de la implementación (enfoque ATDD)
@@ -96,7 +96,7 @@ Una PR no se mezcla con la CI en rojo. La CI **no** sustituye a la verificación
 ## Verificación Visual (obligatoria antes del commit)
 
 Las builds y los tests no ven la aplicación. Un cambio puede compilar, pasar los
-322 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
+324 tests y aun así llegar roto al usuario: texto desbordado, una cadena que
 ningún test comprueba, un mensaje que la librería genera en inglés. Por eso, todo
 cambio que toque algo visible para el usuario —frontend, o mensajes del backend,
 que llegan literalmente a la interfaz vía `extractErrorMessage` en
