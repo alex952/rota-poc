@@ -105,7 +105,7 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 
 - `TeamSelectorComponent` (`features/teams/`) se proyecta en la cabecera de `DoctorPoolComponent` (`<ng-content select="[poolHeader]">`): desplegable del equipo y diálogos de crear, renombrar y borrar. Emite `teamSelected` y `App.onTeamSelected` carga la lista y los cuadrantes del equipo.
 - `DoctorPoolService.loadTeam` muestra la lista del equipo; si está vacía, carga `assets/doctors.json` y la guarda con `PUT /teams/:id/doctors`. Añadir un médico y cargar un fichero también guardan la lista.
-- «Cargar lista» lee el fichero en el navegador con `parseDoctorFile` (`core/parsers/doctor-file.parser.ts`): JSON o CSV, columnas en español o inglés sin distinguir tildes ni mayúsculas, ids generados (`doc-NNN`) si faltan. Los errores llegan como notificación y no se envía nada; si es válido, `App` pide confirmación antes del `PUT`.
+- «Cargar lista» lee el fichero en el navegador con `parseDoctorFile` (`core/parsers/doctor-file.parser.ts`): JSON o CSV, columnas en español o inglés sin distinguir tildes ni mayúsculas, ids generados (`doc-NNN`) si faltan. El formato completo, con los nombres de columna admitidos y los mensajes de error, está en [`samples/README.md`](./samples/README.md). Los errores llegan como notificación y no se envía nada; si es válido, `App` pide confirmación antes del `PUT`.
 
 ### Renderizado del calendario
 
