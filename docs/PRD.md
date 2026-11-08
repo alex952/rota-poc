@@ -43,7 +43,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
   |------------|---------------|--------|--------------------|
   | AC (primary) | 17 h (15:00 → 08:00+1) | 18 h (15:00 → 09:00+1) | 23 h (09:00 → 08:00+1) |
   | AP: guardia AP y refuerzos (también el refuerzo de un AC) | 7 h (15:00 → 22:00) | 7 h (15:00 → 22:00) | 12 h (10:00 → 22:00) |
-- RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de cada tipo de día asignado y el total de horas.
+- RN-4: El calendario debe ser **equitativo** — los médicos deben tener el mismo número (o lo más cercano posible) de guardias y de horas totales. El reparto por tipo de día depende del método (RN-14): con «Ruedas» cada tipo de día se reparte con ±1; con «Rueda única» (predeterminado) se iguala el número de guardias, pero los sábados, domingos y festivos caen donde caigan en la rueda.
 - RN-5: AC y AP tienen **grupos de médicos separados**. Un médico pertenece a un solo grupo. Los dos cuadrantes se generan **juntos, con una sola acción**: AC primero y después AP, porque los refuerzos que hace un AC se descuentan de los de AP.
 - RN-6: Los domingos que también son festivos cuentan como un único turno Domingo/Festivo (sin doble conteo).
 - RN-7: La cobertura diaria es fija: **1 guardia AC, 1 guardia AP y 1 refuerzo**, o **2 refuerzos** en un festivo especial de sanidad (RN-13) o en un festivo precedido de otro festivo (los domingos cuentan como festivo); un festivo especial que además sigue a otro festivo sigue teniendo 2. Si el pool AC es demasiado grande para que todos alcancen su mínimo (o el pool AP demasiado pequeño para respetar su máximo de 425h) con esa cobertura, el cuadrante se genera igualmente y la respuesta incluye el aviso "El grupo … es demasiado grande …" (AC) o "El grupo … es demasiado pequeño …" (AP) con el número de médicos que incumplen y las horas que faltan o sobran en total.
@@ -53,6 +53,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 - RN-11: **Guardia AP y refuerzos**: la guardia AP y cada refuerzo duran 7 h (15:00 → 22:00) de lunes a sábado y 12 h (10:00 → 22:00) en festivo. Guardias y refuerzos se reparten por separado para que cada médico AP haga un número parecido de cada uno.
 - RN-12: **Refuerzo de un AC por horas mensuales**: si un médico AC no llega a **135 h en un mes**, cubre refuerzos (con horario AP) el **día anterior a alguna de sus guardias de ese mes**, tantos como necesite para llegar a 135 h y mientras haya hueco: el día anterior debe estar en el mismo mes, no ser su día de descanso y tener aún un refuerzo libre. Cada refuerzo AC sustituye a un refuerzo AP de ese día. Si no hay hueco suficiente, el cuadrante se genera con el aviso «No hay hueco para más refuerzos y algunos médicos AC quedan por debajo de 135h en el mes: …».
 - RN-13: **Festivos especiales de sanidad**: el 24, 25 y 31 de diciembre y el 1 y 6 de enero se añaden siempre al obtener los festivos del año, se marcan como especiales (`special: true`) y no se pueden desmarcar. Cuentan como festivo a todos los efectos (AC 23 h desde las 09:00, AP 12 h) y llevan siempre 2 refuerzos.
+- RN-14: **Métodos de asignación**: el usuario elige con qué método se generan los cuadrantes. **«Rueda única»** (`single-wheel`, predeterminado): todas las guardias recorren una sola rueda en el orden del grupo, sea laborable, sábado, domingo, festivo o festivo especial; los refuerzos se reparten con una rueda por tipo de día. **«Ruedas»** (`wheels`): guardias y refuerzos tienen cada uno una rueda por tipo de día (laborables, sábados, domingos y festivos). En los dos, a quien le toca y no ha descansado se le salta y conserva el turno. El antiguo método «Equilibrado» (`balanced`) está retirado: no se puede elegir, y los cuadrantes ya generados con él se conservan y se muestran como «Equilibrado (retirado)».
 #### Criterios de Aceptación
 
 | ID | Criterio |
@@ -74,6 +75,8 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.1.15 | **Dados** los cuadrantes generados, **cuando** se inspeccionan los laborables y sábados, **entonces** cada día tiene 1 guardia AP y 1 refuerzo, ambos de 7 h (15:00→22:00).
 | CA-3.1.16 | **Dado** un médico AC con menos de 135 h en un mes, **entonces** hace refuerzos con horario AP el día anterior a alguna de sus guardias de ese mes hasta llegar a 135 h, y esos refuerzos se descuentan de los de AP; si no hay hueco, el cuadrante incluye un aviso. |
 | CA-3.1.17 | **Dado** cualquier año, **cuando** se obtienen sus festivos, **entonces** incluyen el 24, 25 y 31 de diciembre y el 1 y 6 de enero marcados como especiales, y eliminar uno devuelve 400 «Los festivos especiales de sanidad no se pueden eliminar». |
+| CA-3.1.18 | **Dada** una petición de generación sin `strategy`, **entonces** los cuadrantes se generan con «Rueda única» (`single-wheel`) y lo indican en `strategy`; con `strategy: "wheels"` se generan con «Ruedas». Cualquier otro valor, incluido `balanced`, responde 400 «el método de asignación debe ser single-wheel o wheels». |
+| CA-3.1.19 | **Dado** un cuadrante generado con «Rueda única», **cuando** no hay choques de descanso (p. ej. la guardia AC), **entonces** la guardia del día *i* del año la hace el médico *i mod N* del grupo (ya barajado), sin distinguir el tipo de día; los refuerzos siguen una rueda por tipo de día. |
 
 ---
 
@@ -152,6 +155,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 | CA-3.6.7 | **Dada** la carga de la interfaz, **entonces** el nombre de la ciudad configurada se muestra en la interfaz. |
 | CA-3.6.9 | **Dada** una celda de calendario, **entonces** muestra tres bloques: `AC` (guardia AC), `AP` (guardia AP) y `REFUERZO`, con cada refuerzo prefijado con `R:`; el refuerzo de un médico AC aparece con el sufijo `(AC)`. |
 | CA-3.6.10 | **Dado** un día con 2 refuerzos, **entonces** la celda muestra ambos en el bloque `REFUERZO`, cada uno con prefijo `R:`. Un festivo especial de sanidad se distingue con un estilo propio y una estrella, y su menú contextual indica que no se puede desmarcar. |
+| CA-3.6.11 | **Dada** la interfaz, **entonces** junto al botón de generar hay un selector «Método de asignación» con «Rueda única (predeterminado)», seleccionado por defecto, y «Ruedas (orden estricto)»; con un cuadrante cargado se muestra «Generado con: …» con el método usado (los cuadrantes antiguos sin método o con `balanced`, como «Equilibrado (retirado)»). |
 
 ---
 

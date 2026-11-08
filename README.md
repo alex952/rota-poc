@@ -85,6 +85,8 @@ rota-poc/
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Detalles de implementación, guía para desarrolladores y estrategia de pruebas |
 | [docs/BACKEND_ARCHITECTURE_REFERENCE.md](docs/BACKEND_ARCHITECTURE_REFERENCE.md) | Referencia de módulos NestJS y flujos de petición |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | Diseño del algoritmo de asignación, restricciones y compromisos |
+| [docs/visualizations/ruedas.html](docs/visualizations/ruedas.html) | Visualización interactiva de los métodos de asignación «Rueda única» (predeterminado) y «Ruedas» |
+| [docs/samples/README.md](docs/samples/README.md) | Formato de los ficheros JSON y CSV para cargar la lista de médicos de un equipo |
 
 ## Stack tecnológico
 

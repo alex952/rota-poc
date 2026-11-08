@@ -127,7 +127,7 @@ Si algún médico incumple su límite (por debajo en AC, por encima en AP), la r
 
 Antes de que se ejecute el bucle principal, el algoritmo valida el grupo:
 
-- **El grupo debe tener >= `doctors_per_day + doctors_per_day` médicos** (necesita suficientes para la rotación de días de descanso). Si no, se lanza `InfeasiblePoolError`.
+- **El grupo debe tener al menos 2 × el pico de plazas diarias del grupo** (2 en AC; 6 en AP: guardia + 2 refuerzos), para que siempre haya médicos descansados. Si no, se lanza `InfeasiblePoolError`.
 - Si la capacidad anual no encaja con el objetivo del grupo (AC demasiado grande, AP demasiado pequeño), la generación **no** se bloquea: se emite un aviso (ver paso 5).
 
 ---
@@ -178,7 +178,7 @@ El refuerzo que hace un AC tiene este mismo horario.
 
 ## Estrategia de ruedas (wheels)
 
-Visualización interactiva para presentarla (abrir en el navegador): [`docs/visualizations/ruedas.html`](visualizations/ruedas.html). Simula el año 2026 con 4 y 5 médicos AC y un ejemplo AP con guardia y refuerzo.
+Visualización interactiva para presentarla (abrir en el navegador): [`docs/visualizations/ruedas.html`](visualizations/ruedas.html), pestaña «Ruedas» (`#ruedas`); la pestaña «Rueda única» explica la estrategia predeterminada. Simula el año 2026 con 4 y 5 médicos AC y un ejemplo AP con guardia y refuerzo.
 
 Elegida con `strategy: "wheels"` en `POST /rota/generate`. Replica cómo se hacen hoy los cuadrantes a mano. Duraciones, `doctors_per_day`, verificación de factibilidad, estadísticas y avisos son los mismos; sólo cambia quién hace cada día. La predeterminada es `single-wheel` (ver más abajo).
 
@@ -206,6 +206,8 @@ Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables
 
 ## Estrategia de rueda única (single-wheel)
 
+Visualización interactiva: [`docs/visualizations/ruedas.html`](visualizations/ruedas.html), pestaña «Rueda única» (la que abre por defecto), con el simulador, la comparación con «Ruedas» y el caso de los grupos de 7 médicos.
+
 Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `strategy` en `POST /rota/generate` (`scheduling/strategies/single-wheel.strategy.ts`). Usa la misma mecánica que `wheels` (`assignWithWheels` con `singleGuardiaWheel: true`); sólo cambia cómo se agrupan los días para las guardias.
 
 - **Guardias: una sola rueda para todos los días.** Laborables, sábados, domingos, festivos y festivos especiales comparten un único puntero y una única cola de deuda. La rueda recorre el grupo (barajado) en orden y arranca en el índice 0. Sin choques de descanso, el día *i* del año lo hace el médico *i mod N*: es lo que pasa con la guardia AC, que no tiene refuerzos en la estrategia.
@@ -220,8 +222,8 @@ Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `st
 
 ## Compromisos y Limitaciones
 
-- **Codicioso, no óptimo.** El algoritmo selecciona los mejores candidatos localmente cada día. Para grupos de 4 o más médicos esto produce calendarios bien equilibrados. Para grupos muy pequeños (2-3 médicos), se necesitaría un solver de programación por restricciones (p. ej., Google OR-Tools) para garantizar la optimalidad.
-- **Sin retroceso.** Una vez asignado un día, nunca se revisita. Esto mantiene el algoritmo en O(D × N × K) donde D = días del año, N = tamaño del grupo y K = doctors_per_day, pero significa que no puede recuperarse de elecciones subóptimas tempranas.
+- **Reglas fijas, no optimización.** Las ruedas reproducen el método manual: cada día sale quien toca en la rueda, salvo los saltos por descanso. No se busca el mejor reparto global; para garantizar la optimalidad (p. ej. de horas o de festivos por médico) haría falta un solver de programación por restricciones (p. ej., Google OR-Tools).
+- **Sin retroceso.** Una vez asignado un día, nunca se revisita. Esto mantiene el algoritmo en O(D × N) donde D = días del año y N = tamaño del grupo, pero significa que no puede recuperarse de elecciones subóptimas tempranas.
 - **Suavidad del día de descanso.** Para grupos pequeños, aplicar días de descanso estrictos puede crear callejones sin salida. El algoritmo degrada graciosamente permitiendo médicos sin descanso cuando es necesario, en lugar de fallar.
 - **Límites blandos.** El algoritmo no rechaza calendarios que no cumplen los límites: con grupos AC muy grandes no hay suficientes horas para distribuir, y con grupos AP muy pequeños las horas exceden el máximo por médico; en ambos casos el cuadrante se entrega con un aviso y la desviación por médico.
 
