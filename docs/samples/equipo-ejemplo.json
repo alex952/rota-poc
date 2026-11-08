@@ -1,0 +1,23 @@
+[
+  {"id": "ext-001", "name": "Dra. Carmen Ruiz Navarro", "department": "Medicina Intensiva", "rota_type": "AC"},
+  {"id": "ext-002", "name": "Dr. Javier Morales Peña", "department": "Anestesiología", "rota_type": "AC"},
+  {"id": "ext-003", "name": "Dra. Lucía Ortega Muñoz", "department": "Medicina Interna", "rota_type": "AC"},
+  {"id": "ext-004", "name": "Dr. Íñigo Castaño Gil", "department": "Cirugía General", "rota_type": "AC"},
+  {"id": "ext-005", "name": "Dra. Elena Vidal Soler", "department": "Urgencias", "rota_type": "AP"},
+  {"id": "ext-006", "name": "Dr. Pablo Herrero Díaz", "department": "Urgencias", "rota_type": "AP"},
+  {"id": "ext-007", "name": "Dra. Marta Iglesias Rey", "department": "Medicina Familiar", "rota_type": "AP"},
+  {"id": "ext-008", "name": "Dr. Sergio Campos León", "department": "Medicina Familiar", "rota_type": "AP"},
+  {"id": "ext-009", "name": "Dra. Nuria Pascual Ibáñez", "department": "Pediatría", "rota_type": "AP"},
+  {"id": "ext-010", "name": "Dr. Andrés Molina Sáez", "department": "Pediatría", "rota_type": "AP"},
+  {"id": "ext-011", "name": "Dra. Raquel Fuentes Cano", "department": "Cardiología", "rota_type": "AP"},
+  {"id": "ext-012", "name": "Dr. Álvaro Delgado Marín", "department": "Neumología", "rota_type": "AP"},
+  {"id": "ext-013", "name": "Dra. Beatriz Lozano Prieto", "department": "Neurología", "rota_type": "AP"},
+  {"id": "ext-014", "name": "Dr. Óscar Garrido Vega", "department": "Traumatología", "rota_type": "AP"},
+  {"id": "ext-015", "name": "Dra. Sofía Méndez Calvo", "department": "Endocrinología", "rota_type": "AP"},
+  {"id": "ext-016", "name": "Dr. Rubén Cabrera Rojas", "department": "Medicina Interna", "rota_type": "AP"},
+  {"id": "ext-017", "name": "Dra. Irene Santos Domínguez", "department": "Digestivo", "rota_type": "AP"},
+  {"id": "ext-018", "name": "Dr. Héctor Nieto Arias", "department": "Nefrología", "rota_type": "AP"},
+  {"id": "ext-019", "name": "Dra. Paula Carmona Ferrer", "department": "Reumatología", "rota_type": "AP"},
+  {"id": "ext-020", "name": "Dr. Tomás Benítez Luna", "department": "Urología", "rota_type": "AP"},
+  {"id": "ext-021", "name": "Dra. Ainhoa Ramos Quintana", "department": "Ginecología", "rota_type": "AP"}
+]
