@@ -201,7 +201,8 @@ Si la cadencia semanal coincide con el tamaño del grupo, la rueda de laborables
 - En una semana completa el saltado hace el viernes, así que nadie pierde guardias: el día de cada médico va rotando semana a semana.
 - No se salta en semanas con un festivo entre semana (ya descolocan la rueda por sí solas y saltar quitaría una guardia al saltado) ni en semanas partidas por el fin de año (`startsFullWorkWeek`).
 - Resultado en el mismo caso: viernes 9/10/11/10/8 por médico, como mucho 2 seguidos, y guardias totales 71–74 (antes 72–74).
-- Con cualquier otro tamaño de grupo el cuadrante es idéntico al de antes. Un grupo de 10 tiene una resonancia de dos semanas que este salto no corrige sin quitar guardias; no hay grupos de ese tamaño y queda fuera de alcance.
+- Con cualquier otro tamaño de grupo el cuadrante es idéntico al de antes.
+- **Múltiplos de 5 (10, 15, 20).** La rueda de laborables da la vuelta en 2, 3 o 4 semanas y a cada médico le tocan casi siempre los mismos días laborables. Medido en 2026 y 2027 (sólo guardias), la mayor diferencia entre médicos en guardias de un mismo día de la semana es de 15–18 con 10 médicos y de 11–13 con 15, frente a 5–9 con 6, 9 u 11. No se corrige: un salto semanal quitaría guardias al saltado, y los sábados, domingos, festivos y horas no se ven afectados, porque cada tipo de día tiene su rueda.
 
 
 ## Estrategia de rueda única (single-wheel)
@@ -214,8 +215,17 @@ Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `st
 - **Refuerzos: las cuatro ruedas de `wheels`.** Laborables, sábados, domingos y festivos, con los punteros escalonados (0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) desplazados ⌊N/2⌋, igual que en `wheels`.
 - **Choques.** Si quien toca en la rueda de guardias hizo un refuerzo el día anterior, se le salta con deuda y la cobra en el siguiente turno de la rueda («saltar y conservar turno»). Lo mismo en las ruedas de refuerzo. El descanso blando y `InfeasiblePoolError` son los de `wheels`.
 - **Resonancia semanal.** La corrección de 5 médicos sólo se aplica a la rueda de refuerzos de laborables, porque la rueda única de guardias no es una rueda de laborables.
+- **Grupos múltiplos de 7** (`breakLapResonance`, activada por defecto). Si el tamaño del grupo es múltiplo de 7, cada vuelta de la rueda dura un número exacto de semanas y cada médico caería siempre el mismo día de la semana (con 7 médicos, uno haría los 52 domingos del año). Por eso, cada N días (N = tamaño del grupo, a partir del segundo bloque) la rueda de guardias avanza un puesto **sin apuntar deuda**. El saltado hace el último día de esa vuelta, así que nadie pierde guardias, y el día de la semana de cada médico se desplaza uno por vuelta. Con cualquier otro tamaño el cuadrante no cambia.
 
-**Compromisos.** El número de guardias por médico queda igualado (±1, salvo deuda pendiente a final de año), pero no el de guardias de cada tipo de día: un médico puede acumular más sábados o festivos que otro, y por tanto más horas, porque la guardia de festivo dura más. Además, si el tamaño del grupo es múltiplo de 7, la rueda da un número exacto de vueltas por semana y cada médico cae siempre el mismo día de la semana. No se corrige, porque ningún grupo real tiene ese tamaño.
+  | Grupo (2026 / 2027) | Sábados, sin → con | Domingos y festivos, sin → con | Horas, sin → con | Mayor diferencia en un mismo día de la semana, sin → con |
+  |---|---|---|---|---|
+  | AC 7 | 51 → 2 / 49 → 2 | 52 → 4 / 51 → 4 | 264 → 53 / 269 → 57 | 53 → 1 / 53 → 1 |
+  | AP 14 | 22 → 4 / 20 → 6 | 20 → 6 / 20 → 6 | 126 → 27 / 107 → 32 | 27 → 6 / 26 → 6 |
+  | AP 21 | 16 → 3 / 17 → 4 | 15 → 6 / 16 → 4 | 94 → 49 / 99 → 46 | 17 → 6 / 18 → 4 |
+
+  Cada cifra es la diferencia entre el médico que más tiene y el que menos (`generateRotas`, festivos de la Comunitat Valenciana). Sábados, domingos y festivos, y días de la semana cuentan guardias; las horas incluyen también los refuerzos. En AP los saltos por los refuerzos descolocan algo la rueda, así que el giro no cae siempre en el puesto exacto, pero el efecto se mantiene. Los grupos de 13, 15 y 17 dan cifras idénticas con y sin la corrección.
+
+**Compromisos.** El número de guardias por médico queda igualado (±1, salvo deuda pendiente a final de año), pero no el de guardias de cada tipo de día: un médico puede acumular más sábados o festivos que otro, y por tanto más horas, porque la guardia de festivo dura más. La resonancia de los grupos múltiplos de 7 se corrige con el giro de cada vuelta (ver arriba).
 
 
 ---

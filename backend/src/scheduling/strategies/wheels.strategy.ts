@@ -98,6 +98,13 @@ export function staggeredInitialPointers(poolSize: number): Record<WheelId, numb
  * especial; arranca en el puntero de laborables. Los refuerzos siguen con sus cuatro
  * ruedas. La corrección de la resonancia semanal no se aplica a la rueda única: no es
  * una rueda de laborables.
+ *
+ * `breakLapResonance` (activada por defecto) corrige la resonancia de la rueda única:
+ * si el tamaño del grupo es múltiplo de 7, cada vuelta de la rueda dura un número exacto
+ * de semanas y cada médico caería siempre el mismo día de la semana. Por eso, cada N
+ * días (N = tamaño del grupo) la rueda de guardias avanza un puesto SIN apuntar deuda.
+ * El saltado hace el último día de esa vuelta, así que nadie pierde guardias, y el día
+ * de la semana de cada médico se desplaza uno en cada vuelta. No afecta a `wheels`.
  */
 export function assignWithWheels(
   input: StrategyInput,
@@ -105,7 +112,12 @@ export function assignWithWheels(
   {
     breakWeeklyResonance = true,
     singleGuardiaWheel = false,
-  }: { breakWeeklyResonance?: boolean; singleGuardiaWheel?: boolean } = {},
+    breakLapResonance = true,
+  }: {
+    breakWeeklyResonance?: boolean;
+    singleGuardiaWheel?: boolean;
+    breakLapResonance?: boolean;
+  } = {},
 ): DoctorInput[][] {
   const { pool, days } = input;
   const size = pool.length;
@@ -146,6 +158,19 @@ export function assignWithWheels(
         const wheel = wheelsByRole[role].weekday;
         wheel.pointer = (wheel.pointer + 1) % size;
       }
+    }
+
+    // Lo mismo para la rueda única con grupos múltiplos de 7: cada N días gira un puesto
+    // sin deuda, para que nadie quede fijo en el mismo día de la semana.
+    if (
+      breakLapResonance &&
+      singleGuardiaWheel &&
+      size % DAYS_PER_WEEK === 0 &&
+      dayIndex > 0 &&
+      dayIndex % size === 0
+    ) {
+      const wheel = wheelsByRole.guardia.weekday;
+      wheel.pointer = (wheel.pointer + 1) % size;
     }
 
     const currentDate = toIsoDate(day.date);
@@ -243,6 +268,7 @@ export function assignWithWheels(
 }
 
 const WORKDAYS_PER_WEEK = 5;
+const DAYS_PER_WEEK = 7;
 
 /**
  * Cierto si `days[index]` es un lunes y los cinco días siguientes del calendario (lunes a
