@@ -37,8 +37,8 @@ export class GenerateRotaDto {
   @IsInt({ message: 'el equipo debe ser un número entero' })
   team_id?: number;
 
-  // Método de asignación; si se omite, el servicio usa 'balanced'.
+  // Método de asignación; si se omite, el servicio usa 'single-wheel'.
   @IsOptional()
-  @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser balanced o wheels' })
+  @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser single-wheel o wheels' })
   strategy?: AssignmentStrategyId;
 }

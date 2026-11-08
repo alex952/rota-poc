@@ -5,6 +5,7 @@ import { Doctor, RotaType } from '../../core/models/doctor.model';
 import {
   AssignmentStrategy,
   DEFAULT_STRATEGY,
+  GeneratedStrategy,
   STRATEGY_OPTIONS,
   STRATEGY_SHORT_LABELS,
 } from '../../core/models/rota.model';
@@ -317,7 +318,7 @@ export class DoctorPoolComponent {
   readonly isLoading = input<boolean>(false);
   readonly strategy = input<AssignmentStrategy>(DEFAULT_STRATEGY);
   /** Método con el que se generó el cuadrante de la pestaña activa; null si no hay cuadrante */
-  readonly generatedStrategy = input<AssignmentStrategy | null>(null);
+  readonly generatedStrategy = input<GeneratedStrategy | null>(null);
 
   readonly strategyChange = output<AssignmentStrategy>();
   readonly generateRota = output<void>();

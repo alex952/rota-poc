@@ -198,7 +198,7 @@ describe('DoctorPoolComponent', () => {
       expect(label.htmlFor).toBe(select.id);
       const options = Array.from(select.options).map((o) => [o.value, o.textContent?.trim()]);
       expect(options).toEqual([
-        ['balanced', 'Equilibrado (predeterminado)'],
+        ['single-wheel', 'Rueda única (predeterminado)'],
         ['wheels', 'Ruedas (orden estricto)'],
       ]);
     });
@@ -209,10 +209,10 @@ describe('DoctorPoolComponent', () => {
       expect(select.value).toBe('wheels');
     });
 
-    it('debe seleccionar balanced por defecto', () => {
+    it('debe seleccionar single-wheel por defecto', () => {
       setup();
       const select: HTMLSelectElement = fixture.nativeElement.querySelector('.strategy-select');
-      expect(select.value).toBe('balanced');
+      expect(select.value).toBe('single-wheel');
     });
 
     it('debe emitir strategyChange al cambiar la selección', () => {
@@ -243,10 +243,16 @@ describe('DoctorPoolComponent', () => {
       expect(note.textContent?.trim()).toBe('Generado con: Ruedas');
     });
 
-    it('debe mostrar "Generado con: Equilibrado" para balanced', () => {
+    it('debe mostrar "Generado con: Rueda única" para single-wheel', () => {
+      setup({ hasExistingRota: true, generatedStrategy: 'single-wheel' });
+      const note = fixture.nativeElement.querySelector('.generated-with');
+      expect(note.textContent?.trim()).toBe('Generado con: Rueda única');
+    });
+
+    it('debe mostrar "Generado con: Equilibrado (retirado)" para un cuadrante antiguo balanced', () => {
       setup({ hasExistingRota: true, generatedStrategy: 'balanced' });
       const note = fixture.nativeElement.querySelector('.generated-with');
-      expect(note.textContent?.trim()).toBe('Generado con: Equilibrado');
+      expect(note.textContent?.trim()).toBe('Generado con: Equilibrado (retirado)');
     });
 
     it('no debe mostrar "Generado con" sin cuadrante', () => {

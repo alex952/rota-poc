@@ -22,7 +22,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `src/config/` expone la configuración de la aplicación como `CITY`.
 - `src/database/` gestiona la configuración de TypeORM y las migraciones.
 - `src/holidays/` obtiene los festivos españoles, los filtra por ciudad/región y los almacena en caché.
-- `src/scheduling/` contiene el algoritmo de rota y el cálculo de estadísticas. `src/scheduling/strategies/` agrupa los métodos de asignación intercambiables (patrón Strategy): `balanced`, `wheels` y el registro `ASSIGNMENT_STRATEGIES`.
+- `src/scheduling/` contiene el algoritmo de rota y el cálculo de estadísticas. `src/scheduling/strategies/` agrupa los métodos de asignación intercambiables (patrón Strategy): `wheels`, `single-wheel` y el registro `ASSIGNMENT_STRATEGIES` (`balanced` está retirada).
 - `src/rota/` gestiona la generación, recuperación, sustitución, exportación a Excel, entidades y mapeo de respuestas.
 - `src/teams/` gestiona los equipos (entidad `TeamEntity`, CRUD y lista de médicos). `TeamsService.resolveTeamId` traduce el `team_id` opcional de las rutas `/rota` (por defecto, el equipo principal) y `team-id.pipe.ts` valida el parámetro con mensajes en español.
 - `src/health/` proporciona el endpoint de liveness `/health`.

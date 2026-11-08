@@ -71,7 +71,7 @@ describe('generateRotas — barajado del grupo antes de asignar', () => {
       AP_POOL_17,
       dayClassifications,
       undefined,
-      'balanced',
+      'single-wheel',
       seededRandom(3),
     );
     expect(ac.stats.doctors.map((doctor) => doctor.doctorId)).toEqual(AC_POOL_4.map((doctor) => doctor.id));

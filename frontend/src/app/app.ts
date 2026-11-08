@@ -15,7 +15,7 @@ import { NotificationService } from './core/services/notification.service';
 import { TeamsService } from './core/services/teams.service';
 import { extractErrorMessage } from './core/http-error';
 import { Doctor, RotaType } from './core/models/doctor.model';
-import { AssignmentStrategy, DEFAULT_STRATEGY, DayAssignment, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
+import { AssignmentStrategy, DEFAULT_STRATEGY, DayAssignment, GeneratedStrategy, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
@@ -91,9 +91,9 @@ export class App implements OnInit {
 
   // Método de asignación: selección global y método con el que se generó cada cuadrante
   protected readonly selectedStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
-  protected readonly acStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
-  protected readonly apStrategy = signal<AssignmentStrategy>(DEFAULT_STRATEGY);
-  protected readonly generatedStrategy = computed<AssignmentStrategy | null>(() => {
+  protected readonly acStrategy = signal<GeneratedStrategy>(DEFAULT_STRATEGY);
+  protected readonly apStrategy = signal<GeneratedStrategy>(DEFAULT_STRATEGY);
+  protected readonly generatedStrategy = computed<GeneratedStrategy | null>(() => {
     if (this.hasAcRota()) return this.acStrategy();
     if (this.hasApRota()) return this.apStrategy();
     return null;
@@ -575,12 +575,13 @@ export class App implements OnInit {
       this.acSchedule.set(rota.schedule);
       this.acStats.set(rota.stats.doctors);
       this.hasAcRota.set(true);
-      this.acStrategy.set(rota.strategy ?? DEFAULT_STRATEGY);
+      // Sin strategy, el cuadrante es anterior a los métodos: se hizo con el equilibrado.
+      this.acStrategy.set(rota.strategy ?? 'balanced');
     } else {
       this.apSchedule.set(rota.schedule);
       this.apStats.set(rota.stats.doctors);
       this.hasApRota.set(true);
-      this.apStrategy.set(rota.strategy ?? DEFAULT_STRATEGY);
+      this.apStrategy.set(rota.strategy ?? 'balanced');
     }
   }
 

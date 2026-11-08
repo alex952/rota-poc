@@ -92,11 +92,20 @@ export function staggeredInitialPointers(poolSize: number): Record<WheelId, numb
  *
  * `breakWeeklyResonance` (activada por defecto) aplica la corrección de la
  * resonancia semanal; ver `startsFullWorkWeek`.
+ *
+ * `singleGuardiaWheel` (desactivada por defecto) hace que las guardias recorran una
+ * única rueda para todos los días, sea laborable, sábado, domingo, festivo o festivo
+ * especial; arranca en el puntero de laborables. Los refuerzos siguen con sus cuatro
+ * ruedas. La corrección de la resonancia semanal no se aplica a la rueda única: no es
+ * una rueda de laborables.
  */
 export function assignWithWheels(
   input: StrategyInput,
   initialPointers: Partial<Record<WheelId, number>> = {},
-  { breakWeeklyResonance = true }: { breakWeeklyResonance?: boolean } = {},
+  {
+    breakWeeklyResonance = true,
+    singleGuardiaWheel = false,
+  }: { breakWeeklyResonance?: boolean; singleGuardiaWheel?: boolean } = {},
 ): DoctorInput[][] {
   const { pool, days } = input;
   const size = pool.length;
@@ -111,10 +120,18 @@ export function assignWithWheels(
       holiday: { pointer: start("holiday"), pending: [] },
     };
   };
+  // Rueda única: los cuatro tipos de día comparten el mismo objeto (puntero y deuda).
+  const buildSingleWheel = (): Record<WheelId, Wheel> => {
+    const wheel: Wheel = { pointer: (initialPointers.weekday ?? 0) % size, pending: [] };
+    return { weekday: wheel, saturday: wheel, sunday: wheel, holiday: wheel };
+  };
   const wheelsByRole = {
-    guardia: buildWheels(0),
+    guardia: singleGuardiaWheel ? buildSingleWheel() : buildWheels(0),
     refuerzo: buildWheels(Math.floor(size / 2)),
   };
+  const rolesWithWeekdayWheel = singleGuardiaWheel
+    ? (["refuerzo"] as const)
+    : (["guardia", "refuerzo"] as const);
   const lastAssigned = new Map<string, string>();
   const result: DoctorInput[][] = [];
 
@@ -125,7 +142,7 @@ export function assignWithWheels(
     // de cada semana de 5 laborables se salta un puesto SIN apuntar deuda: el saltado
     // hace el viernes, así que nadie pierde guardias y el día de cada uno va rotando.
     if (breakWeeklyResonance && size === WORKDAYS_PER_WEEK && startsFullWorkWeek(days, dayIndex)) {
-      for (const role of ["guardia", "refuerzo"] as const) {
+      for (const role of rolesWithWeekdayWheel) {
         const wheel = wheelsByRole[role].weekday;
         wheel.pointer = (wheel.pointer + 1) % size;
       }

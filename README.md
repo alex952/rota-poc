@@ -23,10 +23,13 @@ docker compose up --build
 ```bash
 cd backend
 npm install
-# Levanta MySQL (o usa: docker compose up db)
+cp .env.example .env   # misma configuración que el servicio backend de Docker
+# Levanta MySQL (o usa: docker compose up -d db)
 npm run migration:run
 npm run start:dev
 ```
+
+`backend/.env.example` reproduce la configuración de `docker-compose.yml` cambiando el host de la base de datos a `localhost`. La aplicación y las migraciones leen `backend/.env`; las variables de la shell tienen prioridad.
 
 **Frontend:**
 ```bash
@@ -39,13 +42,13 @@ La configuración del proxy redirige las peticiones `/api/*` al backend en `loca
 
 ## Configuración
 
-La ciudad del hospital se configura mediante la variable de entorno `CITY` del backend (por defecto `Madrid`). Determina la resolución de festivos y se muestra en la interfaz.
+La ciudad del hospital se configura mediante la variable de entorno `CITY` del backend (por defecto `Alicante`, que toma los festivos nacionales y los de la Comunitat Valenciana). Determina la resolución de festivos y se muestra en la interfaz.
 
 | Variable | Valor por defecto | Descripción |
 |----------|-------------------|-------------|
 | `DATABASE_URL` | `mysql://rota_user:rota_pass@localhost:3306/rota` | Cadena de conexión a MySQL |
 | `HOLIDAY_API_URL` | `https://date.nager.at/api/v3` | API de festivos españoles |
-| `CITY` | `Madrid` | Ciudad del hospital para la resolución de festivos |
+| `CITY` | `Alicante` | Ciudad del hospital para la resolución de festivos (Alicante → Comunitat Valenciana, `ES-VC`) |
 
 ## Ejecutar los tests
 
@@ -85,6 +88,8 @@ rota-poc/
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Detalles de implementación, guía para desarrolladores y estrategia de pruebas |
 | [docs/BACKEND_ARCHITECTURE_REFERENCE.md](docs/BACKEND_ARCHITECTURE_REFERENCE.md) | Referencia de módulos NestJS y flujos de petición |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | Diseño del algoritmo de asignación, restricciones y compromisos |
+| [docs/visualizations/ruedas.html](docs/visualizations/ruedas.html) | Visualización interactiva de los métodos de asignación «Rueda única» (predeterminado) y «Ruedas» |
+| [docs/samples/README.md](docs/samples/README.md) | Formato de los ficheros JSON y CSV para cargar la lista de médicos de un equipo |
 
 ## Stack tecnológico
 

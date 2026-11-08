@@ -9,7 +9,7 @@ import {
   staggeredInitialPointers,
   wheelsStrategy,
 } from '../../src/scheduling/strategies/wheels.strategy';
-import { balancedStrategy } from '../../src/scheduling/strategies/balanced.strategy';
+import { singleWheelStrategy } from '../../src/scheduling/strategies/single-wheel.strategy';
 import {
   ASSIGNMENT_STRATEGIES,
   getAssignmentStrategy,
@@ -111,9 +111,10 @@ describe('Estrategia de ruedas (wheels)', () => {
 
   it('se registra con su identificador', () => {
     expect(wheelsStrategy.id).toBe('wheels');
-    expect(balancedStrategy.id).toBe('balanced');
+    expect(singleWheelStrategy.id).toBe('single-wheel');
     expect(getAssignmentStrategy('wheels')).toBe(wheelsStrategy);
-    expect(Object.keys(ASSIGNMENT_STRATEGIES).sort()).toEqual(['balanced', 'wheels']);
+    expect(getAssignmentStrategy('single-wheel')).toBe(singleWheelStrategy);
+    expect(Object.keys(ASSIGNMENT_STRATEGIES).sort()).toEqual(['single-wheel', 'wheels']);
   });
 
   it('recorre la rueda de laborables en el orden estricto de la lista', () => {
@@ -374,10 +375,10 @@ describe('Estrategia de ruedas (wheels)', () => {
       expect(rota.schedule.every((d) => d.doctors.length === 1)).toBe(true);
     });
 
-    it('sin estrategia equivale a balanced', () => {
+    it('sin estrategia equivale a single-wheel (la predeterminada)', () => {
       const implicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications);
-      const explicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications, undefined, 'balanced');
-      expect(implicit.strategy).toBe('balanced');
+      const explicit = generateRota(YEAR_2026, 'AC', AC_POOL_4, classifications, undefined, 'single-wheel');
+      expect(implicit.strategy).toBe('single-wheel');
       expect(implicit).toEqual(explicit);
     });
   });

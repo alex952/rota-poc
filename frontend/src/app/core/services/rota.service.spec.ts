@@ -112,7 +112,7 @@ describe('RotaService', () => {
         { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria' },
       ],
       ap_pool: [{ id: 'doc-021', name: 'Dr. Navarro', department: 'Urgencias' }],
-      strategy: 'balanced',
+      strategy: 'single-wheel',
       team_id: TEAM_ID,
     });
     req.flush([mockRotaResponse, { ...mockRotaResponse, rota_type: 'AP' }]);

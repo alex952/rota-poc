@@ -13,6 +13,7 @@ import { RemoveAcReducedHoursRefuerzo0051789554577287 } from './migrations/17895
 import { RotaStrategy0061792000000006 } from './migrations/1792000000006-006-rota-strategy';
 import { RolesAndSpecialHolidays0071793000000007 } from './migrations/1793000000007-007-roles-and-special-holidays';
 import { Teams0081794000000008 } from './migrations/1794000000008-008-teams';
+import { RetireBalancedStrategy0091795000000009 } from './migrations/1795000000009-009-retire-balanced-strategy';
 
 const entities = [HolidayEntity, RotaEntity, RotaDoctorEntity, RotaAssignmentEntity, TeamEntity];
 const migrations = [
@@ -24,6 +25,7 @@ const migrations = [
   RotaStrategy0061792000000006,
   RolesAndSpecialHolidays0071793000000007,
   Teams0081794000000008,
+  RetireBalancedStrategy0091795000000009,
 ];
 
 export function createTypeOrmOptions(): TypeOrmModuleOptions {

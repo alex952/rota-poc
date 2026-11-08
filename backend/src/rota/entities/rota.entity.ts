@@ -46,8 +46,9 @@ export class RotaEntity {
   @Column({ name: 'doctors_per_day', type: 'int' })
   doctorsPerDay!: number;
 
-  // Método de asignación con el que se generó el cuadrante ('balanced' o 'wheels').
-  @Column({ type: 'varchar', length: 20, default: 'balanced' })
+  // Método de asignación con el que se generó el cuadrante ('single-wheel' o 'wheels';
+  // los cuadrantes antiguos pueden conservar 'balanced', ya retirado).
+  @Column({ type: 'varchar', length: 20, default: 'single-wheel' })
   strategy!: string;
 
   @OneToMany(() => RotaDoctorEntity, (doctor) => doctor.rota)

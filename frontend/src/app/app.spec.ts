@@ -818,7 +818,7 @@ describe('App', () => {
       fixture.detectChanges();
     }
 
-    it('debe enviar balanced por defecto', () => {
+    it('debe enviar single-wheel por defecto', () => {
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
       flushInitRequests({ rotaStatus: 404 });
@@ -827,7 +827,7 @@ describe('App', () => {
       generate(fixture);
 
       const req = httpTesting.expectOne('/api/v1/rota/generate');
-      expect(req.request.body.strategy).toBe('balanced');
+      expect(req.request.body.strategy).toBe('single-wheel');
       req.flush(generatedRotas);
     });
 
@@ -852,13 +852,13 @@ describe('App', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.generated-with')).toBeNull();
 
-      selectStrategy(fixture, 'wheels');
+      selectStrategy(fixture, 'single-wheel');
       generate(fixture);
-      httpTesting.expectOne('/api/v1/rota/generate').flush(generatedRotas.map((rota) => ({ ...rota, strategy: 'wheels' })));
+      httpTesting.expectOne('/api/v1/rota/generate').flush(generatedRotas.map((rota) => ({ ...rota, strategy: 'single-wheel' })));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.generated-with').textContent.trim()).toBe(
-        'Generado con: Ruedas',
+        'Generado con: Rueda única',
       );
     });
 
@@ -873,14 +873,14 @@ describe('App', () => {
       );
     });
 
-    it('debe tratar una respuesta sin strategy como Equilibrado', () => {
+    it('debe tratar una respuesta sin strategy como Equilibrado (retirado)', () => {
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
       flushInitRequests({ rotas: [mockAcRotaResponse] });
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.generated-with').textContent.trim()).toBe(
-        'Generado con: Equilibrado',
+        'Generado con: Equilibrado (retirado)',
       );
     });
   });
