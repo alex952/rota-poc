@@ -230,6 +230,51 @@ Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `st
 
 ---
 
+## Comparación de equidad: Rueda única frente a Ruedas
+
+Medición de noviembre de 2026, con la corrección de los múltiplos de 7 incluida. Son 34 casos: AC de 4 a 7 médicos (con AP de 17) y AP de 9 a 21 médicos (con AC de 4), en 2026 y 2027. Se generan con `generateRotas` (refuerzos AC incluidos) y festivos nacionales y de la Comunitat Valenciana. Cada cifra es la diferencia entre el médico que más tiene y el que menos: cuanto más baja, más justo. Barajar el grupo no cambia estas diferencias, porque los médicos de la prueba son intercambiables.
+
+- Sábados, domingos y festivos, número de guardias y día de la semana cuentan **guardias**.
+- Las horas, totales o de fin de semana y festivo, incluyen también los **refuerzos**.
+
+### Quién gana en cada medida (de 34 casos)
+
+| Medida | Ruedas | Rueda única | Empate |
+|---|---|---|---|
+| Domingos y festivos | **34** | 0 | 0 |
+| Sábados | **30** | 0 | 4 |
+| Horas en fin de semana y festivo | **32** | 2 | 0 |
+| Horas totales | **21** | 13 | 0 |
+| Número de guardias | 0 | **22** | 12 |
+| Mismo día de la semana | 7 | **19** | 8 |
+| Meses de un AC por debajo de 135 h | 2 | **4** | 28 |
+
+### Por tipo de grupo
+
+- **Fines de semana y festivos:** «Ruedas» es más justo en todos los casos. Reparte sábados, domingos y festivos con una diferencia de 0 a 2; con la rueda única es de 1 a 8, porque esos días caen donde caigan en la rueda.
+- **Horas totales:** en AP gana «Ruedas» en 21 de 26 casos. En AC gana la rueda única en los 8 casos, porque los refuerzos que completan las 135 h al mes compensan a quien hace menos festivos.
+- **Número de guardias:** la rueda única siempre lo iguala (0–1). «Ruedas» deja diferencias de 1 a 4.
+- **Día de la semana:** la rueda única reparte mejor qué día laborable le toca a cada uno. Con «Ruedas» y grupos de 10 o 15 médicos queda la resonancia suave de los múltiplos de 5 (diferencias de 11 a 16).
+- **Grupos de 7, 14 y 21:** con la corrección, la rueda única ya no tiene casos rotos. AP 14 y AP 21 quedan en la media del método.
+- **AC de 6 o 7 médicos:** no son representativos. El grupo es demasiado grande y los dos métodos generan avisos y muchos meses por debajo de 135 h.
+
+### Grupos reales (2026 / 2027)
+
+| Grupo | Método | Horas | Horas finde y festivo | Sábados | Domingos y festivos | Guardias |
+|---|---|---|---|---|---|---|
+| AC 4 | Ruedas | 34 / 33 | **48 / 54** | 1 / 1 | **1 / 1** | 2 / 1 |
+| | Rueda única | **7 / 21** | 92 / 103 | 1 / 1 | 3 / 5 | **1 / 1** |
+| AP 17 | Ruedas | 50 / **31** | **43 / 31** | **0 / 1** | **1 / 1** | 2 / 1 |
+| | Rueda única | **39** / 41 | 48 / 60 | 5 / 4 | 4 / 5 | **1 / 1** |
+| AP 21 | Ruedas | **26 / 31** | **19 / 31** | **1 / 1** | **1 / 1** | 2 / 2 |
+| | Rueda única | 49 / 46 | 84 / 74 | 3 / 4 | 6 / 4 | 2 / 1 |
+
+### Conclusión
+
+Si justo significa repartir bien los turnos que más pesan (sábados, domingos y festivos), «Ruedas» es más equitativo, y en AP también en horas. La rueda única gana en igualar el número de guardias, en las horas totales de AC y en no repetir el mismo día laborable. Con la corrección de los múltiplos de 7 ya no tiene casos rotos, pero cada médico puede acabar con 3 a 8 domingos o festivos más que otro. Elegir el método predeterminado es una decisión de producto: depende de qué disparidad pesa más para los médicos.
+
+---
+
 ## Compromisos y Limitaciones
 
 - **Reglas fijas, no optimización.** Las ruedas reproducen el método manual: cada día sale quien toca en la rueda, salvo los saltos por descanso. No se busca el mejor reparto global; para garantizar la optimalidad (p. ej. de horas o de festivos por médico) haría falta un solver de programación por restricciones (p. ej., Google OR-Tools).
