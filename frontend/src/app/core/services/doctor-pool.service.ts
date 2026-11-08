@@ -1,17 +1,28 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
 import { Doctor, RotaType } from '../models/doctor.model';
+import { Team } from '../models/team.model';
+import { TeamsService } from './teams.service';
+
+/** Lista inicial con la que empieza un equipo sin médicos (también el «Equipo principal»). */
+const SEED_DOCTORS_URL = 'assets/doctors.json';
 
 @Injectable({ providedIn: 'root' })
 export class DoctorPoolService {
   private readonly http = inject(HttpClient);
+  private readonly teamsService = inject(TeamsService);
 
+  /** Médicos del equipo cargado, en el orden en que se muestran */
   readonly doctors = signal<Doctor[]>([]);
+
+  /** Equipo cuyos médicos están cargados */
+  private teamId: number | null = null;
 
   /** Último orden barajado de cada grupo; se reaplica si los médicos llegan después. */
   private readonly savedOrder: Partial<Record<RotaType, string[]>> = {};
 
-  /** Ids en el orden original (archivo y altas manuales), al que vuelve `resetOrder`. */
+  /** Ids en el orden original (el de la lista del equipo), al que vuelve `resetOrder`. */
   private originalOrder: string[] = [];
 
   readonly acDoctors = computed(() =>
@@ -22,29 +33,55 @@ export class DoctorPoolService {
     this.doctors().filter((d) => d.rota_type === 'AP')
   );
 
-  loadDoctors(): void {
-    this.http.get<Doctor[]>('assets/doctors.json').subscribe({
+  /**
+   * Carga los médicos del equipo. Un equipo sin médicos empieza con la lista inicial
+   * (`assets/doctors.json`), que se guarda como lista del equipo.
+   */
+  loadTeam(team: Team): void {
+    this.teamId = team.id;
+    this.forgetSavedOrder();
+    if (team.doctors.length > 0) {
+      this.setDoctors(team.doctors);
+      return;
+    }
+    this.setDoctors([]);
+    this.http.get<Doctor[]>(SEED_DOCTORS_URL).subscribe({
       next: (docs) => {
-        this.doctors.set(docs);
-        this.originalOrder = docs.map((d) => d.id);
-        for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
-          this.sortGroup(rotaType, this.savedOrder[rotaType] ?? []);
-        }
+        if (this.teamId !== team.id) return;
+        this.setDoctors(docs);
+        this.teamsService.setDoctors(team.id, docs).subscribe({
+          error: (err) => console.error('No se ha podido guardar la lista inicial del equipo', err),
+        });
       },
-      error: (err) => console.error('Failed to load doctors.json', err),
+      error: (err) => console.error('No se ha podido cargar la lista inicial de médicos', err),
     });
   }
 
-  addDoctor(doctor: Doctor): void {
-    this.originalOrder.push(doctor.id);
-    this.doctors.update((current) => [...current, doctor]);
+  /** Sustituye la lista de médicos del equipo cargado (p. ej. la de un fichero subido). */
+  replaceDoctors(doctors: Doctor[]): Observable<Team> {
+    return this.teamsService.setDoctors(this.requireTeamId(), doctors).pipe(
+      tap((team) => {
+        this.forgetSavedOrder();
+        this.setDoctors(team.doctors);
+      }),
+    );
+  }
+
+  /** Añade un médico a la lista del equipo cargado y lo guarda. */
+  addDoctor(doctor: Doctor): Observable<Team> {
+    const byId = new Map(this.doctors().map((d) => [d.id, d]));
+    const list = [...this.originalOrder.map((id) => byId.get(id)!), doctor];
+    return this.teamsService.setDoctors(this.requireTeamId(), list).pipe(
+      tap(() => {
+        this.originalOrder.push(doctor.id);
+        this.doctors.update((current) => [...current, doctor]);
+      }),
+    );
   }
 
   /** Olvida el orden barajado y devuelve cada grupo a su orden original. */
   resetOrder(): void {
-    for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
-      delete this.savedOrder[rotaType];
-    }
+    this.forgetSavedOrder();
     for (const rotaType of ['AC', 'AP'] as RotaType[]) {
       this.sortGroup(rotaType, this.originalOrder);
     }
@@ -59,6 +96,31 @@ export class DoctorPoolService {
     this.sortGroup(rotaType, orderedIds);
   }
 
+  getDoctorsByType(rotaType: RotaType): Doctor[] {
+    return this.doctors().filter((d) => d.rota_type === rotaType);
+  }
+
+  private setDoctors(docs: Doctor[]): void {
+    this.doctors.set(docs);
+    this.originalOrder = docs.map((d) => d.id);
+    for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
+      this.sortGroup(rotaType, this.savedOrder[rotaType] ?? []);
+    }
+  }
+
+  private forgetSavedOrder(): void {
+    for (const rotaType of Object.keys(this.savedOrder) as RotaType[]) {
+      delete this.savedOrder[rotaType];
+    }
+  }
+
+  private requireTeamId(): number {
+    if (this.teamId === null) {
+      throw new Error('No hay ningún equipo cargado');
+    }
+    return this.teamId;
+  }
+
   private sortGroup(rotaType: RotaType, orderedIds: string[]): void {
     const position = new Map(orderedIds.map((id, index) => [id, index]));
     this.doctors.update((current) => {
@@ -69,9 +131,5 @@ export class DoctorPoolService {
       let next = 0;
       return current.map((d) => (d.rota_type === rotaType ? sorted[next++] : d));
     });
-  }
-
-  getDoctorsByType(rotaType: RotaType): Doctor[] {
-    return this.doctors().filter((d) => d.rota_type === rotaType);
   }
 }

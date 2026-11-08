@@ -20,6 +20,7 @@ import { RotaExportService } from './rota-export.service';
 import { RotaService } from './rota.service';
 import { HolidaysService } from '../holidays/holidays.service';
 import { AppConfigService } from '../config/app-config.service';
+import { OptionalTeamIdPipe } from '../teams/team-id.pipe';
 
 const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -38,8 +39,11 @@ export class RotaController {
   }
 
   @Get(':year/export')
-  async exportByYear(@Param('year', ParseIntPipe) year: number) {
-    const rotas = await this.rotaService.getByYear(year);
+  async exportByYear(
+    @Param('year', ParseIntPipe) year: number,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
+  ) {
+    const rotas = await this.rotaService.getByYear(year, teamId);
     const buffer = await this.rotaExportService.buildWorkbook(rotas);
     return new StreamableFile(buffer, {
       type: XLSX_CONTENT_TYPE,
@@ -53,21 +57,28 @@ export class RotaController {
     @Param('year', ParseIntPipe) year: number,
     @Param('rotaType') rotaType: string,
     @Query('doctor_id') doctorId?: string,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
   ) {
     await this.ensureHolidaysLoaded(year);
-    return this.rotaService.getByType(year, rotaType, doctorId);
+    return this.rotaService.getByType(year, rotaType, doctorId, teamId);
   }
 
   @Get(':year')
-  async getByYear(@Param('year', ParseIntPipe) year: number) {
+  async getByYear(
+    @Param('year', ParseIntPipe) year: number,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
+  ) {
     await this.ensureHolidaysLoaded(year);
-    return this.rotaService.getByYear(year);
+    return this.rotaService.getByYear(year, teamId);
   }
 
   @Delete(':year')
   @HttpCode(204)
-  async deleteByYear(@Param('year', ParseIntPipe) year: number): Promise<void> {
-    await this.rotaService.deleteByYear(year);
+  async deleteByYear(
+    @Param('year', ParseIntPipe) year: number,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
+  ): Promise<void> {
+    await this.rotaService.deleteByYear(year, teamId);
   }
 
   @Patch(':year/:rotaType/replace')
@@ -75,8 +86,9 @@ export class RotaController {
     @Param('year', ParseIntPipe) year: number,
     @Param('rotaType') rotaType: string,
     @Body() request: ReplaceDoctorDto,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
   ) {
-    return this.rotaService.replaceDoctor(year, rotaType, request);
+    return this.rotaService.replaceDoctor(year, rotaType, request, teamId);
   }
 
   @Post(':year/:rotaType/add')
@@ -85,8 +97,9 @@ export class RotaController {
     @Param('year', ParseIntPipe) year: number,
     @Param('rotaType') rotaType: string,
     @Body() request: AddDoctorDto,
+    @Query('team_id', OptionalTeamIdPipe) teamId?: number,
   ) {
-    return this.rotaService.addDoctor(year, rotaType, request);
+    return this.rotaService.addDoctor(year, rotaType, request, teamId);
   }
 
   private async ensureHolidaysLoaded(year: number): Promise<void> {

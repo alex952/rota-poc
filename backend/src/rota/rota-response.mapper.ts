@@ -52,6 +52,7 @@ export class RotaResponseMapper {
     };
 
     return {
+      team_id: rota.teamId,
       year: rota.year,
       city: rota.city,
       rota_type: rota.rotaType as RotaType,

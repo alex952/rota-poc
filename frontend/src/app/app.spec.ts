@@ -78,6 +78,7 @@ describe('App', () => {
   let httpTesting: HttpTestingController;
 
   beforeEach(async () => {
+    localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -102,14 +103,16 @@ describe('App', () => {
     const rotaStatus = options?.rotaStatus ?? 200;
     const rotas = options?.rotas ?? [mockAcRotaResponse];
 
+    httpTesting.expectOne('/api/v1/teams').flush([
+      { id: 1, name: 'Equipo principal', doctors },
+      { id: 2, name: 'Urgencias Norte', doctors: [] },
+    ]);
+
     const configReq = httpTesting.expectOne('/api/v1/config');
     configReq.flush({ city });
 
-    const doctorsReq = httpTesting.expectOne('assets/doctors.json');
-    doctorsReq.flush(doctors);
-
     const currentYear = new Date().getFullYear();
-    const rotaReq = httpTesting.expectOne(`/api/v1/rota/${currentYear}`);
+    const rotaReq = httpTesting.expectOne(`/api/v1/rota/${currentYear}?team_id=1`);
     if (rotaStatus === 200 && rotas) {
       rotaReq.flush(rotas);
     } else {
@@ -238,7 +241,7 @@ describe('App', () => {
     const confirmDialog = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
     expect(confirmDialog).toBeTruthy();
     expect(confirmDialog.textContent).toContain(
-      `Los cuadrantes AC y AP actuales de ${new Date().getFullYear()} se sustituirán por unos nuevos.`,
+      `Los cuadrantes AC y AP actuales de ${new Date().getFullYear()} del equipo «Equipo principal» se sustituirán por unos nuevos.`,
     );
 
     const confirmBtn = confirmDialog.querySelector('.btn-confirm');
@@ -265,7 +268,7 @@ describe('App', () => {
     yearInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    const rotaReq = httpTesting.expectOne('/api/v1/rota/2025');
+    const rotaReq = httpTesting.expectOne('/api/v1/rota/2025?team_id=1');
     expect(rotaReq.request.method).toBe('GET');
     rotaReq.flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
 
@@ -487,7 +490,7 @@ describe('App', () => {
       fixture.detectChanges();
 
       const year = new Date().getFullYear();
-      const req = httpTesting.expectOne(`/api/v1/rota/${year}`);
+      const req = httpTesting.expectOne(`/api/v1/rota/${year}?team_id=1`);
       expect(req.request.method).toBe('DELETE');
       req.flush(null, { status: 204, statusText: 'No Content' });
       fixture.detectChanges();
@@ -501,7 +504,7 @@ describe('App', () => {
       expect(resetButton(fixture).disabled).toBe(true);
       expect(fixture.nativeElement.querySelector('.btn-generate').textContent).toContain('Generar cuadrante');
       const success = notificationService.notifications().find((n) => n.type === 'success');
-      expect(success?.message).toBe(`Cuadrantes AC y AP de ${year} borrados`);
+      expect(success?.message).toBe(`Cuadrantes AC y AP de ${year} del equipo «Equipo principal» borrados`);
     });
 
     it('muestra el mensaje del backend si el borrado falla y conserva los cuadrantes', () => {
@@ -513,7 +516,7 @@ describe('App', () => {
 
       const year = new Date().getFullYear();
       httpTesting
-        .expectOne(`/api/v1/rota/${year}`)
+        .expectOne(`/api/v1/rota/${year}?team_id=1`)
         .flush(
           { statusCode: 404, message: `No se ha encontrado ningún cuadrante para el año ${year}` },
           { status: 404, statusText: 'Not Found' },
@@ -608,13 +611,13 @@ describe('App', () => {
       expect(exportButton(fixture).disabled).toBe(true);
 
       const year = new Date().getFullYear();
-      const req = httpTesting.expectOne(`/api/v1/rota/${year}/export`);
+      const req = httpTesting.expectOne(`/api/v1/rota/${year}/export?team_id=1`);
       expect(req.request.responseType).toBe('blob');
       req.flush(new Blob(['xlsx']));
       fixture.detectChanges();
 
       expect(createObjectURL).toHaveBeenCalledTimes(1);
-      expect(anchorDownloads).toEqual([`cuadrante-guardias-${year}.xlsx`]);
+      expect(anchorDownloads).toEqual([`cuadrante-guardias-Equipo-principal-${year}.xlsx`]);
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:cuadrante');
       expect(exportButton(fixture).disabled).toBe(false);
     });
@@ -632,7 +635,7 @@ describe('App', () => {
         message: `No se ha encontrado ningún cuadrante para el año ${year}`,
       });
       httpTesting
-        .expectOne(`/api/v1/rota/${year}/export`)
+        .expectOne(`/api/v1/rota/${year}/export?team_id=1`)
         .flush(new Blob([body], { type: 'application/json' }), {
           status: 404,
           statusText: 'Not Found',
@@ -660,7 +663,7 @@ describe('App', () => {
       exportButton(fixture).click();
       const year = new Date().getFullYear();
       httpTesting
-        .expectOne(`/api/v1/rota/${year}/export`)
+        .expectOne(`/api/v1/rota/${year}/export?team_id=1`)
         .flush(new Blob(['<html>Bad Gateway</html>']), {
           status: 502,
           statusText: 'Bad Gateway',
@@ -750,7 +753,7 @@ describe('App', () => {
 
       app.onReplaceDoctorSelected({ doctor_id: 'doc-001', doctor_name: 'Dr. Garcia', rota_type: 'AC' });
 
-      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
+      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace?team_id=1');
       expect(req.request.body).toEqual({
         date: '2026-01-01',
         old_doctor_id: 'doc-001',
@@ -765,7 +768,7 @@ describe('App', () => {
 
       app.onReplaceDoctorSelected({ doctor_id: 'doc-012', doctor_name: 'Dr. Torres', rota_type: 'AP' });
 
-      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace');
+      const req = httpTesting.expectOne('/api/v1/rota/2026/AC/replace?team_id=1');
       expect(req.request.body).toEqual({
         date: '2026-01-01',
         old_doctor_id: 'doc-012',
@@ -774,7 +777,7 @@ describe('App', () => {
       });
       req.flush(mockAcRotaResponse);
 
-      httpTesting.expectOne('/api/v1/rota/2026').flush([mockAcRotaResponse, mockApRotaResponse]);
+      httpTesting.expectOne('/api/v1/rota/2026?team_id=1').flush([mockAcRotaResponse, mockApRotaResponse]);
       expect(app['hasApRota']()).toBe(true);
     });
 
@@ -879,6 +882,185 @@ describe('App', () => {
       expect(fixture.nativeElement.querySelector('.generated-with').textContent.trim()).toBe(
         'Generado con: Equilibrado (retirado)',
       );
+    });
+  });
+  describe('equipos', () => {
+    const currentYear = new Date().getFullYear();
+
+    function setup() {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      flushInitRequests({ rotas: generatedRotas });
+      fixture.detectChanges();
+      return { fixture, app: fixture.componentInstance, notifications: TestBed.inject(NotificationService) };
+    }
+
+    it('muestra el desplegable de equipos encima de la lista de médicos con el primero seleccionado', () => {
+      const { fixture } = setup();
+      const pool: HTMLElement = fixture.nativeElement.querySelector('app-doctor-pool');
+      const select: HTMLSelectElement = pool.querySelector('#team-select')!;
+      expect([...select.options].map((option) => option.textContent?.trim())).toEqual([
+        'Equipo principal',
+        'Urgencias Norte',
+      ]);
+      expect(select.value).toBe('1');
+      // El selector va antes que el título y la lista del grupo.
+      expect(pool.querySelector('app-team-selector')!.compareDocumentPosition(pool.querySelector('.doctor-list')!)
+        & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('al cambiar de equipo carga su lista (la inicial si está vacía) y sus cuadrantes', () => {
+      const { fixture, app } = setup();
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('#team-select');
+      select.value = '2';
+      select.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      httpTesting.expectOne('assets/doctors.json').flush([mockDoctors[2]]);
+      httpTesting.expectOne('/api/v1/teams/2/doctors').flush({ id: 2, name: 'Urgencias Norte', doctors: [mockDoctors[2]] });
+      httpTesting
+        .expectOne(`/api/v1/rota/${currentYear}?team_id=2`)
+        .flush({ message: 'No encontrado' }, { status: 404, statusText: 'Not Found' });
+      fixture.detectChanges();
+
+      expect(app['hasData']()).toBe(false);
+      expect(app['teamName']()).toBe('Urgencias Norte');
+      app.onPoolTabChange('AP');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('app-doctor-card').length).toBe(1);
+      expect(localStorage.getItem('rota.selectedTeamId')).toBe('2');
+    });
+
+    it('genera los cuadrantes del equipo activo', () => {
+      const { app } = setup();
+      app.onTeamSelected(2);
+      httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+      httpTesting.expectOne('/api/v1/teams/2/doctors').flush({ id: 2, name: 'Urgencias Norte', doctors: mockDoctors });
+      httpTesting
+        .expectOne(`/api/v1/rota/${currentYear}?team_id=2`)
+        .flush({ message: 'No encontrado' }, { status: 404, statusText: 'Not Found' });
+
+      app.onGenerateRota();
+      const req = httpTesting.expectOne('/api/v1/rota/generate');
+      expect(req.request.body.team_id).toBe(2);
+      req.flush(generatedRotas);
+    });
+
+    it('al subir un fichero pide confirmación y sustituye la lista del equipo', () => {
+      const { fixture, app, notifications } = setup();
+      const uploaded = [
+        { id: 'doc-100', name: 'Dra. Subida', department: 'Urgencias', rota_type: 'AP' as const },
+        { id: 'doc-101', name: 'Dr. Subido', department: 'Urgencias', rota_type: 'AC' as const },
+      ];
+
+      app.onDoctorsFileLoaded({ fileName: 'equipo.csv', doctors: uploaded });
+      fixture.detectChanges();
+      const dialog: HTMLElement = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
+      expect(dialog.textContent).toContain('Cargar lista de médicos');
+      expect(dialog.textContent).toContain(
+        'Se sustituirá la lista del equipo «Equipo principal» (3 médicos) por la de «equipo.csv»: 2 médicos, 1 AC y 1 AP. Los cuadrantes ya generados conservan sus médicos hasta que los regenere. ¿Desea continuar?',
+      );
+
+      (dialog.querySelector('.btn-confirm') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const req = httpTesting.expectOne('/api/v1/teams/1/doctors');
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ doctors: uploaded });
+      req.flush({ id: 1, name: 'Equipo principal', doctors: uploaded });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.confirm-dialog-backdrop')).toBeFalsy();
+      expect(fixture.nativeElement.querySelectorAll('app-doctor-card').length).toBe(1);
+      expect(notifications.notifications().at(-1)?.message).toBe(
+        'Lista de médicos del equipo «Equipo principal» sustituida: 2 médicos. Regenere los cuadrantes para usarla.',
+      );
+    });
+
+    it('cancelar la carga no cambia nada y un fichero inválido muestra el error', () => {
+      const { fixture, app, notifications } = setup();
+      app.onDoctorsFileLoaded({ fileName: 'equipo.csv', doctors: [mockDoctors[0]] });
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.btn-cancel') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.confirm-dialog-backdrop')).toBeFalsy();
+
+      app.onDoctorsFileError('No se ha podido leer «x.csv»: El fichero no contiene ningún médico.');
+      const last = notifications.notifications().at(-1);
+      expect(last?.type).toBe('error');
+      expect(last?.message).toBe('No se ha podido leer «x.csv»: El fichero no contiene ningún médico.');
+    });
+
+    it('crea un equipo desde el diálogo y pasa a él', () => {
+      const { fixture } = setup();
+      (fixture.nativeElement.querySelector('.btn-new-team') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('#team-name');
+      expect(fixture.nativeElement.querySelector('.dialog-title').textContent).toBe('Nuevo equipo');
+      input.value = 'Pediatría';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.btn-submit') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const createReq = httpTesting.expectOne('/api/v1/teams');
+      expect(createReq.request.body).toEqual({ name: 'Pediatría' });
+      createReq.flush({ id: 3, name: 'Pediatría', doctors: [] });
+      fixture.detectChanges();
+
+      httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+      httpTesting.expectOne('/api/v1/teams/3/doctors').flush({ id: 3, name: 'Pediatría', doctors: mockDoctors });
+      httpTesting
+        .expectOne(`/api/v1/rota/${currentYear}?team_id=3`)
+        .flush({ message: 'No encontrado' }, { status: 404, statusText: 'Not Found' });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.dialog-title')).toBeFalsy();
+      expect((fixture.nativeElement.querySelector('#team-select') as HTMLSelectElement).value).toBe('3');
+    });
+
+    it('muestra en el diálogo el error del servidor al crear un equipo repetido', () => {
+      const { fixture } = setup();
+      (fixture.nativeElement.querySelector('.btn-new-team') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('#team-name');
+      input.value = 'Equipo principal';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.btn-submit') as HTMLButtonElement).click();
+
+      httpTesting
+        .expectOne('/api/v1/teams')
+        .flush({ message: 'Ya existe un equipo llamado «Equipo principal».' }, { status: 400, statusText: 'Bad Request' });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.field-error').textContent.trim()).toBe(
+        'No se ha podido crear el equipo: Ya existe un equipo llamado «Equipo principal».',
+      );
+    });
+
+    it('borra el equipo activo tras confirmar y pasa al primero', () => {
+      const { fixture, app } = setup();
+      app.onTeamSelected(2);
+      httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+      httpTesting.expectOne('/api/v1/teams/2/doctors').flush({ id: 2, name: 'Urgencias Norte', doctors: mockDoctors });
+      httpTesting
+        .expectOne(`/api/v1/rota/${currentYear}?team_id=2`)
+        .flush({ message: 'No encontrado' }, { status: 404, statusText: 'Not Found' });
+      fixture.detectChanges();
+
+      (fixture.nativeElement.querySelector('.btn-delete-team') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const dialog: HTMLElement = fixture.nativeElement.querySelector('.confirm-dialog-backdrop');
+      expect(dialog.textContent).toContain(
+        'Se borrará el equipo «Urgencias Norte» con su lista de médicos y todos sus cuadrantes, de todos los años.',
+      );
+      (dialog.querySelector('.btn-confirm') as HTMLButtonElement).click();
+      httpTesting.expectOne('/api/v1/teams/2').flush(null, { status: 204, statusText: 'No Content' });
+      httpTesting.expectOne(`/api/v1/rota/${currentYear}?team_id=1`).flush(generatedRotas);
+      fixture.detectChanges();
+
+      expect(app['teamName']()).toBe('Equipo principal');
+      expect((fixture.nativeElement.querySelector('.btn-delete-team') as HTMLButtonElement).disabled).toBe(true);
     });
   });
 });

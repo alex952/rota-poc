@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ApiConfigModule } from '../config/config.module';
 import { HolidaysModule } from '../holidays/holidays.module';
+import { TeamsModule } from '../teams/teams.module';
 import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
 import { RotaDoctorEntity } from './entities/rota-doctor.entity';
 import { RotaEntity } from './entities/rota.entity';
@@ -15,6 +16,7 @@ import { RotaService } from './rota.service';
   imports: [
     ApiConfigModule,
     HolidaysModule,
+    TeamsModule,
     TypeOrmModule.forFeature([RotaEntity, RotaDoctorEntity, RotaAssignmentEntity]),
   ],
   controllers: [RotaController],

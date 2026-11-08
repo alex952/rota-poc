@@ -24,6 +24,7 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `src/holidays/` obtiene los festivos españoles, los filtra por ciudad/región y los almacena en caché.
 - `src/scheduling/` contiene el algoritmo de rota y el cálculo de estadísticas. `src/scheduling/strategies/` agrupa los métodos de asignación intercambiables (patrón Strategy): `wheels`, `single-wheel` y el registro `ASSIGNMENT_STRATEGIES` (`balanced` está retirada).
 - `src/rota/` gestiona la generación, recuperación, sustitución, exportación a Excel, entidades y mapeo de respuestas.
+- `src/teams/` gestiona los equipos (entidad `TeamEntity`, CRUD y lista de médicos). `TeamsService.resolveTeamId` traduce el `team_id` opcional de las rutas `/rota` (por defecto, el equipo principal) y `team-id.pipe.ts` valida el parámetro con mensajes en español.
 - `src/health/` proporciona el endpoint de liveness `/health`.
 
 ## Superficie de API
@@ -33,7 +34,8 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 - `GET /api/v1/holidays/:year` — lista todos los festivos del año (API + manuales + los especiales de sanidad, con `special: true`)
 - `POST /api/v1/holidays/:year` — marca una fecha como festivo manual
 - `DELETE /api/v1/holidays/:year/:date` — desmarca un festivo manual (solo si `source = 'manual'` y no es especial)
-- `POST /api/v1/rota/generate` — genera AC y AP a la vez (`{ year, ac_pool, ap_pool, strategy? }` → `[AC, AP]`)
+- `GET /api/v1/teams` · `POST /api/v1/teams` · `PATCH /api/v1/teams/:teamId` · `PUT /api/v1/teams/:teamId/doctors` · `DELETE /api/v1/teams/:teamId`
+- `POST /api/v1/rota/generate` — genera AC y AP a la vez (`{ year, ac_pool, ap_pool, strategy?, team_id? }` → `[AC, AP]`). Todas las rutas `/rota` admiten `?team_id=` (por defecto, el equipo principal)
 - `GET /api/v1/rota/:year/:rotaType`
 - `GET /api/v1/rota/:year`
 - `GET /api/v1/rota/:year/export`
@@ -43,14 +45,16 @@ Este documento resume el backend NestJS actual ahora que la implementación en P
 
 ## Modelo de Datos
 
-- `rotas`: una rota persistida por `(año, tipo_rota)` más la instantánea del grupo original.
+- `teams`: equipos con nombre único y su lista de médicos (`doctors` JSON con `rota_type`).
+- `rotas`: una rota persistida por `(equipo, año, tipo_rota)` más la instantánea del grupo original.
 - `rota_doctors`: miembros del grupo normalizados para una rota.
 - `rota_assignments`: una fila por asignación. En AP, un festivo precedido de otro festivo tiene dos filas por fecha (segundo refuerzo), cada una con distinto `doctor_id`. La columna `duration_hours` puede diferir entre rotas para la misma fecha (AC usa la duración del día calendario; AP usa 7h o 12h).
 - `holidays`: filas de festivos en caché indexadas por `(año, ciudad, fecha)`. Contiene una columna `source ('api' | 'manual')` para distinguir los festivos obtenidos de la API externa de los creados por el usuario.
 
 Restricciones importantes:
 
-- `rotas(año, tipo_rota)` es único.
+- `rotas(team_id, año, tipo_rota)` es único.
+- `teams(name)` es único. Al borrar un equipo se borran sus rotas, médicos y asignaciones.
 - `rota_doctors(rota_id, doctor_id)` es único.
 - `rota_assignments(rota_id, fecha, doctor_id)` es único.
 - Las filas hijas se eliminan en cascada al borrar una rota.
@@ -60,6 +64,7 @@ Restricciones importantes:
 - `backend/test/unit/assignment.spec.ts` cubre las reglas de generación de rota e invariantes.
 - `backend/test/unit/holidays.spec.ts` cubre el comportamiento de filtrado y caché de festivos.
 - `backend/test/e2e/app.e2e-spec.ts` cubre el contrato HTTP contra una base de datos `sql.js` en memoria.
+- `backend/test/e2e/teams.e2e-spec.ts` cubre los equipos: CRUD, validación en español y aislamiento de los cuadrantes por equipo.
 
 ## Notas Operativas
 

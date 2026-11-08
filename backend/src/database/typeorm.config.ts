@@ -4,6 +4,7 @@ import { HolidayEntity } from '../rota/entities/holiday.entity';
 import { RotaAssignmentEntity } from '../rota/entities/rota-assignment.entity';
 import { RotaDoctorEntity } from '../rota/entities/rota-doctor.entity';
 import { RotaEntity } from '../rota/entities/rota.entity';
+import { TeamEntity } from '../teams/team.entity';
 import { InitialSchema0011763395001001 } from './migrations/1763395001001-001-initial-schema';
 import { SeparateAcApPools0021763395002002 } from './migrations/1763395002002-002-separate-ac-ap-pools';
 import { AcReducedHoursRefuerzo0031763395003003 } from './migrations/1763395003003-003-ac-reduced-hours-refuerzo';
@@ -11,9 +12,10 @@ import { HolidaySource0041781177697 } from './migrations/1781177697-004-holiday-
 import { RemoveAcReducedHoursRefuerzo0051789554577287 } from './migrations/1789554577287-005-remove-ac-reduced-hours-refuerzo';
 import { RotaStrategy0061792000000006 } from './migrations/1792000000006-006-rota-strategy';
 import { RolesAndSpecialHolidays0071793000000007 } from './migrations/1793000000007-007-roles-and-special-holidays';
-import { RetireBalancedStrategy0081794000000008 } from './migrations/1794000000008-008-retire-balanced-strategy';
+import { Teams0081794000000008 } from './migrations/1794000000008-008-teams';
+import { RetireBalancedStrategy0091795000000009 } from './migrations/1795000000009-009-retire-balanced-strategy';
 
-const entities = [HolidayEntity, RotaEntity, RotaDoctorEntity, RotaAssignmentEntity];
+const entities = [HolidayEntity, RotaEntity, RotaDoctorEntity, RotaAssignmentEntity, TeamEntity];
 const migrations = [
   InitialSchema0011763395001001,
   SeparateAcApPools0021763395002002,
@@ -22,7 +24,8 @@ const migrations = [
   RemoveAcReducedHoursRefuerzo0051789554577287,
   RotaStrategy0061792000000006,
   RolesAndSpecialHolidays0071793000000007,
-  RetireBalancedStrategy0081794000000008,
+  Teams0081794000000008,
+  RetireBalancedStrategy0091795000000009,
 ];
 
 export function createTypeOrmOptions(): TypeOrmModuleOptions {

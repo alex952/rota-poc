@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DoctorPoolComponent } from './features/doctor-pool/doctor-pool.component';
+import { DoctorPoolComponent, DoctorsFile } from './features/doctor-pool/doctor-pool.component';
+import { TeamSelectorComponent } from './features/teams/team-selector.component';
 import { CalendarComponent } from './features/calendar/calendar.component';
 import { StatsPanelComponent } from './features/stats/stats-panel.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
@@ -11,6 +12,8 @@ import { RotaService } from './core/services/rota.service';
 import { HolidaysService } from './core/services/holidays.service';
 import { DoctorPoolService } from './core/services/doctor-pool.service';
 import { NotificationService } from './core/services/notification.service';
+import { TeamsService } from './core/services/teams.service';
+import { extractErrorMessage } from './core/http-error';
 import { Doctor, RotaType } from './core/models/doctor.model';
 import { AssignmentStrategy, DEFAULT_STRATEGY, DayAssignment, GeneratedStrategy, DoctorStats, DoctorRef, MergedDayAssignment, ReplaceRequest, RotaResponse } from './core/models/rota.model';
 import { ReplacementEvent } from './features/calendar/day-cell.component';
@@ -21,6 +24,7 @@ import { CdkDropListGroup } from '@angular/cdk/drag-drop';
   selector: 'app-root',
   imports: [
     DoctorPoolComponent,
+    TeamSelectorComponent,
     CalendarComponent,
     StatsPanelComponent,
     ConfirmDialogComponent,
@@ -38,6 +42,24 @@ export class App implements OnInit {
   private readonly holidaysService = inject(HolidaysService);
   private readonly doctorPoolService = inject(DoctorPoolService);
   private readonly notificationService = inject(NotificationService);
+  private readonly teamsService = inject(TeamsService);
+
+  /** Equipo activo: la lista de médicos y los cuadrantes son los suyos */
+  protected readonly teamId = computed(() => this.teamsService.selectedTeamId());
+  protected readonly teamName = computed(() => this.teamsService.selectedTeam()?.name ?? '');
+
+  /** Lista de médicos leída de un fichero, a la espera de confirmar la sustitución */
+  protected readonly pendingUpload = signal<DoctorsFile | null>(null);
+  protected readonly uploadMessage = computed(() => {
+    const upload = this.pendingUpload();
+    if (!upload) return '';
+    const count = (rotaType: RotaType) => upload.doctors.filter((d) => d.rota_type === rotaType).length;
+    const current = this.doctorPoolService.doctors().length;
+    const kept = this.hasData()
+      ? ' Los cuadrantes ya generados conservan sus médicos hasta que los regenere.'
+      : '';
+    return `Se sustituirá la lista del equipo «${this.teamName()}» (${current} ${current === 1 ? 'médico' : 'médicos'}) por la de «${upload.fileName}»: ${upload.doctors.length} ${upload.doctors.length === 1 ? 'médico' : 'médicos'}, ${count('AC')} AC y ${count('AP')} AP.${kept} ¿Desea continuar?`;
+  });
 
   protected readonly city = signal('');
   protected readonly selectedYear = signal(new Date().getFullYear());
@@ -157,15 +179,29 @@ export class App implements OnInit {
   );
 
   protected readonly confirmMessage = computed(() =>
-    `Los cuadrantes AC y AP actuales de ${this.selectedYear()} se sustituirán por unos nuevos. Esta acción no se puede deshacer. ¿Desea continuar?`
+    `Los cuadrantes AC y AP actuales de ${this.selectedYear()} del equipo «${this.teamName()}» se sustituirán por unos nuevos. Esta acción no se puede deshacer. ¿Desea continuar?`
   );
 
   protected readonly resetMessage = computed(() =>
-    `Se borrarán los cuadrantes AC y AP de ${this.selectedYear()}, con todas sus guardias, refuerzos y cambios manuales. Los festivos se conservan. Esta acción no se puede deshacer. ¿Desea continuar?`
+    `Se borrarán los cuadrantes AC y AP de ${this.selectedYear()} del equipo «${this.teamName()}», con todas sus guardias, refuerzos y cambios manuales. Los festivos se conservan. Esta acción no se puede deshacer. ¿Desea continuar?`
   );
 
   ngOnInit(): void {
-    this.doctorPoolService.loadDoctors();
+    this.teamsService.load().subscribe({
+      next: () => {
+        const teamId = this.teamsService.initialTeamId();
+        if (teamId !== null) {
+          this.onTeamSelected(teamId);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load teams', err);
+        this.notificationService.show(
+          this.extractErrorMessage(err, 'No se han podido cargar los equipos'),
+          'error'
+        );
+      },
+    });
     this.configService.getConfig().subscribe({
       next: (config) => {
         this.city.set(config.city);
@@ -179,7 +215,45 @@ export class App implements OnInit {
         );
       },
     });
+  }
+
+  /** Cambia al equipo indicado: carga su lista de médicos y sus cuadrantes del año. */
+  onTeamSelected(teamId: number): void {
+    this.teamsService.select(teamId);
+    const team = this.teamsService.selectedTeam();
+    if (!team) return;
+    this.doctorPoolService.loadTeam(team);
     this.loadRotas(this.selectedYear());
+  }
+
+  onDoctorsFileLoaded(upload: DoctorsFile): void {
+    this.pendingUpload.set(upload);
+  }
+
+  onDoctorsFileError(message: string): void {
+    this.notificationService.show(message, 'error');
+  }
+
+  onConfirmUpload(): void {
+    const upload = this.pendingUpload();
+    this.pendingUpload.set(null);
+    if (!upload) return;
+    this.doctorPoolService.replaceDoctors(upload.doctors).subscribe({
+      next: (team) => {
+        const regenerate = this.hasData() ? ' Regenere los cuadrantes para usarla.' : '';
+        this.notificationService.show(
+          `Lista de médicos del equipo «${team.name}» sustituida: ${team.doctors.length} ${team.doctors.length === 1 ? 'médico' : 'médicos'}.${regenerate}`,
+          this.hasData() ? 'warning' : 'success'
+        );
+      },
+      error: (err) => {
+        console.error('Failed to replace doctors', err);
+        this.notificationService.show(
+          this.extractErrorMessage(err, 'No se ha podido sustituir la lista de médicos'),
+          'error'
+        );
+      },
+    });
   }
 
   toggleStats(): void {
@@ -187,11 +261,14 @@ export class App implements OnInit {
   }
 
   onExportRota(): void {
+    const teamId = this.teamId();
+    if (teamId === null) return;
     const year = this.selectedYear();
+    const fileTeam = this.teamName().replace(/[\\/:*?"<>|]+/g, '').trim().replace(/\s+/g, '-');
     this.exporting.set(true);
-    this.rotaService.exportRotas(year).subscribe({
+    this.rotaService.exportRotas(teamId, year).subscribe({
       next: (blob) => {
-        this.downloadBlob(blob, `cuadrante-guardias-${year}.xlsx`);
+        this.downloadBlob(blob, `cuadrante-guardias-${fileTeam ? fileTeam + '-' : ''}${year}.xlsx`);
         this.exporting.set(false);
       },
       error: async (err: HttpErrorResponse) => {
@@ -310,13 +387,15 @@ export class App implements OnInit {
 
   onConfirmReset(): void {
     this.showResetDialog.set(false);
+    const teamId = this.teamId();
+    if (teamId === null) return;
     const year = this.selectedYear();
     this.loading.set(true);
-    this.rotaService.deleteRotas(year).subscribe({
+    this.rotaService.deleteRotas(teamId, year).subscribe({
       next: () => {
         this.clearRotas();
         this.loading.set(false);
-        this.notificationService.show(`Cuadrantes AC y AP de ${year} borrados`, 'success');
+        this.notificationService.show(`Cuadrantes AC y AP de ${year} del equipo «${this.teamName()}» borrados`, 'success');
       },
       error: (err) => {
         console.error('Failed to delete rotas', err);
@@ -330,7 +409,15 @@ export class App implements OnInit {
   }
 
   onAddDoctor(doctor: Doctor): void {
-    this.doctorPoolService.addDoctor(doctor);
+    this.doctorPoolService.addDoctor(doctor).subscribe({
+      error: (err) => {
+        console.error('Failed to add doctor to team', err);
+        this.notificationService.show(
+          this.extractErrorMessage(err, 'No se ha podido añadir el médico al equipo'),
+          'error'
+        );
+      },
+    });
   }
 
   onDoctorDropped(event: ReplacementEvent): void {
@@ -371,10 +458,12 @@ export class App implements OnInit {
   }
 
   private doAdd(rotaType: RotaType, dateStr: string, doctorId: string): void {
+    const teamId = this.teamId();
+    if (teamId === null) return;
     this.loading.set(true);
 
     this.rotaService
-      .addDoctor(this.selectedYear(), rotaType, { date: dateStr, doctor_id: doctorId })
+      .addDoctor(teamId, this.selectedYear(), rotaType, { date: dateStr, doctor_id: doctorId })
       .subscribe({
         next: (rota) => {
           this.applyRota(rota);
@@ -411,9 +500,11 @@ export class App implements OnInit {
       request.old_rota_type = oldDoctor.rota_type;
     }
 
+    const teamId = this.teamId();
+    if (teamId === null) return;
     this.loading.set(true);
 
-    this.rotaService.replaceDoctor(this.selectedYear(), rotaType, request).subscribe({
+    this.rotaService.replaceDoctor(teamId, this.selectedYear(), rotaType, request).subscribe({
       next: (rota) => {
         if (crossRota) {
           this.loadRotas(this.selectedYear());
@@ -437,9 +528,14 @@ export class App implements OnInit {
   }
 
   private loadRotas(year: number): void {
+    const teamId = this.teamId();
+    if (teamId === null) return;
     this.loading.set(true);
-    this.rotaService.getRotas(year).subscribe({
+    // Si entretanto se cambia de equipo o de año, la respuesta ya no vale.
+    const isCurrent = () => this.teamId() === teamId && this.selectedYear() === year;
+    this.rotaService.getRotas(teamId, year).subscribe({
       next: (rotas) => {
+        if (!isCurrent()) return;
         this.clearRotas();
         for (const rota of rotas) {
           this.applyRota(rota);
@@ -447,6 +543,7 @@ export class App implements OnInit {
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        if (!isCurrent()) return;
         this.clearRotas();
         this.loading.set(false);
         if (err.status !== 404) {
@@ -496,10 +593,12 @@ export class App implements OnInit {
   private doGenerateRota(): void {
     const acPool = this.doctorPoolService.getDoctorsByType('AC');
     const apPool = this.doctorPoolService.getDoctorsByType('AP');
+    const teamId = this.teamId();
+    if (teamId === null) return;
     const year = this.selectedYear();
     this.loading.set(true);
     this.isGenerating.set(true);
-    this.rotaService.generateRotas(year, acPool, apPool, this.selectedStrategy()).subscribe({
+    this.rotaService.generateRotas(teamId, year, acPool, apPool, this.selectedStrategy()).subscribe({
       next: (rotas) => {
         for (const rota of rotas) {
           this.applyRota(rota);
@@ -516,7 +615,7 @@ export class App implements OnInit {
           );
         } else {
           this.notificationService.show(
-            `Cuadrantes AC y AP generados correctamente para ${year}`,
+            `Cuadrantes AC y AP generados correctamente para ${year} (equipo «${this.teamName()}»)`,
             'success'
           );
         }
@@ -534,16 +633,6 @@ export class App implements OnInit {
   }
 
   private extractErrorMessage(err: HttpErrorResponse | any, fallback: string): string {
-    const backendMessage = err?.error?.message ?? err?.error?.detail;
-    if (typeof backendMessage === 'string' && backendMessage.length > 0) {
-      return `${fallback}: ${backendMessage}`;
-    }
-    if (Array.isArray(backendMessage) && backendMessage.length > 0) {
-      return `${fallback}: ${backendMessage.join(', ')}`;
-    }
-    if (err?.message) {
-      return `${fallback}: ${err.message}`;
-    }
-    return fallback;
+    return extractErrorMessage(err, fallback);
   }
 }

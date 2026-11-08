@@ -163,11 +163,11 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 | ID | Criterio |
 |----|---------|
-| CA-3.7.1 | **Dada** la carga de la interfaz, **entonces** el panel izquierdo muestra tarjetas de médicos pre-cargadas desde un archivo de configuración estático. |
+| CA-3.7.1 | **Dada** la carga de la interfaz, **entonces** el panel izquierdo muestra las tarjetas de médicos del equipo seleccionado. Un equipo sin médicos (también el «Equipo principal» recién migrado) empieza con la lista inicial del archivo de configuración estático, que se guarda como lista del equipo. |
 | CA-3.7.2 | **Dada** una tarjeta de médico, **entonces** muestra el nombre y el departamento del médico. |
-| CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento). |
+| CA-3.7.3 | **Dado** que el usuario hace clic en "Añadir médico", **entonces** puede añadir un nuevo médico al grupo (nombre, departamento), que se guarda en la lista del equipo. |
 | CA-3.7.4 | **Dadas** las tarjetas de médico, **entonces** se pueden arrastrar y soltar en las celdas del calendario con guardia; al soltar se abre un diálogo con tres acciones, iguales para AC y AP: **sustituir al médico de la guardia** de su grupo (AC o AP), **sustituir a cualquiera de los refuerzos** del día (también los de otro grupo: el refuerzo pasa a su cuadrante) y **añadir al refuerzo**. Si el médico ya tiene guardia o refuerzo ese día se muestra un aviso y no se abre el diálogo. |
-| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico" y "Generar cuadrante" / "Regenerar cuadrante" son visibles. |
+| CA-3.7.5 | **Dado** el fondo del panel izquierdo, **entonces** los botones de "Añadir médico", "Cargar lista" y "Generar cuadrante" / "Regenerar cuadrante" son visibles. |
 
 ---
 
@@ -193,7 +193,7 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 | ID | Criterio |
 |----|---------|
-| CA-3.9.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Exportar a Excel», **entonces** se descarga `cuadrante-guardias-<año>.xlsx` con una hoja `Cuadrante` (una fila por día, con médico, horario y horas de la guardia AC, de la guardia AP y de los refuerzos, marcando con «(AC)» los que cubre un médico AC) y una hoja de estadísticas por tipo (`Estadísticas AC`, `Estadísticas AP`) con la columna `Refuerzos`. Si no hay ningún cuadrante, el botón está deshabilitado y el endpoint devuelve 404 con un mensaje en español. |
+| CA-3.9.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Exportar a Excel», **entonces** se descarga `cuadrante-guardias-<equipo>-<año>.xlsx` con los cuadrantes del equipo seleccionado, con una hoja `Cuadrante` (una fila por día, con médico, horario y horas de la guardia AC, de la guardia AP y de los refuerzos, marcando con «(AC)» los que cubre un médico AC) y una hoja de estadísticas por tipo (`Estadísticas AC`, `Estadísticas AP`) con la columna `Refuerzos`. Si no hay ningún cuadrante, el botón está deshabilitado y el endpoint devuelve 404 con un mensaje en español. |
 
 ---
 
@@ -205,8 +205,25 @@ Se trata de una **Prueba de Concepto (PoC)** — la autenticación, autorizació
 
 | ID | Criterio |
 |----|---------|
-| CA-3.10.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Borrar cuadrantes» y confirma, **entonces** se borran los cuadrantes AC y AP del año con todas sus guardias, refuerzos y cambios manuales, el calendario y las estadísticas quedan vacíos y aparece «Cuadrantes AC y AP de <año> borrados». Los festivos, también los manuales, se conservan. Si cancela, no cambia nada. |
+| CA-3.10.1 | **Dado** un año con cuadrantes generados, **cuando** el usuario pulsa «Borrar cuadrantes» y confirma, **entonces** se borran los cuadrantes AC y AP del año con todas sus guardias, refuerzos y cambios manuales, el calendario y las estadísticas quedan vacíos y aparece «Cuadrantes AC y AP de <año> del equipo «<equipo>» borrados». Sólo se borran los del equipo seleccionado. Los festivos, también los manuales, se conservan. Si cancela, no cambia nada. |
 | CA-3.10.2 | **Dado** un año sin cuadrantes, el botón «Borrar cuadrantes» está deshabilitado y `DELETE /api/v1/rota/:year` devuelve 404 con un mensaje en español. |
+
+---
+
+### 3.11 — Equipos y carga de la lista de médicos
+
+**Descripción:** Un hospital puede tener varios equipos. Cada equipo tiene un nombre, su propia lista de médicos (AC y AP) y sus propios cuadrantes AC y AP por año. La lista de un equipo se puede sustituir subiendo un fichero.
+
+#### Criterios de Aceptación
+
+| ID | Criterio |
+|----|---------|
+| CA-3.11.1 | **Dada** la interfaz, **entonces** encima de la lista de médicos hay un desplegable «Equipo» con los equipos por orden de creación y las acciones «+ Nuevo», «Renombrar» y «Borrar». Siempre existe al menos un equipo: el «Equipo principal», al que pasan los cuadrantes anteriores a los equipos. Al abrir la aplicación se selecciona el último equipo usado en ese navegador, o el primero. |
+| CA-3.11.2 | **Dado** que el usuario cambia de equipo, **entonces** se muestran la lista de médicos y los cuadrantes del año de ese equipo; generar, regenerar, sustituir, añadir, borrar cuadrantes y exportar actúan sólo sobre ellos. |
+| CA-3.11.3 | **Dado** que el usuario crea un equipo, **entonces** indica su nombre (único, no vacío, máx. 100 caracteres), el equipo empieza con la lista inicial de médicos y pasa a ser el seleccionado. Un nombre repetido muestra el error en el propio diálogo. |
+| CA-3.11.4 | **Dado** que el usuario borra un equipo y confirma, **entonces** se borran su lista y todos sus cuadrantes de todos los años y se selecciona el primer equipo. El único equipo que queda no se puede borrar (botón deshabilitado; la API responde 400). |
+| CA-3.11.5 | **Dado** que el usuario pulsa «Cargar lista» y elige un fichero JSON (la forma de `assets/doctors.json`) o CSV (cabecera con `nombre` y `grupo` obligatorias, `departamento` e `id` opcionales; separador `;`, `,` o tabulador), **entonces** se pide confirmación indicando cuántos médicos AC y AP trae y, al confirmar, la lista del equipo se sustituye por la del fichero. Los cuadrantes ya generados conservan sus médicos hasta que se regeneren. Formato completo y ficheros de ejemplo en `docs/samples/README.md`. |
+| CA-3.11.6 | **Dado** un fichero no válido (sin médicos, sin la columna de nombre o de grupo, un grupo distinto de AC/AP, un identificador repetido), **entonces** no se cambia nada y se muestra un error en español que indica la línea o el médico. |
 
 ---
 
@@ -231,7 +248,7 @@ Lo siguiente queda explícitamente **fuera del alcance** de esta PoC:
 1. Los médicos pertenecen al grupo AC o al grupo AP, no a ambos. Los grupos se gestionan por separado.
 2. La cobertura diaria es fija: 1 guardia AC, 1 guardia AP y 1 refuerzo (2 en festivos especiales y en el segundo de dos festivos consecutivos). No se calcula automáticamente.
 3. La ciudad del hospital para la resolución de festivos es **configurable a nivel de aplicación** (configuración estática establecida antes de ejecutar la aplicación), compartida por el backend y el frontend.
-4. El archivo de configuración estático de médicos es un archivo JSON simple incluido con el frontend, donde cada médico especifica su `rota_type` (AC o AP).
+4. El archivo de configuración estático de médicos es un archivo JSON simple incluido con el frontend, donde cada médico especifica su `rota_type` (AC o AP). Es la lista inicial de cualquier equipo sin médicos; la lista de cada equipo se guarda en la base de datos.
 5. "Equitativo" significa minimizar la diferencia máxima en horas totales y en recuento por tipo de día entre todos los médicos dentro de un tipo de rota.
 6. Un médico de guardia o refuerzo el día D tiene un día de descanso en D+1 dentro de su grupo. Los descansos de AC no afectan a AP y viceversa; el refuerzo de un AC se coloca el día anterior a su guardia.
 7. Los límites de horas son **restricciones blandas**: los médicos de AC deben alcanzar 135h cada mes (1.620h/año), completándolas con refuerzos si hace falta, y los médicos de AP no pueden superar 425h/año; si no se cumplen, el cuadrante se genera con un aviso.

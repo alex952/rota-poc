@@ -129,6 +129,57 @@ describe('DoctorPoolComponent', () => {
     expect(spy).toHaveBeenCalled();
   });
 
+  describe('cargar lista de médicos', () => {
+    function setup() {
+      fixture.componentRef.setInput('doctors', mockDoctors);
+      fixture.componentRef.setInput('activeTab', 'AC');
+      fixture.detectChanges();
+    }
+
+    function chooseFile(file: File) {
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('input[type=file]');
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      return component.onFileSelected(input);
+    }
+
+    it('muestra el botón «Cargar lista» con un selector de ficheros JSON o CSV oculto', () => {
+      setup();
+      const button: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-upload');
+      expect(button.textContent?.trim()).toBe('Cargar lista');
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('input[type=file]');
+      expect(input.accept).toContain('.json');
+      expect(input.accept).toContain('.csv');
+    });
+
+    it('emite los médicos leídos del fichero', async () => {
+      setup();
+      const spy = vi.fn();
+      component.doctorsFileLoaded.subscribe(spy);
+
+      await chooseFile(new File(['Nombre;Departamento;Grupo\nDra. Muñoz;Urgencias;AP'], 'equipo.csv'));
+
+      expect(spy).toHaveBeenCalledWith({
+        fileName: 'equipo.csv',
+        doctors: [{ id: 'doc-001', name: 'Dra. Muñoz', department: 'Urgencias', rota_type: 'AP' }],
+      });
+    });
+
+    it('emite el motivo cuando el fichero no es válido', async () => {
+      setup();
+      const loaded = vi.fn();
+      const failed = vi.fn();
+      component.doctorsFileLoaded.subscribe(loaded);
+      component.doctorsFileError.subscribe(failed);
+
+      await chooseFile(new File(['Nombre;Grupo\nDr. A;XX'], 'malo.csv'));
+
+      expect(loaded).not.toHaveBeenCalled();
+      expect(failed).toHaveBeenCalledWith(
+        'No se ha podido leer «malo.csv»: Línea 2: el grupo debe ser AC o AP (se ha leído «XX»).',
+      );
+    });
+  });
+
   describe('método de asignación', () => {
     function setup(extra: Record<string, unknown> = {}) {
       fixture.componentRef.setInput('doctors', mockDoctors);

@@ -30,6 +30,7 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `config`: sirve configuración en tiempo de ejecución al frontend
 - `holidays`: resuelve y cachea datos de festivos por ciudad
 - `rota`: generar, leer, listar y reemplazar asignaciones de rota
+- `teams`: equipos (nombre y lista de médicos); cada cuadrante pertenece a un equipo
 - `scheduling`: reglas de planificación puras y estadísticas
 - `database`: opciones de TypeORM y migraciones
 - `health`: endpoint de liveness
@@ -39,19 +40,25 @@ Frontend Angular  <->  API NestJS (/api/v1)  <->  MySQL
 - `GET /health` devuelve `{ status: "ok" }`
 - `GET /api/v1/config` devuelve la ciudad configurada
 - `GET /api/v1/holidays/:year` devuelve los festivos cacheados u obtenidos para la ciudad configurada
-- `POST /api/v1/rota/generate` genera y persiste **los dos cuadrantes del año** en una transacción. Cuerpo `{ year, ac_pool, ap_pool, strategy? }`; responde `[RotaResponse AC, RotaResponse AP]`, cada uno con sus `warnings`. Un médico presente en los dos grupos responde 400. `strategy` es opcional (`single-wheel` por defecto, o `wheels`) y un valor distinto, incluido el retirado `balanced`, responde 400 con «el método de asignación debe ser single-wheel o wheels». Los cuadrantes guardados con `balanced` se siguen leyendo y devuelven `strategy: 'balanced'`. La respuesta (`RotaResponse`) incluye `strategy`, igual que `GET /rota/:year/:rotaType` y `GET /rota/:year`; sustituir o añadir un médico no la cambia. Cada médico de `schedule[].doctors` lleva `role` (`guardia` o `refuerzo`) y las estadísticas, `shifts_refuerzo`
+- `GET /api/v1/teams` lista los equipos por orden de creación: `[{ id, name, doctors }]`, donde cada médico es `{ id, name, department, rota_type }`. Siempre hay al menos uno: si la tabla está vacía, el backend crea el «Equipo principal» al arrancar
+- `POST /api/v1/teams` crea un equipo `{ name }` sin médicos (201); `PATCH /api/v1/teams/:teamId` lo renombra. El nombre se recorta, no puede estar vacío ni superar 100 caracteres y es único (400 «Ya existe un equipo llamado «…».»)
+- `PUT /api/v1/teams/:teamId/doctors` sustituye la lista de médicos `{ doctors: [...] }` (no vacía, `rota_type` AC o AP, ids sin repetir). No toca los cuadrantes ya generados: guardan su propio grupo (`rotas.pool`)
+- `DELETE /api/v1/teams/:teamId` borra el equipo con todos sus cuadrantes (204); el último equipo no se puede borrar (400). Un equipo inexistente responde 404 «No se ha encontrado el equipo N.»
+- **Equipo de los cuadrantes**: todas las rutas `/rota` admiten `?team_id=` (y `team_id` en el cuerpo de `generate`). Si se omite se usa el equipo principal (el de menor id), así que los clientes anteriores a los equipos siguen funcionando. Un `team_id` no numérico responde 400 «el equipo debe ser un número entero». `RotaResponse` incluye `team_id`
+- `POST /api/v1/rota/generate` genera y persiste **los dos cuadrantes del año** del equipo en una transacción. Cuerpo `{ year, ac_pool, ap_pool, strategy?, team_id? }`; responde `[RotaResponse AC, RotaResponse AP]`, cada uno con sus `warnings`. Un médico presente en los dos grupos responde 400. `strategy` es opcional (`single-wheel` por defecto, o `wheels`) y un valor distinto, incluido el retirado `balanced`, responde 400 con «el método de asignación debe ser single-wheel o wheels». Los cuadrantes guardados con `balanced` se siguen leyendo y devuelven `strategy: 'balanced'`. La respuesta (`RotaResponse`) incluye `strategy`, igual que `GET /rota/:year/:rotaType` y `GET /rota/:year`; sustituir o añadir un médico no la cambia. Cada médico de `schedule[].doctors` lleva `role` (`guardia` o `refuerzo`) y las estadísticas, `shifts_refuerzo`
 - `GET /api/v1/rota/:year/:rotaType` devuelve una rota almacenada, opcionalmente filtrada por `doctor_id`
 - `GET /api/v1/rota/:year` devuelve todas las rotas de un año
-- `GET /api/v1/rota/:year/export` descarga un libro de Excel (`cuadrante-guardias-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
+- `GET /api/v1/rota/:year/export` descarga un libro de Excel del equipo (`cuadrante-guardias-<año>.xlsx`; la interfaz lo guarda como `cuadrante-guardias-<equipo>-<año>.xlsx`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) con las hojas `Cuadrante` (una fila por día, AC y AP combinados) y `Estadísticas AC` / `Estadísticas AP` (sólo si existe ese cuadrante). Devuelve 404 en español si el año no tiene cuadrantes. Exporta sólo datos persistidos: no consulta la API externa de festivos. Se declara antes de `:year/:rotaType` para que `export` no se interprete como tipo de rota
 - `DELETE /api/v1/rota/:year` borra en una transacción los cuadrantes AC y AP del año con sus médicos y asignaciones (también las sustituciones y adiciones manuales) y responde 204 sin cuerpo. Los festivos, también los manuales, se conservan. Devuelve 404 en español si el año no tiene cuadrantes. En la interfaz lo lanza el botón «Borrar cuadrantes» de la cabecera, tras un diálogo de confirmación
 - `PATCH /api/v1/rota/:year/:rotaType/replace` intercambia una sola asignación; cuerpo `{ date, old_doctor_id, new_doctor_id, old_rota_type? }`. Con `old_rota_type` del otro grupo sólo se admite un refuerzo (si no, 400): la fila sale del cuadrante de origen y entra como refuerzo, con horario AP, en el de `:rotaType`, que es el que se devuelve
 - `POST /api/v1/rota/:year/:rotaType/add` añade un médico como refuerzo de un día (en AC y en AP) sin quitar a los ya asignados; cuerpo `{ date, doctor_id }`, responde 200 con la rota completa. La fila nueva copia el tipo de día y usa el horario AP del refuerzo (7h L-S, 12h festivo); es una corrección manual sin validar día de descanso ni `doctors_per_day`
 
 ## Diseño de Persistencia
 
-El backend almacena cuatro tablas:
+El backend almacena cinco tablas:
 
-- `rotas`
+- `teams` (`name` único, `doctors` JSON)
+- `rotas` (único por `team_id, year, rota_type`)
 - `rota_doctors`
 - `rota_assignments`
 - `holidays`
@@ -61,7 +68,8 @@ Las migraciones residen en `backend/src/database/migrations/` y se ejecutan medi
 Particularidades de MySQL 8.4:
 
 - **Colación `utf8mb4_0900_as_cs`**: la de por defecto (`utf8mb4_0900_ai_ci`) no distingue mayúsculas ni acentos, y `a1`/`A1` chocarían en las claves únicas de `doctor_id` y `city`. Se fija en el servidor (`docker-compose.yml`) y en cada `CREATE TABLE`.
-- **`generated_at`** es `DATETIME(3)` y se guarda en UTC (`timezone: 'Z'` en el driver); las columnas `DATE` llegan como cadenas `AAAA-MM-DD` (`dateStrings: ['DATE']`). **`pool`** es `JSON`. **`rotas.strategy`** es `VARCHAR(20) NOT NULL` e indica el método de asignación usado. La migración 006 la creó con `DEFAULT 'balanced'` (las rotas anteriores quedaron como `balanced`) y la 008 cambia el valor por defecto a `single-wheel` al retirar ese método, sin tocar las filas existentes.
+- **`generated_at`** es `DATETIME(3)` y se guarda en UTC (`timezone: 'Z'` en el driver); las columnas `DATE` llegan como cadenas `AAAA-MM-DD` (`dateStrings: ['DATE']`). **`pool`** es `JSON`. **`rotas.strategy`** es `VARCHAR(20) NOT NULL` e indica el método de asignación usado. La migración 006 la creó con `DEFAULT 'balanced'` (las rotas anteriores quedaron como `balanced`) y la 009 cambia el valor por defecto a `single-wheel` al retirar ese método, sin tocar las filas existentes.
+- **Migración 008 (equipos)**: crea `teams` con el «Equipo principal» (sin médicos: el cliente le carga `assets/doctors.json` la primera vez), añade `rotas.team_id` asignando las rotas existentes a ese equipo y cambia la clave única `uq_rotas_year_rota_type` por `uq_rotas_team_year_rota_type`. El `down` conserva sólo los cuadrantes del equipo principal.
 - **DDL no transaccional**: cada sentencia DDL hace commit implícito, así que una migración fallida puede dejar el esquema a medias. Por eso las migraciones son idempotentes y comprueban el estado con `src/database/migration-helpers.ts`.
 - **Orden real de ejecución**: la migración 004 tiene el timestamp en segundos y TypeORM la ordena la primera; en una base vacía el orden es 004, 001, 002, 003, 005. Ni el timestamp ni los nombres se tocan.
 - Las FK se declaran a nivel de tabla (MySQL ignora `REFERENCES` en línea) y, como InnoDB exige un índice que empiece por `rota_id` para la FK de `rota_assignments`, los índices nuevos se crean antes de borrar los viejos.
@@ -91,6 +99,13 @@ El frontend Angular llama al backend a través de `/api/v1/*` y espera:
 - cargas de rota AC y AP separadas
 - un único flujo de sustitución de asignaciones
 - la ciudad configurada a través de `/api/v1/config`
+- los equipos a través de `/api/v1/teams`; el equipo activo (`TeamsService.selectedTeamId`, recordado en `localStorage`) se manda como `team_id` en todas las llamadas de cuadrantes
+
+### Equipos y lista de médicos
+
+- `TeamSelectorComponent` (`features/teams/`) se proyecta en la cabecera de `DoctorPoolComponent` (`<ng-content select="[poolHeader]">`): desplegable del equipo y diálogos de crear, renombrar y borrar. Emite `teamSelected` y `App.onTeamSelected` carga la lista y los cuadrantes del equipo.
+- `DoctorPoolService.loadTeam` muestra la lista del equipo; si está vacía, carga `assets/doctors.json` y la guarda con `PUT /teams/:id/doctors`. Añadir un médico y cargar un fichero también guardan la lista.
+- «Cargar lista» lee el fichero en el navegador con `parseDoctorFile` (`core/parsers/doctor-file.parser.ts`): JSON o CSV, columnas en español o inglés sin distinguir tildes ni mayúsculas, ids generados (`doc-NNN`) si faltan. El formato completo, con los nombres de columna admitidos y los mensajes de error, está en [`samples/README.md`](./samples/README.md). Los errores llegan como notificación y no se envía nada; si es válido, `App` pide confirmación antes del `PUT`.
 
 ### Renderizado del calendario
 
