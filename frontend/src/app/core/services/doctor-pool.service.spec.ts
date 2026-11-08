@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { DoctorPoolService } from './doctor-pool.service';
 import { Doctor } from '../models/doctor.model';
+import { Team } from '../models/team.model';
 
 describe('DoctorPoolService', () => {
   let service: DoctorPoolService;
@@ -13,6 +14,8 @@ describe('DoctorPoolService', () => {
     { id: 'doc-002', name: 'Dr. Lopez', department: 'Pediatria', rota_type: 'AC' },
     { id: 'doc-011', name: 'Dr. Navarro', department: 'Urologia', rota_type: 'AP' },
   ];
+
+  const team = (doctors: Doctor[], id = 1): Team => ({ id, name: `Equipo ${id}`, doctors });
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -26,20 +29,49 @@ describe('DoctorPoolService', () => {
     httpTesting.verify();
   });
 
-  it('should load doctors from assets/doctors.json', () => {
-    service.loadDoctors();
+  /** Carga un equipo vacío: pide la lista inicial y la guarda como lista del equipo. */
+  function loadSeededTeam(): void {
+    service.loadTeam(team([]));
+    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+    const saveReq = httpTesting.expectOne('/api/v1/teams/1/doctors');
+    expect(saveReq.request.method).toBe('PUT');
+    expect(saveReq.request.body).toEqual({ doctors: mockDoctors });
+    saveReq.flush(team(mockDoctors));
+  }
 
-    const req = httpTesting.expectOne('assets/doctors.json');
-    expect(req.request.method).toBe('GET');
-    req.flush(mockDoctors);
+  it('carga los médicos del equipo sin pedir la lista inicial', () => {
+    service.loadTeam(team(mockDoctors));
+
+    expect(service.doctors().map((d) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-011']);
+  });
+
+  it('un equipo sin médicos empieza con assets/doctors.json y la guarda', () => {
+    loadSeededTeam();
 
     expect(service.doctors().length).toBe(3);
     expect(service.doctors()[0].name).toBe('Dr. Garcia');
   });
 
-  it('reordena el grupo indicado sin tocar el otro', () => {
-    service.loadDoctors();
+  it('al cambiar de equipo sustituye los médicos y olvida el orden barajado', () => {
+    service.loadTeam(team(mockDoctors));
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+
+    const other: Doctor[] = [{ id: 'doc-001', name: 'Dra. Otra', department: 'X', rota_type: 'AC' }, mockDoctors[1]];
+    service.loadTeam(team(other, 2));
+
+    expect(service.doctors().map((d) => d.name)).toEqual(['Dra. Otra', 'Dr. Lopez']);
+  });
+
+  it('ignora la lista inicial si mientras llega se ha cambiado de equipo', () => {
+    service.loadTeam(team([]));
+    service.loadTeam(team([mockDoctors[2]], 2));
     httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+
+    expect(service.doctors().map((d) => d.id)).toEqual(['doc-011']);
+  });
+
+  it('reordena el grupo indicado sin tocar el otro', () => {
+    service.loadTeam(team(mockDoctors));
 
     service.applyOrder('AC', ['doc-002', 'doc-001']);
 
@@ -47,17 +79,16 @@ describe('DoctorPoolService', () => {
   });
 
   it('aplica el orden guardado si los médicos se cargan después', () => {
+    service.loadTeam(team([]));
     service.applyOrder('AC', ['doc-002', 'doc-001']);
-
-    service.loadDoctors();
     httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+    httpTesting.expectOne('/api/v1/teams/1/doctors').flush(team(mockDoctors));
 
     expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-002', 'doc-001']);
   });
 
   it('deja al final los médicos que no figuran en el orden', () => {
-    service.loadDoctors();
-    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+    service.loadTeam(team(mockDoctors));
 
     service.applyOrder('AC', ['doc-002']);
 
@@ -65,9 +96,10 @@ describe('DoctorPoolService', () => {
   });
 
   it('resetOrder vuelve al orden original y conserva las altas manuales', () => {
-    service.loadDoctors();
-    httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
-    service.addDoctor({ id: 'doc-099', name: 'Dr. Nuevo', department: 'X', rota_type: 'AC' });
+    service.loadTeam(team(mockDoctors));
+    const newDoctor: Doctor = { id: 'doc-099', name: 'Dr. Nuevo', department: 'X', rota_type: 'AC' };
+    service.addDoctor(newDoctor).subscribe();
+    httpTesting.expectOne('/api/v1/teams/1/doctors').flush(team([...mockDoctors, newDoctor]));
     service.applyOrder('AC', ['doc-099', 'doc-002', 'doc-001']);
 
     service.resetOrder();
@@ -76,72 +108,55 @@ describe('DoctorPoolService', () => {
   });
 
   it('resetOrder impide que un orden anterior se reaplique al cargar', () => {
+    service.loadTeam(team([]));
     service.applyOrder('AC', ['doc-002', 'doc-001']);
     service.resetOrder();
-
-    service.loadDoctors();
     httpTesting.expectOne('assets/doctors.json').flush(mockDoctors);
+    httpTesting.expectOne('/api/v1/teams/1/doctors').flush(team(mockDoctors));
 
     expect(service.getDoctorsByType('AC').map((d) => d.id)).toEqual(['doc-001', 'doc-002']);
   });
 
-  it('should add a doctor to the pool', () => {
-    service.loadDoctors();
-    const req = httpTesting.expectOne('assets/doctors.json');
-    req.flush(mockDoctors);
+  it('añade un médico guardando la lista del equipo en su orden original', () => {
+    service.loadTeam(team(mockDoctors));
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+    const newDoctor: Doctor = { id: 'doc-004', name: 'Dr. Fernandez', department: 'Neurologia', rota_type: 'AC' };
 
-    const newDoctor: Doctor = {
-      id: 'doc-004',
-      name: 'Dr. Fernandez',
-      department: 'Neurologia',
-      rota_type: 'AC',
-    };
-
-    service.addDoctor(newDoctor);
+    service.addDoctor(newDoctor).subscribe();
+    const req = httpTesting.expectOne('/api/v1/teams/1/doctors');
+    expect(req.request.body.doctors.map((d: Doctor) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-011', 'doc-004']);
+    // Hasta que el servidor confirma, la lista no cambia.
+    expect(service.doctors().length).toBe(3);
+    req.flush(team([...mockDoctors, newDoctor]));
 
     expect(service.doctors().length).toBe(4);
     expect(service.doctors()[3].name).toBe('Dr. Fernandez');
   });
 
-  it('should return current pool', () => {
-    service.loadDoctors();
-    const req = httpTesting.expectOne('assets/doctors.json');
-    req.flush(mockDoctors);
+  it('sustituye la lista entera por la de un fichero', () => {
+    loadSeededTeam();
+    service.applyOrder('AC', ['doc-002', 'doc-001']);
+    const uploaded: Doctor[] = [
+      { id: 'doc-100', name: 'Dra. Subida', department: 'Urgencias', rota_type: 'AP' },
+      { id: 'doc-101', name: 'Dr. Subido', department: 'Urgencias', rota_type: 'AC' },
+    ];
 
-    const doctors = service.doctors();
-    expect(doctors.length).toBe(3);
-    expect(doctors.map((d) => d.id)).toEqual(['doc-001', 'doc-002', 'doc-011']);
+    service.replaceDoctors(uploaded).subscribe();
+    const req = httpTesting.expectOne('/api/v1/teams/1/doctors');
+    expect(req.request.body).toEqual({ doctors: uploaded });
+    req.flush(team(uploaded));
+
+    expect(service.doctors()).toEqual(uploaded);
+    expect(service.acDoctors().map((d) => d.id)).toEqual(['doc-101']);
   });
 
-  it('should return AC doctors via computed signal', () => {
-    service.loadDoctors();
-    const req = httpTesting.expectOne('assets/doctors.json');
-    req.flush(mockDoctors);
+  it('should return AC and AP doctors via computed signals and by type', () => {
+    service.loadTeam(team(mockDoctors));
 
-    const acDoctors = service.acDoctors();
-    expect(acDoctors.length).toBe(2);
-    expect(acDoctors.every(d => d.rota_type === 'AC')).toBe(true);
-  });
-
-  it('should return AP doctors via computed signal', () => {
-    service.loadDoctors();
-    const req = httpTesting.expectOne('assets/doctors.json');
-    req.flush(mockDoctors);
-
-    const apDoctors = service.apDoctors();
-    expect(apDoctors.length).toBe(1);
-    expect(apDoctors[0].rota_type).toBe('AP');
-  });
-
-  it('should get doctors by type', () => {
-    service.loadDoctors();
-    const req = httpTesting.expectOne('assets/doctors.json');
-    req.flush(mockDoctors);
-
-    const acDoctors = service.getDoctorsByType('AC');
-    expect(acDoctors.length).toBe(2);
-
-    const apDoctors = service.getDoctorsByType('AP');
-    expect(apDoctors.length).toBe(1);
+    expect(service.acDoctors().length).toBe(2);
+    expect(service.acDoctors().every((d) => d.rota_type === 'AC')).toBe(true);
+    expect(service.apDoctors().map((d) => d.rota_type)).toEqual(['AP']);
+    expect(service.getDoctorsByType('AC').length).toBe(2);
+    expect(service.getDoctorsByType('AP').length).toBe(1);
   });
 });

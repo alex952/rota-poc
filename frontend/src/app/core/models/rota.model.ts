@@ -54,6 +54,8 @@ export interface StatsResponse {
 }
 
 export interface RotaResponse {
+  /** Equipo del cuadrante; los cuadrantes anteriores a los equipos son del principal */
+  team_id?: number;
   year: number;
   city: string;
   rota_type: RotaType;
@@ -73,6 +75,8 @@ export interface GenerateRequest {
   ac_pool: { id: string; name: string; department: string }[];
   ap_pool: { id: string; name: string; department: string }[];
   strategy: AssignmentStrategy;
+  /** Equipo del que son los cuadrantes */
+  team_id: number;
 }
 
 export interface ReplaceRequest {

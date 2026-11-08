@@ -20,7 +20,9 @@ import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
 import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
 import { RotaDoctorEntity } from './entities/rota-doctor.entity';
 import { RotaEntity } from './entities/rota.entity';
+import { deleteRotaWithChildren } from './rota-deletion';
 import { RotaResponseMapper } from './rota-response.mapper';
+import { TeamsService } from '../teams/teams.service';
 
 @Injectable()
 export class RotaService {
@@ -28,6 +30,7 @@ export class RotaService {
     private readonly appConfigService: AppConfigService,
     private readonly holidaysService: HolidaysService,
     private readonly responseMapper: RotaResponseMapper,
+    private readonly teamsService: TeamsService,
     private readonly dataSource: DataSource,
     @InjectRepository(RotaEntity)
     private readonly rotaRepository: Repository<RotaEntity>,
@@ -52,6 +55,8 @@ export class RotaService {
       );
     }
 
+    const teamId = await this.teamsService.resolveTeamId(request.team_id);
+
     try {
       const dayClassifications = classifyYear(
         request.year,
@@ -74,8 +79,8 @@ export class RotaService {
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => [
-        await this.persistRota(manager, request.year, rotas.ac, rotas.ac.poolOrder),
-        await this.persistRota(manager, request.year, rotas.ap, rotas.ap.poolOrder),
+        await this.persistRota(manager, teamId, request.year, rotas.ac, rotas.ac.poolOrder),
+        await this.persistRota(manager, teamId, request.year, rotas.ap, rotas.ap.poolOrder),
       ]);
 
       return [
@@ -96,19 +101,21 @@ export class RotaService {
 
   private async persistRota(
     manager: EntityManager,
+    teamId: number,
     year: number,
     rota: RotaSchedule,
     pool: DoctorInput[],
   ): Promise<RotaEntity> {
     const existing = await manager.findOne(RotaEntity, {
-      where: { year, rotaType: rota.rotaType },
+      where: { teamId, year, rotaType: rota.rotaType },
     });
     if (existing) {
-      await this.deleteRota(manager, existing.id);
+      await deleteRotaWithChildren(manager, existing.id);
     }
 
     const savedRota = await manager.save(
       manager.create(RotaEntity, {
+        teamId,
         year,
         rotaType: rota.rotaType,
         city: this.appConfigService.city,
@@ -155,9 +162,9 @@ export class RotaService {
     });
   }
 
-  async getByType(year: number, rotaType: string, doctorId?: string) {
+  async getByType(year: number, rotaType: string, doctorId?: string, teamId?: number) {
     const rota = await this.rotaRepository.findOne({
-      where: { year, rotaType },
+      where: { teamId: await this.teamsService.resolveTeamId(teamId), year, rotaType },
       relations: { assignments: true, doctors: true },
     });
     if (!rota) {
@@ -167,9 +174,9 @@ export class RotaService {
     return this.responseMapper.toResponse(rota, doctorId);
   }
 
-  async getByYear(year: number) {
+  async getByYear(year: number, teamId?: number) {
     const rotas = await this.rotaRepository.find({
-      where: { year },
+      where: { teamId: await this.teamsService.resolveTeamId(teamId), year },
       relations: { assignments: true, doctors: true },
       order: { rotaType: 'ASC' },
     });
@@ -180,36 +187,32 @@ export class RotaService {
     return Promise.all(rotas.map((rota) => this.responseMapper.toResponse(rota)));
   }
 
-  /** Borra los cuadrantes AC y AP del año con sus médicos y asignaciones; los festivos se conservan. */
-  async deleteByYear(year: number): Promise<void> {
+  /** Borra los cuadrantes AC y AP del año del equipo con sus médicos y asignaciones; los festivos se conservan. */
+  async deleteByYear(year: number, teamId?: number): Promise<void> {
+    const resolvedTeamId = await this.teamsService.resolveTeamId(teamId);
     await this.dataSource.transaction(async (manager) => {
-      const rotas = await manager.find(RotaEntity, { where: { year } });
+      const rotas = await manager.find(RotaEntity, { where: { teamId: resolvedTeamId, year } });
       if (rotas.length === 0) {
         throw new NotFoundException(`No se ha encontrado ningún cuadrante para el año ${year}`);
       }
       for (const rota of rotas) {
-        await this.deleteRota(manager, rota.id);
+        await deleteRotaWithChildren(manager, rota.id);
       }
     });
   }
 
-  private async deleteRota(manager: EntityManager, rotaId: number): Promise<void> {
-    await manager.delete(RotaAssignmentEntity, { rotaId });
-    await manager.delete(RotaDoctorEntity, { rotaId });
-    await manager.delete(RotaEntity, { id: rotaId });
-  }
-
-  async replaceDoctor(year: number, rotaType: string, request: ReplaceDoctorDto) {
+  async replaceDoctor(year: number, rotaType: string, request: ReplaceDoctorDto, teamId?: number) {
+    const resolvedTeamId = await this.teamsService.resolveTeamId(teamId);
     return this.dataSource.transaction(async (manager) => {
       const rotaRepository = manager.getRepository(RotaEntity);
       const assignmentRepository = manager.getRepository(RotaAssignmentEntity);
 
-      const rota = await this.findRotaForEdit(rotaRepository, year, rotaType);
+      const rota = await this.findRotaForEdit(rotaRepository, resolvedTeamId, year, rotaType);
       this.assertInPool(rota, request.new_doctor_id);
 
       const oldRotaType = request.old_rota_type ?? rotaType;
       const oldRota =
-        oldRotaType === rotaType ? rota : await this.findRotaForEdit(rotaRepository, year, oldRotaType);
+        oldRotaType === rotaType ? rota : await this.findRotaForEdit(rotaRepository, resolvedTeamId, year, oldRotaType);
 
       const assignment = await assignmentRepository.findOne({
         where: {
@@ -257,12 +260,13 @@ export class RotaService {
     });
   }
 
-  async addDoctor(year: number, rotaType: string, request: AddDoctorDto) {
+  async addDoctor(year: number, rotaType: string, request: AddDoctorDto, teamId?: number) {
+    const resolvedTeamId = await this.teamsService.resolveTeamId(teamId);
     return this.dataSource.transaction(async (manager) => {
       const rotaRepository = manager.getRepository(RotaEntity);
       const assignmentRepository = manager.getRepository(RotaAssignmentEntity);
 
-      const rota = await this.findRotaForEdit(rotaRepository, year, rotaType);
+      const rota = await this.findRotaForEdit(rotaRepository, resolvedTeamId, year, rotaType);
       this.assertInPool(rota, request.doctor_id);
 
       const dayAssignments = rota.assignments.filter((candidate) => candidate.date === request.date);
@@ -286,9 +290,14 @@ export class RotaService {
     });
   }
 
-  private async findRotaForEdit(rotaRepository: Repository<RotaEntity>, year: number, rotaType: string) {
+  private async findRotaForEdit(
+    rotaRepository: Repository<RotaEntity>,
+    teamId: number,
+    year: number,
+    rotaType: string,
+  ) {
     const rota = await rotaRepository.findOne({
-      where: { year, rotaType },
+      where: { teamId, year, rotaType },
       relations: { assignments: true, doctors: true },
     });
     if (!rota) {

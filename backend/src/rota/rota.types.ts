@@ -65,6 +65,7 @@ export interface RotaSchedule {
 }
 
 export interface RotaResponse {
+  team_id: number;
   year: number;
   city: string;
   rota_type: RotaType;

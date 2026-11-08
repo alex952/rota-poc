@@ -77,6 +77,7 @@ npm run migration:revert
 
 El frontend espera:
 
+- `/api/v1/teams` para el desplegable de equipos, y `PUT /api/v1/teams/:id/doctors` para guardar la lista de médicos (lista inicial, alta manual o fichero subido). Todas las llamadas de cuadrantes llevan `team_id` del equipo activo
 - `/api/v1/config` para el banner de ciudad
 - `/api/v1/rota/:year` para precargar los calendarios AC y AP juntos
 - `/api/v1/rota/generate` para generar y persistir a la vez los cuadrantes AC y AP (`[AC, AP]`) con un único botón
@@ -100,4 +101,5 @@ El frontend espera:
 | CA-3.1.1, CA-3.1.9, CA-3.1.14–3.1.16 | `backend/test/unit/assignment.spec.ts` (`generateRotas`, `refuerzosForDay`, guardia AP y refuerzos), `backend/test/e2e/app.e2e-spec.ts` (generación conjunta, papeles, médico en los dos grupos, validación) |
 | CA-3.1.17 | `backend/test/unit/holidays.spec.ts` (festivos especiales, caché antigua, borrado), `backend/test/e2e/app.e2e-spec.ts`, `backend/test/e2e/holidays-upsert.e2e-spec.ts` |
 | CA-3.6.2–3.6.4, CA-3.6.9, CA-3.6.10 | `frontend/src/app/app.spec.ts` (botón único, confirmación, notificaciones), `frontend/src/app/features/calendar/day-cell.component.spec.ts` (bloques AC/AP/REFUERZO, `(AC)`, festivo especial) |
+| CA-3.11.1–3.11.6 | `backend/test/e2e/teams.e2e-spec.ts`, `frontend/src/app/core/parsers/doctor-file.parser.spec.ts`, `frontend/src/app/core/services/teams.service.spec.ts`, `frontend/src/app/core/services/doctor-pool.service.spec.ts`, `frontend/src/app/features/doctor-pool/doctor-pool.component.spec.ts` (cargar lista), `frontend/src/app/app.spec.ts` (`describe('equipos')`) |
 | CA-3.9.1 | `backend/test/e2e/rota-export.e2e-spec.ts` (contrato HTTP, hojas, filas, refuerzos y «(AC)», sustitución), `frontend/src/app/core/services/rota.service.spec.ts` (`exportRotas`), `frontend/src/app/app.spec.ts` (botón, descarga, errores en español) |

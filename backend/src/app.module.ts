@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { HolidaysModule } from './holidays/holidays.module';
 import { RotaModule } from './rota/rota.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { RotaModule } from './rota/rota.module';
     DatabaseModule,
     HolidaysModule,
     RotaModule,
+    TeamsModule,
   ],
   controllers: [HealthController],
 })

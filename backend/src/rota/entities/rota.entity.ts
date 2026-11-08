@@ -13,10 +13,14 @@ import { RotaDoctorEntity } from './rota-doctor.entity';
 const isSqlJs = (process.env.DB_TYPE ?? '') === 'sqljs';
 
 @Entity({ name: 'rotas' })
-@Unique(['year', 'rotaType'])
+@Unique('uq_rotas_team_year_rota_type', ['teamId', 'year', 'rotaType'])
 export class RotaEntity {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  // Equipo dueño del cuadrante: cada equipo tiene sus propios cuadrantes AC y AP por año.
+  @Column({ name: 'team_id', type: 'int' })
+  teamId!: number;
 
   @Column({ type: 'int' })
   year!: number;

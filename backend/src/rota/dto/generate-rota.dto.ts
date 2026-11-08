@@ -32,6 +32,11 @@ export class GenerateRotaDto {
   @Type(() => DoctorInputDto)
   ap_pool!: DoctorInputDto[];
 
+  // Equipo del que son los cuadrantes; si se omite, el equipo principal.
+  @IsOptional()
+  @IsInt({ message: 'el equipo debe ser un número entero' })
+  team_id?: number;
+
   // Método de asignación; si se omite, el servicio usa 'balanced'.
   @IsOptional()
   @IsIn(ASSIGNMENT_STRATEGY_IDS, { message: 'el método de asignación debe ser balanced o wheels' })

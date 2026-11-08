@@ -26,7 +26,11 @@
     (poolTabChange)="onPoolTabChange($event)"
     (generateRota)="onGenerateRota()"
     (doctorAdded)="onAddDoctor($event)"
-  />
+    (doctorsFileLoaded)="onDoctorsFileLoaded($event)"
+    (doctorsFileError)="onDoctorsFileError($event)"
+  >
+    <app-team-selector poolHeader [disabled]="loading()" (teamSelected)="onTeamSelected($event)" />
+  </app-doctor-pool>
   <div class="calendar-wrapper">
     @if (loading()) {
       <div class="loading-overlay">
@@ -70,6 +74,16 @@
     [message]="resetMessage()"
     (confirmed)="onConfirmReset()"
     (cancelled)="showResetDialog.set(false)"
+  />
+}
+
+@if (pendingUpload()) {
+  <app-confirm-dialog
+    title="Cargar lista de médicos"
+    confirmLabel="Sustituir lista"
+    [message]="uploadMessage()"
+    (confirmed)="onConfirmUpload()"
+    (cancelled)="pendingUpload.set(null)"
   />
 }
 

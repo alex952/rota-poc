@@ -9,6 +9,13 @@ import {
   STRATEGY_SHORT_LABELS,
 } from '../../core/models/rota.model';
 import { CdkDropList } from '@angular/cdk/drag-drop';
+import { parseDoctorFile } from '../../core/parsers/doctor-file.parser';
+
+/** Lista de médicos leída de un fichero subido, pendiente de confirmar */
+export interface DoctorsFile {
+  fileName: string;
+  doctors: Doctor[];
+}
 
 @Component({
   selector: 'app-doctor-pool',
@@ -16,6 +23,7 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
   imports: [DoctorCardComponent, AddDoctorDialogComponent, CdkDropList],
   template: `
     <section class="doctor-pool">
+      <ng-content select="[poolHeader]" />
       <h3 class="pool-title">Grupo de médicos</h3>
 
       <div class="pool-tabs">
@@ -61,9 +69,27 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
             }
           </select>
         </div>
-        <button class="btn-add-doctor" (click)="onAddDoctorClick()">
-          + Añadir médico
-        </button>
+        <div class="list-actions">
+          <button class="btn-add-doctor" (click)="onAddDoctorClick()">
+            + Añadir médico
+          </button>
+          <button
+            class="btn-upload"
+            type="button"
+            [disabled]="isLoading()"
+            title="Sustituye la lista del equipo por la de un fichero JSON o CSV con las columnas nombre, departamento y grupo (AC o AP)"
+            (click)="fileInput.click()"
+          >
+            Cargar lista
+          </button>
+          <input
+            #fileInput
+            class="file-input"
+            type="file"
+            accept=".json,.csv,.txt,application/json,text/csv"
+            (change)="onFileSelected(fileInput)"
+          />
+        </div>
         <button
           class="btn-generate"
           [class.btn-loading]="isLoading()"
@@ -190,6 +216,37 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
       text-align: center;
     }
 
+    .list-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .btn-upload {
+      flex: 1;
+      padding: 0.55rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid #9fa8da;
+      background: #fff;
+      color: #1a237e;
+      white-space: nowrap;
+    }
+
+    .btn-upload:hover:not(:disabled) {
+      background: #e8eaf6;
+    }
+
+    .btn-upload:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .btn-add-doctor,
     .btn-generate {
       width: 100%;
@@ -202,6 +259,9 @@ import { CdkDropList } from '@angular/cdk/drag-drop';
     }
 
     .btn-add-doctor {
+      flex: 1.3;
+      width: auto;
+      white-space: nowrap;
       border: 1px dashed #999;
       background: #fff;
       color: #555;
@@ -264,6 +324,10 @@ export class DoctorPoolComponent {
   readonly addDoctorClick = output<void>();
   readonly doctorAdded = output<Doctor>();
   readonly poolTabChange = output<RotaType>();
+  /** Fichero de médicos leído y validado */
+  readonly doctorsFileLoaded = output<DoctorsFile>();
+  /** Fichero de médicos que no se ha podido leer, con el motivo */
+  readonly doctorsFileError = output<string>();
 
   readonly showAddDialog = signal(false);
 
@@ -281,6 +345,21 @@ export class DoctorPoolComponent {
   onAddDoctorClick(): void {
     this.showAddDialog.set(true);
     this.addDoctorClick.emit();
+  }
+
+  async onFileSelected(fileInput: HTMLInputElement): Promise<void> {
+    const file = fileInput.files?.[0];
+    // Se vacía para que volver a elegir el mismo fichero dispare otra vez «change».
+    fileInput.value = '';
+    if (!file) return;
+    try {
+      const doctors = parseDoctorFile(file.name, await file.text());
+      this.doctorsFileLoaded.emit({ fileName: file.name, doctors });
+    } catch (error) {
+      this.doctorsFileError.emit(
+        `No se ha podido leer «${file.name}»: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   onDoctorAdded(doctor: Doctor): void {
