@@ -367,7 +367,7 @@ footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: a
       <div class="rule"><span class="k">Los refuerzos</span><h3>Cuatro ruedas, como en «Ruedas»</h3><p>Los refuerzos tienen <b>una rueda por tipo de día</b>, con los punteros escalonados (0, ⌊N/4⌋, ⌊2N/4⌋, ⌊3N/4⌋) y media vuelta más allá (⌊N/2⌋). Primero se cubre la guardia; quien la hace ya no puede ser refuerzo ese día.</p></div>
       <div class="rule"><span class="k">El salto</span><h3>Saltar y conservar el turno</h3><p>Si al que le toca <b>trabajó el día anterior</b> o ya tiene plaza hoy, se le salta y se le apunta <b>una deuda</b> en esa rueda. En la rueda de guardias pasa cuando alguien hizo un <b>refuerzo</b> el día antes de su turno.</p></div>
       <div class="rule"><span class="k">La deuda</span><h3>La deuda se cobra primero</h3><p>Antes de mirar el puntero, la rueda revisa sus deudas <b>de la más antigua a la más reciente</b>. El primero que ya haya descansado sale y cancela una de sus deudas.</p></div>
-      <div class="rule"><span class="k">Sin giro en las guardias</span><h3>El giro del lunes, sólo en refuerzos</h3><p>Con 5 médicos, la corrección de la resonancia del método «Ruedas» se aplica <b>sólo a la rueda de refuerzos de laborables</b>. La rueda de guardias no la necesita: 5 y 7 no van al mismo compás.</p></div>
+      <div class="rule"><span class="k">El giro</span><h3>Grupos de 7, 14, 21: la rueda gira</h3><p>Si el grupo es <b>múltiplo de 7</b>, cada N días la rueda de guardias avanza un puesto <b>sin deuda</b>: el saltado hace el último día de esa vuelta. Así nadie queda fijo en un día de la semana. El giro del lunes de «Ruedas» (5 médicos) sólo se aplica a la rueda de refuerzos de laborables.</p></div>
       <div class="rule"><span class="k">Sin memoria</span><h3>Cada año empieza de cero</h3><p>Las ruedas vuelven a su posición inicial el 1 de enero y las deudas no pasan de un año a otro.</p></div>
     </div>
   </section>
@@ -386,12 +386,19 @@ footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: a
       <p class="eyebrow">Grupos de 7, 14… · el caso especial</p>
       <h2 id="seven-title">Cuando el grupo va al compás de la semana</h2>
     </div>
-    <div class="reso-explain">
+    <div class="reso">
       <figure class="reso-fig">
-        <figcaption><b>7 médicos AC</b> · cada uno cae siempre el mismo día</figcaption>
-        <div class="reso-grid" id="seven-grid" role="table" aria-label="Cinco semanas de guardias AC con siete médicos y rueda única"></div>
+        <figcaption><b>Sin corrección</b> · cada uno cae siempre el mismo día</figcaption>
+        <div class="reso-grid" id="seven-before" role="table" aria-label="Cinco semanas de guardias AC con siete médicos y rueda única, sin corrección"></div>
       </figure>
+      <figure class="reso-fig">
+        <figcaption><b>Con el giro de cada vuelta</b> · el día de cada uno rota</figcaption>
+        <div class="reso-grid" id="seven-after" role="table" aria-label="Cinco semanas de guardias AC con siete médicos y rueda única, con corrección"></div>
+      </figure>
+    </div>
+    <div class="reso-explain">
       <div class="callout" id="seven-text"></div>
+      <div class="reso-stats" id="seven-stats"></div>
     </div>
   </section>
 
@@ -419,7 +426,7 @@ function startsFullWorkWeek(days, i) {
   return true;
 }
 
-function simulate(pool, days, { breakWeeklyResonance = true, singleGuardiaWheel = false } = {}) {
+function simulate(pool, days, { breakWeeklyResonance = true, singleGuardiaWheel = false, breakLapResonance = true } = {}) {
   const N = pool.length, st = stagger(N);
   const mk = (off) => Object.fromEntries(WHEELS.map((w) => [w, { start: (st[w] + off) % N, pointer: (st[w] + off) % N, pending: [], turns: 0 }]));
   // Rueda única: las cuatro claves de guardia apuntan al mismo objeto (puntero y deuda).
@@ -441,6 +448,13 @@ function simulate(pool, days, { breakWeeklyResonance = true, singleGuardiaWheel 
         if (role === 'guardia' || day.refuerzos > 0) events.push({ role, kind: 'giro', doctor: pool[w.pointer] });
         w.pointer = (w.pointer + 1) % N; w.turns++;
       }
+    }
+    // Rueda única con un grupo múltiplo de 7: cada N días la rueda de guardias gira un
+    // puesto sin deuda, para que nadie quede fijo en el mismo día de la semana.
+    if (breakLapResonance && singleGuardiaWheel && N % 7 === 0 && dayIndex > 0 && dayIndex % N === 0) {
+      const w = wheels.guardia.weekday;
+      events.push({ role: 'guardia', kind: 'giro', lap: true, doctor: pool[w.pointer] });
+      w.pointer = (w.pointer + 1) % N; w.turns++;
     }
     const fill = (role, count) => {
       const wheel = wheels[role][wid];
@@ -504,6 +518,7 @@ const AP_POOL = ['Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 
 const AP_17 = ['Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano', 'Blanco', 'Sánchez', 'Pérez', 'Gómez', 'Ruiz', 'Jiménez', 'Moreno', 'Muñoz', 'Álvarez', 'Romero'];
 
 const AC_5 = [...AC_POOL, 'Ruiz'];
+const AC_7 = [...AC_5, 'Blanco', 'Serrano'];
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 function yearScenario(pool, withRef, month, startAt, note, label, opts = {}) {
@@ -518,6 +533,9 @@ MODES.single = {
   ac4: yearScenario(AC_POOL, false, 3, 7,
     'Grupo AC real de 4 médicos, sólo guardias, año 2026. La rueda de guardias no distingue el tipo de día: tras el viernes viene el sábado del siguiente de la lista, y así todo el año. Sin refuerzos en la simulación no hay saltos: cada médico hace una guardia de cada cuatro días.',
     'AC · 4 médicos', SINGLE),
+  ac7: yearScenario(AC_7, false, 1, 8,
+    'Un grupo AC hipotético de 7 médicos, múltiplo de 7. Sin corrección, cada médico caería siempre el mismo día de la semana. Con ella, cada 7 días la rueda gira un puesto sin deuda (paso morado ↷): el saltado hace el último día de la vuelta y el día de cada uno va rotando. Ver «Cuando el grupo va al compás de la semana» más abajo.',
+    'AC · 7 médicos', SINGLE),
   ap: yearScenario(AP_POOL, true, 1, 0,
     'Ejemplo AP con 8 médicos. Aguja sólida: la rueda única de guardias. Agujas discontinuas naranjas: las cuatro ruedas de refuerzo. Quien hace un refuerzo no puede hacer la guardia del día siguiente: si le toca, se le salta y conserva el turno.',
     'AP · guardia y refuerzo', SINGLE),
@@ -682,6 +700,7 @@ function render() {
       const who = `<b>Dr. ${e.doctor}</b>`;
       if (e.kind === 'turno') return [`✓`, `Le toca a ${who} en la rueda: hace ${papel(e.role)}.`];
       if (e.kind === 'deuda') return [`↺`, `${who} tenía una deuda en esta rueda y ya ha descansado: cobra su turno antes que nadie y hace ${papel(e.role)}.`];
+      if (e.kind === 'giro' && e.lap) return [`↷`, `Grupo de ${sc.pool.length} médicos, múltiplo de 7: empieza una vuelta nueva y la rueda gira un puesto. Se salta a ${who} <b>sin deuda</b>; le tocará el último día de esta vuelta, así que no pierde la guardia y su día de la semana cambia.`];
       if (e.kind === 'giro') return [`↷`, `Semana de 5 laborables con 5 médicos: la rueda gira un puesto y se salta a ${who} <b>sin deuda</b>, para que el día de cada uno vaya rotando. Normalmente le tocará el viernes de esta semana.`];
       if (e.kind === 'salto') return [`✕`, e.reason === 'hoy'
         ? `Le toca a ${who}, pero ya tiene plaza hoy: se le salta y se le apunta una deuda.`
@@ -847,7 +866,16 @@ document.addEventListener('keydown', (e) => {
     <h3>Con 5 médicos, el Dr. ${fridayDoc} haría todos los viernes</h3>
     <p>Con <b>5 médicos y 5 laborables por semana</b>, la rueda de laborables da exactamente una vuelta cada semana: cada médico cae siempre el mismo día. A quien le toca el viernes le correspondería descansar el sábado, así que la rueda de sábados lo salta una y otra vez. En 2026 eso son <b>${maxFri(off)} viernes</b> para un mismo médico, <b>${off.best} seguidos</b>.</p>
     <p><b>La corrección, como se hace a mano:</b> el lunes de cada semana con 5 laborables, la rueda de laborables gira un puesto y se salta al que le tocaba <b>sin apuntarle deuda</b> (los lunes con borde discontinuo). Ese médico hace el viernes de esa misma semana, así que nadie pierde guardias, y el día de cada uno va rotando.</p>
-    <p>No se gira en semanas con un festivo entre semana, que ya descolocan la rueda por sí solas. Sólo se aplica con exactamente 5 médicos: con 4 o 17 el cuadrante no cambia. Con la rueda única las guardias no tienen este problema (ver la pestaña «Rueda única»).</p>`;
+    <p>No se gira en semanas con un festivo entre semana, que ya descolocan la rueda por sí solas. Sólo se aplica con exactamente 5 médicos: con 4 o 17 el cuadrante no cambia.</p>
+    <p><b>Con 10, 15 o 20 médicos</b> hay una resonancia más suave: la rueda de laborables da la vuelta en 2, 3 o 4 semanas y a cada médico le tocan casi siempre los mismos días laborables (ver la tabla). No se corrige: los sábados, domingos y festivos tienen sus propias ruedas y siguen repartidos con ±1, igual que las horas. La rueda única tiene su propia corrección para los grupos múltiplos de 7 (ver la pestaña «Rueda única»).</p>`;
+  const others = [9, 10, 11, 15].map((n) => {
+    const p = Array.from({ length: n }, (_, i) => (i < AP_17.length ? AP_17[i] : `M${i}`));
+    return { n, v: weekdaySpread(simulate(p, year), p) };
+  });
+  $('reso-stats').innerHTML += `<h3>Otros tamaños · máx. diferencia en un mismo día de la semana</h3>
+    <table><thead><tr><th>Médicos</th><th>Año 2026</th></tr></thead><tbody>
+    ${others.map((r) => `<tr><td>${r.n}${r.n % 5 ? '' : ' (múltiplo de 5)'}</td><td class="${r.v > 10 ? 'bad' : ''}">${r.v}</td></tr>`).join('')}
+    </tbody></table>`;
 })();
 
 // ---------- Rueda única frente a Ruedas: AC 4 y AP 8, año 2026 ----------
@@ -869,27 +897,57 @@ document.addEventListener('keydown', (e) => {
     <p>El precio es que <b>nadie vigila el tipo de día</b>: los sábados, domingos y festivos caen donde caigan en la rueda. Los festivos por médico van de <b>${fS[0]} a ${fS[1]}</b> con la rueda única, frente a ${fW[0]}–${fW[1]} con Ruedas, que reparte cada tipo con ±1. En AP la guardia sigue la misma lógica, y los refuerzos usan las mismas cuatro ruedas en los dos métodos.</p>`;
 })();
 
-// ---------- Rueda única con 7 médicos: cada uno, siempre el mismo día ----------
+// ---------- Rueda única con grupos múltiplos de 7: antes y después del giro ----------
+// Mayor diferencia entre médicos en guardias de un mismo día de la semana (sólo guardias).
+function weekdaySpread(sim, pool) {
+  const per = Object.fromEntries(pool.map((d) => [d, [0, 0, 0, 0, 0, 0, 0]]));
+  sim.steps.forEach((s) => s.chosen.filter((c) => c.role === 'guardia').forEach((c) => per[c.doctor][s.day.weekday]++));
+  return Math.max(...[0, 1, 2, 3, 4, 5, 6].map((w) => { const v = pool.map((d) => per[d][w]); return Math.max(...v) - Math.min(...v); }));
+}
 (function drawSeven() {
-  const pool = [...AC_5, 'Blanco', 'Serrano'];
-  // Año completo desde el 1 de enero; la rejilla enseña 5 semanas de él (2 feb – 8 mar).
-  const year = simulate(pool, buildDays('2026-01-01', '2026-12-31', HOLIDAYS_2026, false), SINGLE);
-  const weeks = year.steps.filter((s) => s.day.iso >= '2026-02-02' && s.day.iso <= '2026-03-08');
-  let html = '<div></div>' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<div class="h">${d}</div>`).join('');
-  weeks.forEach((s, i) => {
-    if (i % 7 === 0) html += `<div class="wk">Sem. ${i / 7 + 1}</div>`;
-    const d = s.chosen[0].doctor;
-    html += `<div class="c ${s.day.weekday === 0 ? 'sun' : ''}" style="--h:${hueOf(pool.indexOf(d), pool.length)}" title="Dr. ${d}">${d.slice(0, 3)}</div>`;
-  });
-  $('seven-grid').innerHTML = html;
+  const pool = AC_7;
+  const yearDays = buildDays('2026-01-01', '2026-12-31', HOLIDAYS_2026, false);
+  // Año completo desde el 1 de enero; las rejillas enseñan 5 semanas de él (2 feb – 8 mar).
+  const grid = (id, sim) => {
+    let html = '<div></div>' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<div class="h">${d}</div>`).join('');
+    sim.steps.filter((s) => s.day.iso >= '2026-02-02' && s.day.iso <= '2026-03-08').forEach((s, i) => {
+      if (i % 7 === 0) html += `<div class="wk">Sem. ${i / 7 + 1}</div>`;
+      const d = s.chosen[0].doctor;
+      const giro = s.events.some((e) => e.kind === 'giro');
+      html += `<div class="c ${s.day.weekday === 0 ? 'sun' : ''} ${giro ? 'giro' : ''}" style="--h:${hueOf(pool.indexOf(d), pool.length)}" title="Dr. ${d}${giro ? ' · la rueda giró un puesto este día' : ''}">${d.slice(0, 3)}</div>`;
+    });
+    $(id).innerHTML = html;
+  };
+  const before = simulate(pool, yearDays, { ...SINGLE, breakLapResonance: false });
+  const after = simulate(pool, yearDays, SINGLE);
+  grid('seven-before', before);
+  grid('seven-after', after);
 
-  const sundays = Object.fromEntries(pool.map((d) => [d, 0]));
-  year.steps.filter((s) => s.day.weekday === 0).forEach((s) => sundays[s.chosen[0].doctor]++);
-  const [top] = Object.entries(sundays).sort((a, b) => b[1] - a[1]);
+  const sundays = (sim) => {
+    const n = Object.fromEntries(pool.map((d) => [d, 0]));
+    sim.steps.filter((s) => s.day.weekday === 0).forEach((s) => n[s.chosen[0].doctor]++);
+    return n;
+  };
+  const sb = sundays(before), sa = sundays(after);
+  const [top] = Object.entries(sb).sort((a, b) => b[1] - a[1]);
+  // Otros tamaños, sólo guardias, año 2026
+  const sizes = [7, 8, 14, 21].map((n) => {
+    const p = Array.from({ length: n }, (_, i) => (i < AP_17.length ? AP_17[i] : `M${i}`));
+    return { n, off: weekdaySpread(simulate(p, yearDays, { ...SINGLE, breakLapResonance: false }), p), on: weekdaySpread(simulate(p, yearDays, SINGLE), p) };
+  });
+  $('seven-stats').innerHTML = `<h3>Año 2026 · domingos por médico (7 médicos)</h3>
+    <table><thead><tr><th>Médico</th><th>Sin corrección</th><th>Con giro</th></tr></thead><tbody>
+    ${pool.map((d) => `<tr><td>${chip(d, pool)}</td><td class="${sb[d] === top[1] ? 'bad' : ''}">${sb[d]}</td><td>${sa[d]}</td></tr>`).join('')}
+    </tbody></table>
+    <h3>Otros tamaños · máx. diferencia en un mismo día de la semana</h3>
+    <table><thead><tr><th>Médicos</th><th>Sin corrección</th><th>Con giro</th></tr></thead><tbody>
+    ${sizes.map((r) => `<tr><td>${r.n}${r.n % 7 ? '' : ' (múltiplo de 7)'}</td><td class="${r.off > 10 ? 'bad' : ''}">${r.off}</td><td>${r.on}</td></tr>`).join('')}
+    </tbody></table>`;
   $('seven-text').innerHTML = `
-    <h3>Con 7 médicos, el Dr. ${top[0]} haría los ${top[1]} domingos del año</h3>
-    <p>La rueda única avanza un puesto cada día. Si el grupo tiene <b>7 médicos</b> (o 14, 21…), da un número exacto de vueltas cada semana y <b>cada médico cae siempre el mismo día de la semana</b>: uno hace todos los domingos y otro todos los lunes (recuadrados, los domingos).</p>
-    <p>Con el grupo AC real de 4 médicos o el AP de 17 no ocurre, porque 4 y 17 no van al compás de la semana. En AP, además, los saltos por los refuerzos descolocan la rueda. Por eso no hay corrección, a diferencia del giro del lunes del método «Ruedas» con 5 médicos. Si algún grupo llegara a tener 7 o 14 médicos, habría que añadirla.</p>`;
+    <h3>Sin corrección, con 7 médicos el Dr. ${top[0]} haría los ${top[1]} domingos del año</h3>
+    <p>La rueda única avanza un puesto cada día. Si el grupo tiene <b>7 médicos</b> (o 14, 21…), cada vuelta dura un número exacto de semanas y <b>cada médico cae siempre el mismo día de la semana</b>: uno hace todos los domingos y otro todos los lunes (recuadrados, los domingos).</p>
+    <p><b>La corrección:</b> al empezar cada vuelta, es decir, cada N días, la rueda gira un puesto y se salta al que le tocaba <b>sin apuntarle deuda</b> (borde discontinuo). Ese médico hace el último día de la vuelta, así que nadie pierde guardias, y el día de la semana de cada uno se desplaza uno en cada vuelta. Es la misma idea que el giro del lunes del método «Ruedas» con 5 médicos.</p>
+    <p>Con grupos que no son múltiplo de 7, como el AC real de 4 o el AP de 17, la rueda no gira y el cuadrante no cambia.</p>`;
 })();
 
 setMode(location.hash === HASH.wheels ? 'wheels' : 'single');

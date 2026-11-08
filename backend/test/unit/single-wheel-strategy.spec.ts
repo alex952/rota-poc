@@ -97,6 +97,59 @@ describe('Estrategia de rueda única (single-wheel)', () => {
     ]);
   });
 
+  describe('corrección de la resonancia con grupos múltiplos de 7', () => {
+    // Guardia del día i con la corrección: la rueda avanza un puesto sin deuda cada N días.
+    const rotated = (i: number, n: number) => `M${((i % n) + Math.floor(i / n)) % n}`;
+    const guardias = (n: number, count: number, options?: { breakLapResonance?: boolean }) => {
+      const days = range('2026-02-02', count);
+      return ids(
+        assignWithWheels({ pool: poolOf(n), days, requiredByDay: days.map(() => 1) }, { weekday: 0 }, {
+          singleGuardiaWheel: true,
+          ...options,
+        }),
+      ).map(([id]) => id);
+    };
+
+    it.each([7, 14, 21])('con %i médicos, cada N días la rueda gira un puesto sin deuda', (n) => {
+      const result = guardias(n, 6 * n);
+      expect(result).toEqual(result.map((_, i) => rotated(i, n)));
+    });
+
+    it.each([7, 14, 21])('con %i médicos, cada vuelta de N días todos hacen exactamente una guardia', (n) => {
+      const result = guardias(n, 6 * n);
+      for (let lap = 0; lap < 6; lap += 1) {
+        expect(new Set(result.slice(lap * n, (lap + 1) * n)).size).toBe(n);
+      }
+    });
+
+    it('con 7 médicos, nadie cae siempre el mismo día de la semana', () => {
+      const result = guardias(7, 7 * 8);
+      const weekdaysOf = (id: string) =>
+        new Set(result.flatMap((doctor, i) => (doctor === id ? [i % 7] : [])));
+      for (let doctor = 0; doctor < 7; doctor += 1) {
+        expect(weekdaysOf(`M${doctor}`).size).toBeGreaterThan(1);
+      }
+    });
+
+    it('sin la corrección, con 7 médicos cada uno cae siempre el mismo día', () => {
+      const result = guardias(7, 7 * 8, { breakLapResonance: false });
+      expect(result).toEqual(result.map((_, i) => `M${i % 7}`));
+    });
+
+    it.each([5, 8, 13])('con %i médicos (no múltiplo de 7) la rueda no gira', (n) => {
+      const result = guardias(n, 6 * n);
+      expect(result).toEqual(result.map((_, i) => `M${i % n}`));
+    });
+
+    it('no toca la estrategia de ruedas (wheels) con 7 médicos', () => {
+      const days = range('2026-02-02', 49);
+      const input = { pool: poolOf(7), days, requiredByDay: days.map(() => 1) };
+      expect(ids(assignWithWheels(input, { weekday: 0 }))).toEqual(
+        ids(assignWithWheels(input, { weekday: 0 }, { breakLapResonance: false })),
+      );
+    });
+  });
+
   describe('integrado en generateRotas (2026)', () => {
     const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
 
