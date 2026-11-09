@@ -8,6 +8,7 @@ import {
   Unique,
 } from 'typeorm';
 
+import { compareIsoDates } from '../../common/date.utils';
 import { RotaEntity } from './rota.entity';
 
 const isSqlJs = (process.env.DB_TYPE ?? '') === 'sqljs';
@@ -47,4 +48,13 @@ export class RotaAssignmentEntity {
   @ManyToOne(() => RotaEntity, (rota) => rota.assignments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rota_id' })
   rota!: RotaEntity;
+}
+
+/**
+ * Orden de las asignaciones: por fecha y, dentro del día, por id. Sin ORDER BY el motor
+ * devuelve las filas del mismo día en el orden que le conviene (el de un índice en MySQL);
+ * el id fija el orden de inserción, que es el orden en que se eligió a cada médico.
+ */
+export function compareAssignments(left: RotaAssignmentEntity, right: RotaAssignmentEntity): number {
+  return compareIsoDates(left.date, right.date) || left.id - right.id;
 }

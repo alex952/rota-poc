@@ -14,7 +14,7 @@ import {
   ShiftRole,
 } from '../scheduling/scheduling.types';
 import { RotaResponse, RotaType, StatsResponse } from './rota.types';
-import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
+import { RotaAssignmentEntity, compareAssignments } from './entities/rota-assignment.entity';
 import { RotaEntity } from './entities/rota.entity';
 
 @Injectable()
@@ -24,11 +24,7 @@ export class RotaResponseMapper {
     const doctorMap = new Map(pool.map((doctor) => [doctor.id, doctor]));
     const targetHours = buildTargetHours(rota.rotaType as RotaType, pool);
 
-    // Desempate por id: sin ORDER BY el motor devuelve las filas del mismo día en el orden
-    // que le conviene (el de un índice en MySQL); el id fija el orden de inserción.
-    const allAssignments = [...rota.assignments].sort(
-      (left, right) => left.date.localeCompare(right.date) || left.id - right.id,
-    );
+    const allAssignments = [...rota.assignments].sort(compareAssignments);
     const filteredAssignments = doctorIdFilter
       ? allAssignments.filter((assignment) => assignment.doctorId === doctorIdFilter)
       : allAssignments;

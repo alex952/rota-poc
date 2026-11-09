@@ -32,9 +32,11 @@ interface Wheel {
  *
  * Hay cuatro ruedas independientes (laborables, sábados, domingos, festivos). Cada
  * una recorre el grupo en el orden de la lista recibida con su propio puntero. Los
- * punteros arrancan escalonados (`staggeredInitialPointers`) cada año, sin estado entre años. Cada asignación
- * avanza el puntero de su rueda; si un día requiere varios médicos se toman los
- * siguientes de la rueda.
+ * punteros arrancan escalonados (`staggeredInitialPointers`) salvo que haya cuadrante
+ * del año anterior: entonces cada rueda continúa tras el último médico que hizo un
+ * turno de ella (`input.continuation`) y quien trabajó el 31 de diciembre descansa el
+ * 1 de enero. Cada asignación avanza el puntero de su rueda; si un día requiere varios
+ * médicos se toman los siguientes de la rueda.
  *
  * Choque con el día de descanso: "saltar y conservar turno". Un médico no está
  * descansado si hizo guardia el día anterior (en cualquier rueda) o ya ha sido
@@ -122,9 +124,14 @@ export function assignWithWheels(
   const { pool, days } = input;
   const size = pool.length;
   const doctorById = new Map(pool.map((doctor) => [doctor.id, doctor]));
-  const buildWheels = (offset: number): Record<WheelId, Wheel> => {
+  const { continuation } = input;
+  const buildWheels = (
+    offset: number,
+    continued: Partial<Record<WheelId, number>> = {},
+  ): Record<WheelId, Wheel> => {
+    // Un puntero continuado se usa tal cual; el desplazamiento sólo vale para el arranque por defecto.
     const start = (wheel: WheelId): number =>
-      ((initialPointers[wheel] ?? 0) + offset) % size;
+      (continued[wheel] ?? (initialPointers[wheel] ?? 0) + offset) % size;
     return {
       weekday: { pointer: start("weekday"), pending: [] },
       saturday: { pointer: start("saturday"), pending: [] },
@@ -134,17 +141,27 @@ export function assignWithWheels(
   };
   // Rueda única: los cuatro tipos de día comparten el mismo objeto (puntero y deuda).
   const buildSingleWheel = (): Record<WheelId, Wheel> => {
-    const wheel: Wheel = { pointer: (initialPointers.weekday ?? 0) % size, pending: [] };
+    const wheel: Wheel = {
+      pointer: (continuation?.singleGuardia ?? initialPointers.weekday ?? 0) % size,
+      pending: [],
+    };
     return { weekday: wheel, saturday: wheel, sunday: wheel, holiday: wheel };
   };
   const wheelsByRole = {
-    guardia: singleGuardiaWheel ? buildSingleWheel() : buildWheels(0),
-    refuerzo: buildWheels(Math.floor(size / 2)),
+    guardia: singleGuardiaWheel ? buildSingleWheel() : buildWheels(0, continuation?.guardia),
+    refuerzo: buildWheels(Math.floor(size / 2), continuation?.refuerzo),
   };
   const rolesWithWeekdayWheel = singleGuardiaWheel
     ? (["refuerzo"] as const)
     : (["guardia", "refuerzo"] as const);
   const lastAssigned = new Map<string, string>();
+  // Quien trabajó el 31 de diciembre anterior descansa el primer día del año.
+  if (days.length > 0) {
+    const dayBeforeFirst = addDays(toIsoDate(days[0].date), -1);
+    for (const doctorId of continuation?.restingOnFirstDay ?? []) {
+      lastAssigned.set(doctorId, dayBeforeFirst);
+    }
+  }
   const result: DoctorInput[][] = [];
 
   for (const [dayIndex, day] of days.entries()) {

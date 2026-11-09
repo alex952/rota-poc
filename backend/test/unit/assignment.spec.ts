@@ -5,6 +5,7 @@ import {
   AP_POOL_8,
   HOLIDAYS_2026,
   YEAR_2026,
+  seededRandom,
   toHolidaySet,
 } from '../helpers/fixtures';
 
@@ -14,8 +15,10 @@ import {
   generateRotas,
   refuerzosForDay,
 } from '../../src/scheduling/assignment.service';
-import { addDays } from '../../src/common/date.utils';
+import { addDays, toIsoDate } from '../../src/common/date.utils';
 import { classifyDay, classifyYear } from '../../src/holidays/holidays.service';
+import { PreviousYear, PreviousYearRota } from '../../src/scheduling/continuation';
+import { RotaSchedule } from '../../src/scheduling/scheduling.types';
 
 describe('Assignment domain', () => {
   const dayClassifications = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
@@ -395,4 +398,88 @@ describe('AC rota — cobertura fija y validación de pool', () => {
     }
     expect(rota.doctorsPerDay).toBe(1);
   });
+});
+
+describe('Continuidad con el año anterior', () => {
+  const days2025 = classifyYear(2025, new Set());
+  const days2026 = classifyYear(YEAR_2026, toHolidaySet(HOLIDAYS_2026));
+  const dayBefore2026 = days2025[days2025.length - 1];
+
+  // Lo que persistiría el servicio: orden del grupo y filas por fecha y orden de inserción.
+  const toPreviousRota = (rota: RotaSchedule): PreviousYearRota => ({
+    poolOrder: rota.poolOrder,
+    assignments: rota.schedule.flatMap((day) =>
+      day.doctors.map((entry) => ({
+        date: toIsoDate(day.date),
+        doctorId: entry.doctorId,
+        role: entry.role ?? 'guardia',
+      })),
+    ),
+  });
+  const firstYear = generateRotas(2025, AC_POOL_4, AP_POOL_17, days2025, undefined, 'single-wheel', seededRandom(7));
+  const previousYear: PreviousYear = {
+    days: days2025,
+    ac: toPreviousRota(firstYear.ac),
+    ap: toPreviousRota(firstYear.ap),
+  };
+  const doctorsOn = (rota: RotaSchedule, date: string, role?: string) =>
+    (rota.schedule.find((day) => toIsoDate(day.date) === date)?.doctors ?? [])
+      .filter((entry) => !role || (entry.role ?? 'guardia') === role)
+      .map((entry) => entry.doctorId);
+
+  it('no llama a random para el tipo que continúa el año anterior', () => {
+    const random = jest.fn(() => 0.5);
+    generateRotas(YEAR_2026, AC_POOL_4, AP_POOL_17, days2026, dayBefore2026, 'single-wheel', random, previousYear);
+    expect(random).not.toHaveBeenCalled();
+  });
+
+  it('con continuidad sólo para AC, el grupo AP se baraja', () => {
+    const random = jest.fn(() => 0.5);
+    generateRotas(YEAR_2026, AC_POOL_4, AP_POOL_17, days2026, dayBefore2026, 'single-wheel', random, {
+      days: days2025,
+      ac: previousYear.ac,
+    });
+    expect(random).toHaveBeenCalled();
+  });
+
+  it('sin médicos en común con el año anterior se baraja como siempre', () => {
+    const random = jest.fn(() => 0.5);
+    const otherPool = AC_POOL_4.map((doctor) => ({ ...doctor, id: `otro-${doctor.id}` }));
+    generateRotas(YEAR_2026, otherPool, AP_POOL_17, days2026, dayBefore2026, 'single-wheel', random, {
+      days: days2025,
+      ac: previousYear.ac,
+    });
+    expect(random).toHaveBeenCalled();
+  });
+
+  it.each(['single-wheel', 'wheels'] as const)(
+    'encadenar dos años (%s): mismo orden, la guardia AC del 1-1 es la del siguiente al del 31-12 y nadie del 31-12 repite',
+    (strategy) => {
+      const first = generateRotas(2025, AC_POOL_4, AP_POOL_17, days2025, undefined, strategy, seededRandom(7));
+      const chained: PreviousYear = {
+        days: days2025,
+        ac: toPreviousRota(first.ac),
+        ap: toPreviousRota(first.ap),
+      };
+      const second = generateRotas(
+        YEAR_2026, AC_POOL_4, AP_POOL_17, days2026, dayBefore2026, strategy, seededRandom(99), chained,
+      );
+
+      expect(second.ac.poolOrder.map((doctor) => doctor.id)).toEqual(first.ac.poolOrder.map((doctor) => doctor.id));
+      expect(second.ap.poolOrder.map((doctor) => doctor.id)).toEqual(first.ap.poolOrder.map((doctor) => doctor.id));
+
+      for (const [previousRota, rota] of [[first.ac, second.ac], [first.ap, second.ap]] as const) {
+        const worked = doctorsOn(previousRota, '2025-12-31');
+        const working = doctorsOn(rota, '2026-01-01');
+        expect(working.filter((id) => worked.includes(id))).toEqual([]);
+      }
+
+      if (strategy === 'single-wheel') {
+        const order = first.ac.poolOrder.map((doctor) => doctor.id);
+        const last = doctorsOn(first.ac, '2025-12-31', 'guardia')[0];
+        const expected = order[(order.indexOf(last) + 1) % order.length];
+        expect(doctorsOn(second.ac, '2026-01-01', 'guardia')).toEqual([expected]);
+      }
+    },
+  );
 });

@@ -1,5 +1,11 @@
 import { addDays, compareIsoDates, getIsoWeekday, toIsoDate } from '../common/date.utils';
 import { isSanidadSpecialHoliday } from '../common/sanidad-holidays';
+import {
+  PreviousYear,
+  PreviousYearRota,
+  buildWheelContinuation,
+  continuePoolOrder,
+} from './continuation';
 import { InfeasiblePoolError } from './errors';
 import { apShiftDetails, effectiveDayInfo } from './shifts';
 import { RandomSource, shuffle } from './shuffle';
@@ -85,15 +91,19 @@ interface AssignedRota {
   year: number;
   rotaType: RotaType;
   pool: DoctorInput[];
-  /** Grupo en el orden (barajado) con que se asignó */
+  /** Grupo en el orden (barajado o continuado) con que se asignó */
   poolOrder: DoctorInput[];
   strategy: AssignmentStrategyId;
   schedule: DayAssignment[];
+  /** Médicos que trabajaron el 31 de diciembre anterior (continuidad); vacío sin ella */
+  restingOnFirstDay: string[];
 }
 
 /**
  * Asigna las plazas de un grupo: AC cubre la guardia AC del día; AP cubre la guardia
  * AP y los refuerzos que no estén ya reservados para un AC (`reservedRefuerzosByDay`).
+ * Con `previous` (cuadrante del año anterior del mismo tipo) el grupo conserva su orden
+ * y las ruedas continúan; sin él, o sin ningún médico en común, se baraja con `random`.
  */
 function assignRota(
   year: number,
@@ -104,6 +114,8 @@ function assignRota(
   strategyId: AssignmentStrategyId,
   reservedRefuerzosByDay: number[] = [],
   random?: RandomSource,
+  previous?: PreviousYearRota,
+  previousDays: DayInfo[] = [],
 ): AssignedRota {
   const effectiveDays = dayClassifications.map((day) => effectiveDayInfo(rotaType, day));
 
@@ -130,14 +142,21 @@ function assignRota(
     );
   }
 
-  // La estrategia recibe el grupo barajado para que el primer médico de la rotación
-  // no sea siempre el mismo; `pool` conserva el orden original (estadísticas, persistencia).
-  const orderedPool = random ? shuffle(pool, random) : pool;
+  // La estrategia recibe el grupo en el orden del año anterior si lo continúa; si no,
+  // barajado para que el primer médico de la rotación no sea siempre el mismo. `pool`
+  // conserva el orden original (estadísticas, persistencia).
+  const continuedPool = previous ? continuePoolOrder(previous.poolOrder, pool) : null;
+  const orderedPool = continuedPool ?? (random ? shuffle(pool, random) : pool);
+  const continuation =
+    previous && continuedPool
+      ? buildWheelContinuation(rotaType, previous, previousDays, continuedPool)
+      : undefined;
   const assigned = getAssignmentStrategy(strategyId).assign({
     pool: orderedPool,
     days: effectiveDays,
     requiredByDay,
     refuerzosByDay,
+    continuation,
   });
   const schedule: DayAssignment[] = effectiveDays.map((dayInfo, index) => {
     const guardias = requiredByDay[index] - refuerzosByDay[index];
@@ -151,7 +170,15 @@ function assignRota(
     };
   });
 
-  return { year, rotaType, pool, poolOrder: orderedPool, strategy: strategyId, schedule };
+  return {
+    year,
+    rotaType,
+    pool,
+    poolOrder: orderedPool,
+    strategy: strategyId,
+    schedule,
+    restingOnFirstDay: continuation?.restingOnFirstDay ?? [],
+  };
 }
 
 /**
@@ -167,7 +194,7 @@ function planAcRefuerzos(
   dayClassifications: DayInfo[],
   dayBeforeYear: DayInfo | undefined,
 ): { reservedByDay: number[]; warnings: string[] } {
-  const { schedule, pool } = acRota;
+  const { schedule, pool, restingOnFirstDay } = acRota;
   const indexByDate = new Map(schedule.map((day, index) => [toIsoDate(day.date), index]));
   const capacity = dayClassifications.map((day, index) =>
     refuerzosForDay(day, dayClassifications[index - 1] ?? dayBeforeYear),
@@ -215,6 +242,8 @@ function planAcRefuerzos(
         if (
           refuerzoIndex === undefined ||
           schedule[refuerzoIndex].date.getUTCMonth() !== month ||
+          // Quien trabajó el 31 de diciembre anterior descansa el 1 de enero.
+          (refuerzoIndex === 0 && restingOnFirstDay.includes(doctor.id)) ||
           hasDoctor(refuerzoIndex, doctor.id) ||
           hasDoctor(indexByDate.get(addDays(refuerzoDate, -1)), doctor.id) ||
           reservedByDay[refuerzoIndex] >= capacity[refuerzoIndex]
@@ -353,8 +382,11 @@ export function generateRota(
  * Genera los cuadrantes AC y AP del año de una sola vez. Cada día hay una guardia AC,
  * una guardia AP y uno o dos refuerzos (`refuerzosForDay`). Los refuerzos los cubre AP
  * salvo los que necesita un AC para llegar a sus horas mensuales (`planAcRefuerzos`),
- * que se reservan antes de asignar AP. Con `random`, cada grupo se baraja antes de
- * asignar para no empezar siempre por el mismo médico; sin él, el resultado es determinista.
+ * que se reservan antes de asignar AP. Con `previousYear`, cada grupo que ya tenía
+ * cuadrante del año anterior lo continúa (mismo orden, ruedas tras el último médico de
+ * cada una, descanso el 1 de enero para quien trabajó el 31 de diciembre) y no se baraja.
+ * Con `random`, el resto de grupos se baraja antes de asignar para no empezar siempre
+ * por el mismo médico; sin él, el resultado es determinista.
  */
 export function generateRotas(
   year: number,
@@ -364,6 +396,7 @@ export function generateRotas(
   dayBeforeYear?: DayInfo,
   strategyId: AssignmentStrategyId | null = DEFAULT_ASSIGNMENT_STRATEGY,
   random?: RandomSource,
+  previousYear?: PreviousYear,
 ): { ac: RotaSchedule; ap: RotaSchedule } {
   const strategy = strategyId ?? DEFAULT_ASSIGNMENT_STRATEGY;
   const acRota = assignRota(
@@ -375,6 +408,8 @@ export function generateRotas(
     strategy,
     [],
     random,
+    previousYear?.ac,
+    previousYear?.days,
   );
   const { reservedByDay, warnings } = planAcRefuerzos(acRota, dayClassifications, dayBeforeYear);
   const apRota = assignRota(
@@ -386,6 +421,8 @@ export function generateRotas(
     strategy,
     reservedByDay,
     random,
+    previousYear?.ap,
+    previousYear?.days,
   );
 
   return { ac: finalizeRota(acRota, warnings), ap: finalizeRota(apRota) };

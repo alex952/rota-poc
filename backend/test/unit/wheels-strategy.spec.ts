@@ -383,3 +383,74 @@ describe('Estrategia de ruedas (wheels)', () => {
     });
   });
 });
+
+describe('assignWithWheels con continuación del año anterior', () => {
+  const continuationBase = { guardia: {}, refuerzo: {}, restingOnFirstDay: [] as string[] };
+
+  it('el primer día sale el médico al que apunta el puntero de la rueda de guardias', () => {
+    const days = [day('2026-01-02'), day('2026-01-03'), day('2026-01-04')]; // vie, sáb, dom
+    const result = assignWithWheels(
+      {
+        pool,
+        days,
+        requiredByDay: days.map(() => 1),
+        continuation: { ...continuationBase, guardia: { weekday: 2, saturday: 1, sunday: 3 } },
+      },
+      staggeredInitialPointers(pool.length),
+    ).map((chosen) => chosen.map((doctor) => doctor.id));
+
+    expect(result).toEqual([['C'], ['B'], ['D']]);
+  });
+
+  it('las ruedas sin puntero continuado usan su arranque por defecto', () => {
+    const days = [day('2026-01-03')]; // sábado
+    const result = assignWithWheels(
+      {
+        pool,
+        days,
+        requiredByDay: [1],
+        continuation: { ...continuationBase, guardia: { weekday: 2 } },
+      },
+      staggeredInitialPointers(pool.length),
+    );
+    // sábado: ⌊4/4⌋ = 1 → B
+    expect(result[0].map((doctor) => doctor.id)).toEqual(['B']);
+  });
+
+  it('un médico de restingOnFirstDay no sale el primer día', () => {
+    const days = [day('2026-01-02'), day('2026-01-05')];
+    const result = assignWithWheels(
+      {
+        pool,
+        days,
+        requiredByDay: [1, 1],
+        continuation: { ...continuationBase, guardia: { weekday: 0 }, restingOnFirstDay: ['A'] },
+      },
+      staggeredInitialPointers(pool.length),
+    ).map((chosen) => chosen.map((doctor) => doctor.id));
+
+    expect(result[0]).toEqual(['B']);
+  });
+
+  it('el puntero de refuerzo continuado se usa sin el desplazamiento ⌊N/2⌋', () => {
+    const days = [day('2026-01-02')];
+    const required = [2];
+    const withContinuation = assignWithWheels(
+      {
+        pool,
+        days,
+        requiredByDay: required,
+        refuerzosByDay: [1],
+        continuation: { ...continuationBase, guardia: { weekday: 0 }, refuerzo: { weekday: 1 } },
+      },
+      staggeredInitialPointers(pool.length),
+    ).map((chosen) => chosen.map((doctor) => doctor.id));
+    const byDefault = assignWithWheels(
+      { pool, days, requiredByDay: required, refuerzosByDay: [1] },
+      staggeredInitialPointers(pool.length),
+    ).map((chosen) => chosen.map((doctor) => doctor.id));
+
+    expect(withContinuation[0]).toEqual(['A', 'B']); // sin desplazar: el puntero 1 es B
+    expect(byDefault[0]).toEqual(['A', 'C']); // por defecto: 0 + ⌊4/2⌋ = 2
+  });
+});

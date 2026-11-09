@@ -13,11 +13,12 @@ import { HolidaysService, classifyDay, classifyYear } from '../holidays/holidays
 import { InfeasiblePoolError, generateRotas } from '../scheduling/assignment.service';
 import { DEFAULT_ASSIGNMENT_STRATEGY } from '../scheduling/strategies';
 import { apShiftDetails } from '../scheduling/shifts';
-import { DayType, DoctorInput, RotaSchedule } from '../scheduling/scheduling.types';
+import { PreviousYear, PreviousYearRota } from '../scheduling/continuation';
+import { DayType, DoctorInput, RotaSchedule, ShiftRole } from '../scheduling/scheduling.types';
 import { AddDoctorDto } from './dto/add-doctor.dto';
 import { GenerateRotaDto } from './dto/generate-rota.dto';
 import { ReplaceDoctorDto } from './dto/replace-doctor.dto';
-import { RotaAssignmentEntity } from './entities/rota-assignment.entity';
+import { RotaAssignmentEntity, compareAssignments } from './entities/rota-assignment.entity';
 import { RotaDoctorEntity } from './entities/rota-doctor.entity';
 import { RotaEntity } from './entities/rota.entity';
 import { deleteRotaWithChildren } from './rota-deletion';
@@ -56,17 +57,23 @@ export class RotaService {
     }
 
     const teamId = await this.teamsService.resolveTeamId(request.team_id);
+    const previousRotas = await this.loadPreviousYearRotas(teamId, request.year - 1);
 
     try {
       const dayClassifications = classifyYear(
         request.year,
         await this.holidayDates(request.year),
       );
+      const previousHolidays = await this.holidayDates(request.year - 1);
       // El 31 de diciembre anterior decide si el 1 de enero es un segundo festivo consecutivo.
       const dayBeforeYear = classifyDay(
         new Date(Date.UTC(request.year - 1, 11, 31)),
-        await this.holidayDates(request.year - 1),
+        previousHolidays,
       );
+      const previousYear: PreviousYear | undefined =
+        previousRotas.ac || previousRotas.ap
+          ? { days: classifyYear(request.year - 1, previousHolidays), ...previousRotas }
+          : undefined;
       const rotas = generateRotas(
         request.year,
         request.ac_pool,
@@ -74,8 +81,10 @@ export class RotaService {
         dayClassifications,
         dayBeforeYear,
         request.strategy ?? DEFAULT_ASSIGNMENT_STRATEGY,
-        // Se baraja cada grupo para no empezar todos los años por el mismo médico.
+        // Cada grupo sin cuadrante del año anterior se baraja para no empezar todos los años
+        // por el mismo médico; los que lo tienen lo continúan y no usan la aleatoriedad.
         Math.random,
+        previousYear,
       );
 
       const persisted = await this.dataSource.transaction(async (manager) => [
@@ -97,6 +106,30 @@ export class RotaService {
       const message = error instanceof Error ? error.message : String(error);
       throw new BadGatewayException(`No se han podido obtener los festivos de ${request.year}: ${message}`);
     }
+  }
+
+  /** Cuadrantes AC y AP del año anterior del equipo, tal como quedaron guardados (ediciones incluidas). */
+  private async loadPreviousYearRotas(
+    teamId: number,
+    year: number,
+  ): Promise<{ ac?: PreviousYearRota; ap?: PreviousYearRota }> {
+    const rotas = await this.rotaRepository.find({
+      where: { teamId, year },
+      relations: { assignments: true },
+    });
+    const toPrevious = (rotaType: string): PreviousYearRota | undefined => {
+      const rota = rotas.find((candidate) => candidate.rotaType === rotaType);
+      return rota
+        ? {
+            poolOrder: rota.pool as DoctorInput[],
+            assignments: [...rota.assignments]
+              .sort(compareAssignments)
+              .map(({ date, doctorId, role }) => ({ date, doctorId, role: role as ShiftRole })),
+          }
+        : undefined;
+    };
+
+    return { ac: toPrevious('AC'), ap: toPrevious('AP') };
   }
 
   private async persistRota(
