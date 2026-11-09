@@ -332,7 +332,7 @@ footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: a
       <div class="rule"><span class="k">La deuda</span><h3>La deuda se cobra primero</h3><p>Antes de mirar el puntero, la rueda revisa sus deudas <b>de la más antigua a la más reciente</b>. El primero que ya haya descansado sale y cancela una de sus deudas.</p></div>
       <div class="rule"><span class="k">Los papeles</span><h3>Guardia y refuerzo, dos juegos</h3><p>En AP la guardia y el refuerzo tienen <b>cada uno sus cuatro ruedas</b>. Las de refuerzo empiezan media vuelta más allá (⌊N/2⌋). Primero se cubre la guardia; quien la hace ya no puede ser refuerzo ese día.</p></div>
       <div class="rule"><span class="k">El hueco</span><h3>Descanso blando</h3><p>Si no hay bastantes médicos descansados para cubrir el día, se completa con los que no han descansado, siguiendo el orden de la rueda. Esos huecos <b>no apuntan deuda</b>. Con grupos normales no ocurre.</p></div>
-      <div class="rule"><span class="k">Sin memoria</span><h3>Cada año empieza de cero</h3><p>Los punteros vuelven a su posición escalonada el 1 de enero y las deudas no pasan de un año a otro.</p></div>
+      <div class="rule"><span class="k">Sin memoria</span><h3>Continúa el año anterior</h3><p>Cada rueda sigue donde acabó el año anterior; sin cuadrante previo arranca en su posición escalonada. Las deudas no pasan de un año a otro.</p></div>
     </div>
   </section>
 
@@ -368,7 +368,7 @@ footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: a
       <div class="rule"><span class="k">El salto</span><h3>Saltar y conservar el turno</h3><p>Si al que le toca <b>trabajó el día anterior</b> o ya tiene plaza hoy, se le salta y se le apunta <b>una deuda</b> en esa rueda. En la rueda de guardias pasa cuando alguien hizo un <b>refuerzo</b> el día antes de su turno.</p></div>
       <div class="rule"><span class="k">La deuda</span><h3>La deuda se cobra primero</h3><p>Antes de mirar el puntero, la rueda revisa sus deudas <b>de la más antigua a la más reciente</b>. El primero que ya haya descansado sale y cancela una de sus deudas.</p></div>
       <div class="rule"><span class="k">El giro</span><h3>Grupos de 7, 14, 21: la rueda gira</h3><p>Si el grupo es <b>múltiplo de 7</b>, cada N días la rueda de guardias avanza un puesto <b>sin deuda</b>: el saltado hace el último día de esa vuelta. Así nadie queda fijo en un día de la semana. El giro del lunes de «Ruedas» (5 médicos) sólo se aplica a la rueda de refuerzos de laborables.</p></div>
-      <div class="rule"><span class="k">Sin memoria</span><h3>Cada año empieza de cero</h3><p>Las ruedas vuelven a su posición inicial el 1 de enero y las deudas no pasan de un año a otro.</p></div>
+      <div class="rule"><span class="k">Sin memoria</span><h3>Continúa el año anterior</h3><p>Las ruedas continúan donde acabó el año anterior; sin cuadrante previo arrancan en su posición inicial. Las deudas no pasan de un año a otro.</p></div>
     </div>
   </section>
 
@@ -403,7 +403,7 @@ footer code { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: a
   </section>
 
   <footer>
-    <p>Simulación generada en el navegador con la misma lógica que <code>backend/src/scheduling/strategies/wheels.strategy.ts</code> (<code>assignWithWheels</code>; la rueda única es su opción <code>singleGuardiaWheel</code>, que usa <code>single-wheel.strategy.ts</code>). No incluye el barajado del grupo ni los refuerzos que hace un AC para llegar a 135 h al mes: las horas de las tablas son sólo de guardia. Festivos de 2026 en Alicante (Comunidad Valenciana) y festivos especiales de sanidad. Grupos de ejemplo tomados del grupo de médicos de la aplicación.</p>
+    <p>Simulación generada en el navegador con la misma lógica que <code>backend/src/scheduling/strategies/wheels.strategy.ts</code> (<code>assignWithWheels</code>; la rueda única es su opción <code>singleGuardiaWheel</code>, que usa <code>single-wheel.strategy.ts</code>). No incluye el barajado del grupo, la continuación del año anterior (simula un año sin cuadrante previo) ni los refuerzos que hace un AC para llegar a 135 h al mes: las horas de las tablas son sólo de guardia. Festivos de 2026 en Alicante (Comunidad Valenciana) y festivos especiales de sanidad. Grupos de ejemplo tomados del grupo de médicos de la aplicación.</p>
   </footer>
 </div>
 

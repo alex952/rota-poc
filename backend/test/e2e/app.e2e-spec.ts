@@ -441,6 +441,40 @@ describe('HTTP contract', () => {
     expect(nonHoliday.shift_end).toBe('22:00');
   });
 
+  describe('continuidad con el año anterior', () => {
+    it('el año siguiente conserva el orden del grupo y sigue las ruedas desde el 31 de diciembre', async () => {
+      const [firstAc, firstAp] = (await generate({ year: YEAR_2026 - 1 })).json();
+      const [ac, ap] = (await generate()).json();
+
+      expect(ac.doctor_order).toEqual(firstAc.doctor_order);
+      expect(ap.doctor_order).toEqual(firstAp.doctor_order);
+
+      const lastGuardia = withRole(byDate(firstAc.schedule).get(`${YEAR_2026 - 1}-12-31`), 'guardia')[0].doctor_id;
+      const order: string[] = firstAc.doctor_order;
+      const expected = order[(order.indexOf(lastGuardia) + 1) % order.length];
+      expect(withRole(byDate(ac.schedule).get('2026-01-01'), 'guardia').map((doctor) => doctor.doctor_id)).toEqual([
+        expected,
+      ]);
+
+      for (const [previous, current] of [[firstAc, ac], [firstAp, ap]]) {
+        const worked = (byDate(previous.schedule).get(`${YEAR_2026 - 1}-12-31`)?.doctors ?? []).map(
+          (doctor) => doctor.doctor_id,
+        );
+        const working = (byDate(current.schedule).get('2026-01-01')?.doctors ?? []).map((doctor) => doctor.doctor_id);
+        expect(working.filter((doctorId) => worked.includes(doctorId))).toEqual([]);
+      }
+    });
+
+    it('si cambia el grupo, los que siguen conservan su orden y los nuevos van al final', async () => {
+      const [firstAc] = (await generate({ year: YEAR_2026 - 1 })).json();
+      const newcomer = { id: 'doc-099', name: 'Dr. Nuevo', department: 'Medicina General' };
+      const [ac] = (await generate({ ac_pool: [newcomer, ...AC_POOL_4.slice(1)] })).json();
+
+      const expected = (firstAc.doctor_order as string[]).filter((doctorId) => doctorId !== AC_POOL_4[0].id);
+      expect(ac.doctor_order).toEqual([...expected, 'doc-099']);
+    });
+  });
+
   describe('método de asignación (strategy)', () => {
     it('genera con wheels y lo devuelve en la respuesta y en las lecturas posteriores', async () => {
       const generation = await generate({ strategy: 'wheels' });

@@ -1,3 +1,4 @@
+import type { WheelContinuation } from '../continuation';
 import { DayInfo, DoctorInput } from '../scheduling.types';
 
 export const ASSIGNMENT_STRATEGY_IDS = ['single-wheel', 'wheels'] as const;
@@ -12,6 +13,8 @@ export interface StrategyInput {
   requiredByDay: number[];
   // Cuántos de los requeridos de cada día son refuerzos (los últimos). Sin él, todos son guardias.
   refuerzosByDay?: number[];
+  // Continuación del año anterior; sin ella las ruedas arrancan como siempre.
+  continuation?: WheelContinuation;
 }
 
 /**

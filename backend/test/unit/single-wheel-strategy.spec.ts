@@ -202,3 +202,35 @@ describe('Estrategia de rueda única (single-wheel)', () => {
     });
   });
 });
+
+describe('Rueda única con continuación del año anterior', () => {
+  const base = { guardia: {}, refuerzo: {}, restingOnFirstDay: [] as string[] };
+
+  it('la rueda de guardias arranca en singleGuardia', () => {
+    const days = range('2026-01-02', 4);
+    const pool = poolOf(5);
+    const result = ids(
+      singleWheelStrategy.assign({
+        pool,
+        days,
+        requiredByDay: days.map(() => 1),
+        continuation: { ...base, singleGuardia: 3 },
+      }),
+    );
+    expect(result).toEqual([['M3'], ['M4'], ['M0'], ['M1']]);
+  });
+
+  it('quien trabajó el día anterior al primer día no sale el primer día', () => {
+    const days = range('2026-01-02', 2);
+    const pool = poolOf(5);
+    const result = ids(
+      singleWheelStrategy.assign({
+        pool,
+        days,
+        requiredByDay: days.map(() => 1),
+        continuation: { ...base, singleGuardia: 3, restingOnFirstDay: ['M3'] },
+      }),
+    );
+    expect(result[0]).toEqual(['M4']);
+  });
+});

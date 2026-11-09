@@ -114,4 +114,4 @@ La estrategia `wheels` lo corrige como se hace a mano: con exactamente 5 médico
 
 - Festivos aproximados (ver arriba).
 - Un único orden del grupo: el de `doctors.json`. Ambos métodos dependen del orden; las Ruedas mucho más.
-- Las ruedas se reinician cada año. No se modela la continuidad entre años, ni las bajas, vacaciones o cambios manuales posteriores.
+- Las mediciones arrancan cada año desde cero (sin cuadrante previo): la continuación entre años se añadió después y no está medida. Tampoco se modelan las bajas, vacaciones o cambios manuales posteriores.
