@@ -3,7 +3,7 @@ import { Workbook, Worksheet } from 'exceljs';
 
 import { fromIsoDate, getIsoWeekday } from '../common/date.utils';
 import { isSanidadSpecialHoliday } from '../common/sanidad-holidays';
-import { apShiftDetails } from '../scheduling/shifts';
+import { refuerzoShiftDetails } from '../scheduling/shifts';
 import { DayAssignment, DayType, RotaResponse, RotaType } from './rota.types';
 
 const NOMBRES_DIA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
@@ -80,7 +80,7 @@ export class RotaExportService {
         isSanidadSpecialHoliday(fecha) ? 'Festivo especial' : NOMBRES_TIPO_DIA[tipoDia],
         ...this.guardiaColumns(diaAc),
         ...this.guardiaColumns(diaAp),
-        ...this.refuerzoColumns(tipoDia, diaAc, diaAp),
+        ...this.refuerzoColumns(fecha, tipoDia, diaAc, diaAp),
       ]);
     }
   }
@@ -99,6 +99,7 @@ export class RotaExportService {
 
   // Refuerzos del día: los de AP y, marcados con «(AC)», los que cubre un médico AC.
   private refuerzoColumns(
+    fecha: string,
     tipoDia: DayType,
     ac?: DayAssignment,
     ap?: DayAssignment,
@@ -112,7 +113,7 @@ export class RotaExportService {
     if (nombres.length === 0) {
       return [null, null, null];
     }
-    const turno = apShiftDetails(tipoDia);
+    const turno = refuerzoShiftDetails(fromIsoDate(fecha), tipoDia);
     return [nombres.join(', '), `${turno.shiftStart}–${turno.shiftEnd}`, turno.durationHours];
   }
 

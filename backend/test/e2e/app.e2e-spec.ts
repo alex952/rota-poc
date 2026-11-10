@@ -65,6 +65,10 @@ describe('HTTP contract', () => {
   const byDate = (schedule: ApiDay[]) => new Map(schedule.map((day) => [day.date, day]));
   const withRole = (day: ApiDay | undefined, role: string) =>
     (day?.doctors ?? []).filter((doctor) => doctor.role === role);
+  const hoursOf = (
+    body: { stats: { doctors: { doctor_id: string; total_hours: number }[] } },
+    doctorId: string,
+  ) => body.stats.doctors.find((doctor) => doctor.doctor_id === doctorId)!.total_hours;
 
   it('genera AC y AP con una sola petición', async () => {
     const response = await generate();
@@ -356,9 +360,7 @@ describe('HTTP contract', () => {
     const extraDoctor = AC_POOL_4.find((doctor) => doctor.id !== assignedDoctorId);
     expect(extraDoctor).toBeDefined();
 
-    const hoursOf = (body: { stats: { doctors: { doctor_id: string; total_hours: number }[] } }) =>
-      body.stats.doctors.find((doctor) => doctor.doctor_id === extraDoctor!.id)!.total_hours;
-    const hoursBefore = hoursOf(ac);
+    const hoursBefore = hoursOf(ac, extraDoctor!.id);
 
     const addition = await app.inject({
       method: 'POST',
@@ -372,7 +374,7 @@ describe('HTTP contract', () => {
     expect(updatedDay.doctors).toHaveLength(2);
     expect(updatedDay.doctors[0].doctor_id).toBe(assignedDoctorId);
     expect(updatedDay.doctors[1]).toMatchObject({ doctor_id: extraDoctor!.id, role: 'refuerzo' });
-    expect(hoursOf(addition.json())).toBe(hoursBefore + (targetDay.day_type === 'holiday' ? 12 : 7));
+    expect(hoursOf(addition.json(), extraDoctor!.id)).toBe(hoursBefore + (targetDay.day_type === 'holiday' ? 12 : 7));
 
     // En AP se añade un refuerzo.
     const apDay = ap.schedule[10] as ApiDay;
@@ -439,6 +441,55 @@ describe('HTTP contract', () => {
     expect(nonHoliday.duration_hours).toBe(7);
     expect(nonHoliday.shift_start).toBe('15:00');
     expect(nonHoliday.shift_end).toBe('22:00');
+  });
+
+  describe('horarios 2027: guardia única AC/AP y refuerzos propios', () => {
+    it('un sábado de 2027 tiene guardias AC y AP de 24h y dos refuerzos', async () => {
+      const [ac, ap] = (await generate({ year: 2027 })).json();
+      // 2027-01-09 es sábado.
+      const acDay = byDate(ac.schedule).get('2027-01-09')!;
+      const apDay = byDate(ap.schedule).get('2027-01-09')!;
+
+      expect(acDay).toMatchObject({ duration_hours: 24, shift_start: '09:00', shift_end: '09:00+1' });
+      expect(apDay).toMatchObject({ duration_hours: 24, shift_start: '09:00', shift_end: '09:00+1' });
+
+      const refuerzos = withRole(acDay, 'refuerzo').length + withRole(apDay, 'refuerzo').length;
+      expect(refuerzos).toBe(2);
+    });
+
+    it('un refuerzo añadido a mano en AP suma 7h un viernes y 12h un sábado', async () => {
+      const [, ap] = (await generate({ year: 2027 })).json();
+      const apDays = byDate(ap.schedule);
+
+      // 2027-01-08 es viernes (guardia AP de 18h desde 2027; el refuerzo sigue en 7h).
+      const friday = apDays.get('2027-01-08')!;
+      const fridayExtra = AP_POOL_17.find(
+        (doctor) => !friday.doctors.some((ref) => ref.doctor_id === doctor.id),
+      )!;
+      const fridayHoursBefore = hoursOf(ap, fridayExtra.id);
+      const fridayAddition = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/2027/AP/add',
+        payload: { date: friday.date, doctor_id: fridayExtra.id },
+      });
+      expect(fridayAddition.statusCode).toBe(200);
+      expect(hoursOf(fridayAddition.json(), fridayExtra.id)).toBe(fridayHoursBefore + 7);
+
+      // 2027-01-09 es sábado (guardia AP de 24h desde 2027; el refuerzo sigue en 12h).
+      // Médico distinto del de arriba, para que su «antes» no arrastre el refuerzo del viernes.
+      const saturday = apDays.get('2027-01-09')!;
+      const saturdayExtra = AP_POOL_17.find(
+        (doctor) => doctor.id !== fridayExtra.id && !saturday.doctors.some((ref) => ref.doctor_id === doctor.id),
+      )!;
+      const saturdayHoursBefore = hoursOf(ap, saturdayExtra.id);
+      const saturdayAddition = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rota/2027/AP/add',
+        payload: { date: saturday.date, doctor_id: saturdayExtra.id },
+      });
+      expect(saturdayAddition.statusCode).toBe(200);
+      expect(hoursOf(saturdayAddition.json(), saturdayExtra.id)).toBe(saturdayHoursBefore + 12);
+    });
   });
 
   describe('continuidad con el año anterior', () => {

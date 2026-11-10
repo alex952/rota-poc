@@ -4,11 +4,10 @@
 
 El algoritmo de planificación genera de una vez los dos cuadrantes del año, **AC y AP**, con grupos de médicos separados (`generateRotas`). Cada día tiene:
 
-- **1 guardia AC** (grupo AC), con la duración del día calendario.
-- **1 guardia AP** (grupo AP), con horario AP.
-- **1 refuerzo**, o **2** en un festivo especial de sanidad (24, 25 y 31 dic, 1 y 6 ene) o en un festivo precedido de otro festivo. El refuerzo tiene horario AP y lo cubre el grupo AP, salvo los que necesita un AC para llegar a sus horas del mes.
+- **1 guardia AC** (grupo AC) y **1 guardia AP** (grupo AP): hasta 2026 cada una con su propio horario (la de AC, la del día calendario; la de AP, la del refuerzo); desde 2027 (`SHIFTS_2027_FROM_YEAR`, `scheduling/shifts.ts`) ambas comparten el mismo horario de guardia (`guardiaShiftDetails`).
+- **1 refuerzo**, o **2** en un festivo especial de sanidad (24, 25 y 31 dic, 1 y 6 ene), en un festivo precedido de otro festivo o, desde 2027, en cualquier sábado (sea festivo o no). El refuerzo tiene su propio horario (`refuerzoShiftDetails`) y lo cubre el grupo AP, salvo los que necesita un AC para llegar a sus horas del mes.
 
-Para **AC**, cada médico debe llegar a **135h cada mes** (1.620h/año). Para **AP**, cada médico tiene un **máximo de 425h/año**. La guardia AP y los refuerzos duran 7 h (15:00–22:00) de lunes a sábado y 12 h (10:00–22:00) en festivo.
+Para **AC**, cada médico debe llegar a **135h cada mes** (1.620h/año). Para **AP**, cada médico tiene un **máximo de 425h/año**; con la guardia AP más larga desde 2027, es más fácil superarlo y el aviso blando existente (paso 5) salta con más frecuencia. Hasta 2026, la guardia AP y los refuerzos duran 7 h (15:00–22:00) de lunes a sábado y 12 h (10:00–22:00) en festivo; desde 2027, la guardia (AC y AP) y el refuerzo tienen horarios propios y distintos (ver «Tipos de Día y Duraciones»).
 
 ---
 
@@ -43,7 +42,7 @@ generar_rotas(año, grupo_AC, grupo_AP, clasificaciones_días):
 
 La cobertura es fija y no crece con el tamaño del pool: 1 guardia AC, 1 guardia AP y `refuerzosForDay(día, día_anterior)` refuerzos:
 
-- **2** si el día es un festivo especial de sanidad (`DayInfo.specialHoliday`), o un festivo cuyo día anterior también es festivo. Un festivo especial que además sigue a otro festivo (25 dic, 1 ene) sigue teniendo 2, no 3.
+- **2** si el día es un festivo especial de sanidad (`DayInfo.specialHoliday`), un festivo cuyo día anterior también es festivo o, desde 2027, cualquier sábado (sea festivo o no). Un festivo especial que además sigue a otro festivo (25 dic, 1 ene) sigue teniendo 2, no 3.
 - **1** en el resto de días, incluidos los festivos aislados y el primero de una serie.
 
 Los domingos cuentan como festivo. El 1 de enero no tiene día anterior en el año clasificado: `RotaService.generate` clasifica el 31 de diciembre anterior y lo pasa como `dayBeforeYear` (aunque, como el 31 de diciembre es siempre festivo especial, el 1 de enero lleva siempre 2).
@@ -116,9 +115,9 @@ Si algún médico incumple su límite (por debajo en AC, por encima en AP), la r
 | RD-1 | Grupos AC/AP separados — un médico pertenece a un solo grupo | **Dura** — `RotaService.generate` rechaza con 400 un médico en los dos grupos |
 | RD-2 | Día de descanso: asignado (guardia o refuerzo) en D → no disponible en D+1 dentro del grupo; nadie hace guardia y refuerzo el mismo día | **Dura** para grupos >= 2 × pico de plazas; **blanda** para grupos más pequeños. El refuerzo AC se coloca a propósito en D−1 de su guardia |
 | RD-3 | Horas: mínimo 135h/mes y 1.620h/año AC, máximo 425h/año AP por médico | **Blanda** — si no se cumple, la rota se genera con un aviso y la desviación en las estadísticas |
-| RD-4 | Cobertura: 1 guardia AC, 1 guardia AP y 1 refuerzo al día; 2 refuerzos en festivo especial o precedido de otro festivo | **Dura** — `refuerzosForDay` |
-| RD-5 | Guardia AP y refuerzos: 12 h (10:00–22:00) en festivo | **Dura** — duración tomada de `apShiftDetails` |
-| RD-6 | Guardia AP y refuerzos: 7 h (15:00–22:00) de lunes a sábado | **Dura** — duración tomada de `apShiftDetails` |
+| RD-4 | Cobertura: 1 guardia AC, 1 guardia AP y 1 refuerzo al día; 2 refuerzos en festivo especial, precedido de otro festivo o, desde 2027, en cualquier sábado | **Dura** — `refuerzosForDay` |
+| RD-5 | Guardia (AC y AP desde 2027) y refuerzos: horas de festivo | **Dura** — duración tomada de `guardiaShiftDetails` (guardia) y `refuerzoShiftDetails` (refuerzo); hasta 2026 ambas eran el horario histórico de AP |
+| RD-6 | Guardia (AC y AP desde 2027) y refuerzos: horas del resto de la semana | **Dura** — duración tomada de `guardiaShiftDetails` (guardia) y `refuerzoShiftDetails` (refuerzo); desde 2027 el sábado tiene su propio horario de guardia (24h) y de refuerzo (12h), distinto del resto de la semana |
 | RD-7 | Refuerzo AC sólo en D−1 de una guardia suya del mismo mes y sólo si le faltan horas | **Dura** — `planAcRefuerzos` |
 
 ---
@@ -151,9 +150,11 @@ Los objetivos 2-4 los persiguen las ruedas: cada rueda reparte su tipo de turno 
 
 ## Tipos de Día y Duraciones
 
-La clasificación del día (festivo / sábado / laborable) es común a AC y AP. Las **duraciones de turno son distintas** entre rotas:
+La clasificación del día (festivo / sábado / laborable) es común a AC y AP y no cambia con el año. **Precedencia:** Festivo > Sábado > Laborable; un sábado que también es festivo se clasifica como `festivo`, a efectos de estadísticas y de la regla del segundo festivo consecutivo. Las **duraciones de turno** sí dependen del año: hasta 2026 son las de siempre; desde 2027 (`SHIFTS_2027_FROM_YEAR`) cambian la guardia y el refuerzo. Las calcula `scheduling/shifts.ts`: `guardiaShiftDetails(fecha, tipoDía)` para la guardia, `refuerzoShiftDetails(fecha, tipoDía)` para el refuerzo, y `usesShifts2027(fecha)` marca qué régimen aplica.
 
-### AC (rota primaria)
+### Hasta 2026
+
+#### AC (rota primaria)
 
 | Condición | Tipo de Día | Duración | Turno |
 |-----------|------------|---------|-------|
@@ -161,7 +162,7 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 | Sábado (no festivo) | `sábado` | 18h | 15:00 → 09:00+1 |
 | Todos los demás días | `laborable` | 17h | 15:00 → 08:00+1 |
 
-### Guardia AP y refuerzos (`apShiftDetails`)
+#### Guardia AP y refuerzos
 
 | Tipo de Día | Guardia AP | Refuerzos | Duración | Turno |
 |-------------|-----------|-----------|---------|-------|
@@ -170,15 +171,26 @@ La clasificación del día (festivo / sábado / laborable) es común a AC y AP. 
 | festivo aislado o primero de una serie | 1 | 1 | 12h | 10:00 → 22:00 |
 | laborable / sábado | 1 | 1 | 7h | 15:00 → 22:00 |
 
-El refuerzo que hace un AC tiene este mismo horario.
+El refuerzo que hace un AC tiene este mismo horario. Las duraciones AP **no coinciden** con la duración del día calendario (que es la usada por AC).
 
-**Precedencia:** Festivo > Sábado > Laborable. Un sábado que también es festivo se clasifica como `festivo`. Las duraciones AP **no coinciden** con la duración del día calendario (que es la usada por AC).
+### Desde 2027
+
+La guardia pasa a ser idéntica en AC y AP (`guardiaShiftDetails`); el refuerzo, de AP o de AC, tiene su propio horario (`refuerzoShiftDetails`), distinto del de la guardia:
+
+| Condición | Guardia (AC y AP) | Refuerzos | Duración refuerzo | Turno refuerzo |
+|-----------|--------------------|-----------|--------------------|-----------------|
+| Sábado (festivo o no) | 24h (09:00 → 09:00+1) | 2 | 12h | 10:00 → 22:00 |
+| Domingo, o festivo entre semana | 23h (09:00 → 08:00+1) | 1 (2 si festivo especial o precedido de otro festivo) | 12h | 10:00 → 22:00 |
+| Viernes laborable | 18h (15:00 → 09:00+1) | 1 | 7h | 15:00 → 22:00 |
+| Lunes a jueves laborable | 17h (15:00 → 08:00+1) | 1 | 7h | 15:00 → 22:00 |
+
+El refuerzo que hace un AC tiene este mismo horario de refuerzo.
 
 ---
 
 ## Estrategia de ruedas (wheels)
 
-Visualización interactiva para presentarla (abrir en el navegador): [`docs/visualizations/ruedas.html`](visualizations/ruedas.html), pestaña «Ruedas» (`#ruedas`); la pestaña «Rueda única» explica la estrategia predeterminada. Simula el año 2026 con 4 y 5 médicos AC y un ejemplo AP con guardia y refuerzo.
+Visualización interactiva para presentarla (abrir en el navegador): [`docs/visualizations/ruedas.html`](visualizations/ruedas.html), pestaña «Ruedas» (`#ruedas`); la pestaña «Rueda única» explica la estrategia predeterminada. Simula el año 2027 con 4 y 5 médicos AC y un ejemplo AP con guardia y refuerzo.
 
 Elegida con `strategy: "wheels"` en `POST /rota/generate`. Replica cómo se hacen hoy los cuadrantes a mano. Duraciones, `doctors_per_day`, verificación de factibilidad, estadísticas y avisos son los mismos; sólo cambia quién hace cada día. La predeterminada es `single-wheel` (ver más abajo).
 
@@ -225,6 +237,8 @@ Es la estrategia predeterminada: se usa con `strategy: "single-wheel"` o sin `st
 
   Cada cifra es la diferencia entre el médico que más tiene y el que menos (`generateRotas`, festivos de la Comunitat Valenciana). Sábados, domingos y festivos, y días de la semana cuentan guardias; las horas incluyen también los refuerzos. En AP los saltos por los refuerzos descolocan algo la rueda, así que el giro no cae siempre en el puesto exacto, pero el efecto se mantiene. Los grupos de 13, 15 y 17 dan cifras idénticas con y sin la corrección.
 
+  **Nota sobre las horas de 2027:** esta medición es anterior al cambio de horarios de 2027 (ver «Tipos de Día y Duraciones»). Los recuentos de guardias (sábados, domingos y festivos, mismo día de la semana) no dependen de la duración y siguen siendo válidos; la columna de horas está calculada con las duraciones vigentes hasta 2026 y no refleja el régimen vigente desde 2027 para esa columna.
+
 **Compromisos.** El número de guardias por médico queda igualado (±1, salvo deuda pendiente a final de año), pero no el de guardias de cada tipo de día: un médico puede acumular más sábados o festivos que otro, y por tanto más horas, porque la guardia de festivo dura más. La resonancia de los grupos múltiplos de 7 se corrige con el giro de cada vuelta (ver arriba).
 
 
@@ -236,6 +250,8 @@ Medición de noviembre de 2026, con la corrección de los múltiplos de 7 inclui
 
 - Sábados, domingos y festivos, número de guardias y día de la semana cuentan **guardias**.
 - Las horas, totales o de fin de semana y festivo, incluyen también los **refuerzos**.
+
+**Nota sobre las horas de 2027:** esta medición es anterior al cambio de horarios de 2027 (ver «Tipos de Día y Duraciones»). Los recuentos de guardias (sábados, domingos y festivos, número de guardias, mismo día de la semana) no dependen de la duración y siguen siendo válidos; las cifras de horas (totales y de fin de semana/festivo) de la columna 2027 están calculadas con las duraciones vigentes hasta 2026 y no reflejan el régimen vigente desde 2027.
 
 ### Quién gana en cada medida (de 34 casos)
 

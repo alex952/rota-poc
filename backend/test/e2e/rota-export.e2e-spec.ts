@@ -188,6 +188,32 @@ describe('Exportación del cuadrante a Excel', () => {
     expect(laborable.getCell(6).value).toBe(17);
   });
 
+  it('2027: un sábado muestra la guardia de 24h y el refuerzo de 12h (10:00–22:00)', async () => {
+    const generacion = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rota/generate',
+      payload: { year: 2027, ac_pool: AC_POOL_4, ap_pool: AP_POOL_17 },
+    });
+    expect(generacion.statusCode).toBe(201);
+
+    const exportacion = await app.inject({ method: 'GET', url: '/api/v1/rota/2027/export' });
+    expect(exportacion.statusCode).toBe(200);
+
+    const workbook = await cargarLibro(exportacion.rawPayload);
+    const cuadrante = workbook.getWorksheet('Cuadrante')!;
+
+    // 2027-01-09 es sábado.
+    const sabado = filaDeFecha(cuadrante, '2027-01-09');
+    expect(sabado.getCell(3).value).toBe('Sábado');
+    expect(sabado.getCell(5).value).toBe('09:00–09:00+1');
+    expect(sabado.getCell(6).value).toBe(24);
+    expect(sabado.getCell(8).value).toBe('09:00–09:00+1');
+    expect(sabado.getCell(9).value).toBe(24);
+    expect(String(sabado.getCell(10).value).split(', ')).toHaveLength(2);
+    expect(sabado.getCell(11).value).toBe('10:00–22:00');
+    expect(sabado.getCell(12).value).toBe(12);
+  });
+
   it('las hojas de estadísticas tienen una fila por médico y las columnas esperadas', async () => {
     await generar();
 

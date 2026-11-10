@@ -31,7 +31,8 @@ export function calculateStats(
         continue;
       }
 
-      // El refuerzo de un AC tiene horario AP: su duración va en la propia asignación.
+      // El refuerzo, sea de AP o reservado para un AC, tiene su propio horario de
+      // refuerzo: su duración va en la propia asignación.
       const hours = doctor.durationHours ?? day.durationHours;
       totalHours[doctor.doctorId] += hours;
       monthlyHours[doctor.doctorId][month] =

@@ -20,13 +20,23 @@ Un médico pertenece a un único grupo (AC o AP) y nunca participa en la rota de
 - **Cada día** debe haber, como mínimo, **1 AC** asignado y **1 AP** asignado.
 - **En festivos** (incluye domingos clasificados como festivos por la regulación) el AP hace un turno de **12 h** (10:00 a 22:00).
 - **Cuando hay dos festivos consecutivos**, el **segundo** lleva **2 AP** (12 h cada uno). El primer festivo de la serie y los festivos aislados llevan 1 AP.
+- **Desde 2027**, **todos los sábados** llevan **2 refuerzos** de 12 h (también si el sábado es festivo). Nunca hay más de 2.
 
 ## 4. Duraciones de turno por rota y tipo de día
+
+Hasta 2026:
 
 | Rota / rol            | Laborable             | Sábado                | Festivo / Domingo     |
 |-----------------------|-----------------------|-----------------------|-----------------------|
 | AC (primary)          | 17 h (15:00–08:00+1)  | 18 h (15:00–09:00+1)  | 23 h (09:00–08:00+1)  |
 | AP (refuerzo del día) | 7 h (15:00–22:00)     | 7 h (15:00–22:00)     | 12 h (10:00–22:00); × 2 en el segundo festivo consecutivo |
+
+Desde 2027 la guardia es la misma para AC y AP, y los refuerzos (los haga un AP o un AC) tienen su propio horario. Un sábado festivo mantiene el horario de sábado; un festivo de lunes a viernes tiene el de domingo.
+
+| Rol      | Lunes a jueves        | Viernes               | Sábado                                  | Domingo / Festivo     |
+|----------|-----------------------|-----------------------|-----------------------------------------|-----------------------|
+| Guardia  | 17 h (15:00–08:00+1)  | 18 h (15:00–09:00+1)  | 24 h (09:00–09:00+1)                    | 23 h (09:00–08:00+1)  |
+| Refuerzo | 7 h (15:00–22:00)     | 7 h (15:00–22:00)     | 12 h (10:00–22:00); siempre 2 refuerzos | 12 h (10:00–22:00); × 2 en el segundo festivo consecutivo |
 
 ## 5. Restricciones (validadas por el algoritmo)
 

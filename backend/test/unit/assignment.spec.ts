@@ -171,15 +171,16 @@ describe('AP rota — guardia AP y refuerzos del día', () => {
   });
 
   it('cuenta el día anterior al año para el segundo festivo consecutivo', () => {
-    // 2027: el 2 de enero (sábado) sólo es segundo festivo si se marca como festivo.
-    const days2027 = classifyYear(2027, toHolidaySet([new Date('2027-01-02')]));
-    const rota = generateRota(2027, 'AP', AP_POOL_8, days2027, classifyDay(new Date('2026-12-31'), new Set()));
+    // 2021 (antes de 2027, para que la regla del sábado desde 2027 no interfiera): el 2
+    // de enero (sábado) sólo es segundo festivo si se marca como festivo.
+    const days2021 = classifyYear(2021, toHolidaySet([new Date('2021-01-02')]));
+    const rota = generateRota(2021, 'AP', AP_POOL_8, days2021, classifyDay(new Date('2020-12-31'), new Set()));
     const byDate = new Map(rota.schedule.map((day) => [isoDate(day), day]));
 
-    expect(refuerzos(byDate.get('2027-01-01')!)).toHaveLength(2);
-    expect(refuerzos(byDate.get('2027-01-02')!)).toHaveLength(2);
-    expect(refuerzos(byDate.get('2027-01-03')!)).toHaveLength(2); // domingo tras festivo
-    expect(refuerzos(byDate.get('2027-01-04')!)).toHaveLength(1);
+    expect(refuerzos(byDate.get('2021-01-01')!)).toHaveLength(2);
+    expect(refuerzos(byDate.get('2021-01-02')!)).toHaveLength(2);
+    expect(refuerzos(byDate.get('2021-01-03')!)).toHaveLength(2); // domingo tras festivo
+    expect(refuerzos(byDate.get('2021-01-04')!)).toHaveLength(1);
   });
 
   it('los AP no superan las 425h anuales con el grupo real de 17', () => {
@@ -253,7 +254,23 @@ describe('refuerzosForDay', () => {
   });
 
   it('sin día anterior, el 2 de enero festivo sigue al 1 de enero especial', () => {
-    expect(refuerzosForDay(dayOf('2027-01-02', ['2027-01-02']))).toBe(2);
+    // 2021 (antes de 2027): si fuera 2027 el sábado ya daría 2 por la regla del sábado y
+    // la prueba dejaría de ejercitar el cálculo del día anterior por defecto.
+    expect(refuerzosForDay(dayOf('2021-01-02', ['2021-01-02']))).toBe(2);
+  });
+
+  it('2027: todos los sábados llevan 2 refuerzos, sean festivos o no', () => {
+    expect(refuerzosForDay(dayOf('2027-01-09'))).toBe(2); // sábado normal
+    expect(refuerzosForDay(dayOf('2027-05-01', ['2027-05-01']))).toBe(2); // sábado festivo
+  });
+
+  it('2027: el domingo tras un sábado normal lleva 1 refuerzo; tras uno festivo, 2', () => {
+    expect(refuerzosForDay(dayOf('2027-01-10'), dayOf('2027-01-09'))).toBe(1);
+    expect(refuerzosForDay(dayOf('2027-05-02'), dayOf('2027-05-01', ['2027-05-01']))).toBe(2);
+  });
+
+  it('2026: el sábado normal sigue llevando 1 refuerzo (sin la regla de 2027)', () => {
+    expect(refuerzosForDay(dayOf('2026-01-03'), dayOf('2026-01-02'))).toBe(1);
   });
 });
 
@@ -363,6 +380,67 @@ describe('generateRotas — AC y AP en una sola generación', () => {
     expect(rotas.ac.warnings).toEqual([]);
     expect(rotas.ap.warnings).toEqual([]);
   });
+});
+
+describe('generateRotas 2027 — horarios nuevos', () => {
+  const days2027 = classifyYear(2027, new Set());
+
+  it.each(['single-wheel', 'wheels'] as const)(
+    'todos los sábados llevan 2 refuerzos de 12h entre AC y AP, nunca más de 2, y la guardia AP comparte horario con la AC (%s)',
+    (strategy) => {
+      const { ac, ap } = generateRotas(2027, AC_POOL_4, AP_POOL_17, days2027, undefined, strategy);
+      const acByDate = new Map(ac.schedule.map((day) => [toIsoDate(day.date), day]));
+      const apByDate = new Map(ap.schedule.map((day) => [toIsoDate(day.date), day]));
+
+      for (const day of days2027) {
+        const date = toIsoDate(day.date);
+        const acDay = acByDate.get(date)!;
+        const apDay = apByDate.get(date)!;
+        const refuerzos = [...acDay.doctors, ...apDay.doctors].filter(
+          (doctor) => doctor.role === 'refuerzo',
+        );
+
+        expect(refuerzos.length).toBeLessThanOrEqual(2);
+        if (day.date.getUTCDay() === 6) {
+          expect(refuerzos).toHaveLength(2);
+          for (const refuerzo of refuerzos) {
+            expect(refuerzo.durationHours).toBe(12);
+            expect(refuerzo.shiftStart).toBe('10:00');
+            expect(refuerzo.shiftEnd).toBe('22:00');
+          }
+        }
+
+        // La guardia AP ya no se transforma y comparte horas e inicio/fin con la AC.
+        expect(apDay.durationHours).toBe(acDay.durationHours);
+        expect(apDay.shiftStart).toBe(acDay.shiftStart);
+        expect(apDay.shiftEnd).toBe(acDay.shiftEnd);
+      }
+
+      // 2027-01-08 es viernes y 2027-01-09 es sábado.
+      expect(acByDate.get('2027-01-08')!.durationHours).toBe(18);
+      expect(apByDate.get('2027-01-08')!.durationHours).toBe(18);
+      expect(acByDate.get('2027-01-09')!.durationHours).toBe(24);
+      expect(apByDate.get('2027-01-09')!.durationHours).toBe(24);
+    },
+  );
+
+  it.each(['single-wheel', 'wheels'] as const)(
+    'los refuerzos AC reservados (planAcRefuerzos) llevan el horario de refuerzo 2027 del día (%s)',
+    (strategy) => {
+      const { ac } = generateRotas(2027, AC_POOL_4, AP_POOL_17, days2027, undefined, strategy);
+      let checked = 0;
+      for (const day of ac.schedule) {
+        for (const doctor of day.doctors.filter((ref) => ref.role === 'refuerzo')) {
+          checked += 1;
+          const expectedHours = day.date.getUTCDay() === 6 || day.dayType === 'holiday' ? 12 : 7;
+          expect(doctor.durationHours).toBe(expectedHours);
+          expect(doctor.shiftStart).toBe(expectedHours === 12 ? '10:00' : '15:00');
+          expect(doctor.shiftEnd).toBe('22:00');
+        }
+      }
+      expect(checked).toBeGreaterThan(0);
+    },
+  );
 });
 
 describe('AC rota — cobertura fija y validación de pool', () => {
